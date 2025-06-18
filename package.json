@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "supabase": "^2.20.12"
+  }
+}

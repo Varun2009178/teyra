@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *)); /* Custom variant */
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-background-fallback: #ffffff; /* Fallback */
+  --color-foreground: var(--foreground);
+  --color-foreground-fallback: #000000; /* Fallback */
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  /* Light Mode Variables */
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --background-fallback: #ffffff; /* Fallback */
+  --foreground: oklch(0.145 0 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark Mode Variables */
+    --background: oklch(0.145 0 0);
+    --background-fallback: #000000; /* Fallback */
+    --foreground: oklch(0.985 0 0);
+    --foreground-fallback: #ffffff; /* Fallback */
+    /* Other dark mode variables... */
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    background-color: var(--background-fallback); /* Fallback for unsupported browsers */
+    color: var(--foreground-fallback);            /* Fallback text color */
+  }
+}
