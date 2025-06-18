@@ -1,5 +1,10 @@
 import { LoginPage } from "@/lib/components/login-page";
+import { Suspense } from "react";
 
-export default function LogInRoute() {
-  return <LoginPage />;
+export default function Page() {
+  return (
+    <Suspense>
+      <LoginPage />
+    </Suspense>
+  );
 } 
