@@ -59,9 +59,8 @@ export function SignupPage() {
     }
 
     if (data.user) {
-        // In a production app, you need to guide the user to confirm their email.
-        alert("Success! Please check your email for a confirmation link to activate your account.");
-        // We don't redirect here. The user will be redirected from the link in their email.
+      // Redirect immediately to the profile creation page.
+      router.push('/create-profile');
     }
   };
 
