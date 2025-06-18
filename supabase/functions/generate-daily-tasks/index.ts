@@ -12,13 +12,20 @@ const corsHeaders = {
 
 console.log("Initializing generate-daily-tasks function v4 (multi-task, impact_qualifier_unit)");
 
-// --- Get Google AI API Key from Secrets ---
-const GOOGLE_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-if (!GOOGLE_API_KEY) {
-  console.error("Missing GOOGLE_AI_API_KEY environment variable.");
+// --- Initialize Google AI SDK ---
+// This function will now throw an error if the key is not found,
+// preventing the function from running with a missing key.
+function initializeGenAI() {
+  const apiKey = Deno.env.get("GOOGLE_AI_API_KEY");
+  if (!apiKey) {
+    console.error("CRITICAL: GOOGLE_AI_API_KEY environment variable is not set.");
+    throw new Error("Server configuration error: Missing Google AI API Key.");
+  }
+  return new GoogleGenerativeAI(apiKey);
 }
-const genAI = GOOGLE_API_KEY ? new GoogleGenerativeAI(GOOGLE_API_KEY) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: "gemini-1.5-flash" }) : null;
+
+const genAI = initializeGenAI();
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 async function getTasksFromAI(profile: any) {
   if (!model) {
