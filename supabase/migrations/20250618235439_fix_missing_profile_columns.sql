@@ -1,0 +1,6 @@
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS sustainability_knowledge TEXT,
+ADD COLUMN IF NOT EXISTS total_eco_score INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE public.daily_tasks
+ADD COLUMN IF NOT EXISTS eco_score INTEGER NOT NULL DEFAULT 10;

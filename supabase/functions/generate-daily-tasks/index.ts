@@ -193,7 +193,7 @@ serve(async (req: Request) => {
 
     const tasksToInsert = suggestedTasks.map((task: any) => ({
       user_id: userId,
-      task_description: task.description,
+      task_description: task.description.toLowerCase(),
       xp_value: task.xp_value || 10,
       assigned_date: dateToUse,
       is_completed: false,
