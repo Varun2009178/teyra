@@ -54,6 +54,7 @@ async function getTasksFromAI(profile: any) {
     - CRITICAL: Each task MUST be a simple, daily achievable action. Aim for tasks that can be done in roughly 5-15 minutes.
     - Task difficulty and type MUST be strongly influenced by the user's profile.
     - Keep each task description concise (max 15-20 words).
+    - CRITICAL FORMATTING RULE: The text for the 'description' field MUST be entirely in lowercase.
     - Assign an estimated XP value (integer between 5 and 15) for each task.
     - Assign an eco_score (integer between 5 and 25) representing the positive environmental impact.
 
@@ -62,9 +63,9 @@ async function getTasksFromAI(profile: any) {
 
     Example JSON output for MULTIPLE tasks:
     [
-      {"description": "Use a reusable shopping bag today.", "xp_value": 5, "eco_score": 15},
-      {"description": "Unplug one unused appliance before leaving home.", "xp_value": 7, "eco_score": 10},
-      {"description": "Shorten your shower by 2 minutes.", "xp_value": 10, "eco_score": 20}
+      {"description": "use a reusable shopping bag today.", "xp_value": 5, "eco_score": 15},
+      {"description": "unplug one unused appliance before leaving home.", "xp_value": 7, "eco_score": 10},
+      {"description": "shorten your shower by 2 minutes.", "xp_value": 10, "eco_score": 20}
     ]
   `;
   console.log(`Attempting to generate 2-4 tasks for profile: Lifestyle=${safeLifestyle}, Focuses=${safeSustainabilityFocus}, Knowledge=${safeSustainabilityKnowledge}, Climate=${safeClimateChallenges}`);
