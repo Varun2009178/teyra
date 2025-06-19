@@ -18,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface DailyTask {
   id: number;
@@ -237,122 +238,128 @@ export default function TasksPage() {
   }, [profileLifestyle, profileSustainabilityFocus, profileClimateChallenges]);
 
   return (
-    <>
-      <div className="container mx-auto max-w-3xl px-4 py-12 flex flex-col items-center text-center min-h-[calc(100vh-8rem)] justify-start">
-        <motion.h1 
-          className="text-5xl font-extrabold mb-10 text-emerald-500"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          Today's Tasks
-        </motion.h1>
-
-        {(isInitialLoading || isLoadingProfile) && <p className="text-neutral-400 py-4 text-lg">Preparing your tasks...</p>}
-        
-        {!isInitialLoading && !isLoadingProfile && personalizationPoints.length > 0 && (
-          <motion.div 
-            className="mb-12 w-full max-w-lg text-left text-2xl sm:text-3xl" 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <p className="text-neutral-300 mb-2">Since you are:</p>
-            <p className="text-emerald-300 ml-4">• a {personalizationPoints.find(p => p.type === 'lifestyle')?.label}</p>
+    <div className="flex flex-col items-center p-4 md:p-8 min-h-screen bg-background">
+      <motion.div
+        className="w-full max-w-2xl"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold">your daily tasks</CardTitle>
+            <p className="text-muted-foreground pt-2">
+              here are your personalized tasks for today. complete them to boost your eco-score!
+            </p>
+          </CardHeader>
+          <CardContent>
+            {(isInitialLoading || isLoadingProfile) && <p className="text-neutral-400 py-4 text-lg">Preparing your tasks...</p>}
             
-            <p className="text-neutral-300 mt-4 mb-2">And you want to:</p>
-            {personalizationPoints.filter(p => p.type === 'focus').map((point, idx) => (
-              <p key={`focus-${idx}`} className="text-emerald-300 ml-4">• {point.label}</p>
-            ))}
-            <p className="text-emerald-300 ml-4">• be more motivated</p>
-
-            {personalizationPoints.some(p => p.type === 'challenge') && (
-              <>
-                <p className="text-neutral-300 mt-4 mb-2">While being affected by:</p>
-                {personalizationPoints.filter(p => p.type === 'challenge').map((point, idx) => (
-                  <p key={`challenge-${idx}`} className="text-emerald-300 ml-4">• {point.label}</p>
-                ))}
-              </>
-            )}
-            <p className="text-neutral-300 mt-6">Here are your tasks:</p>
-          </motion.div>
-        )}
-
-        {!isInitialLoading && !isLoadingProfile && error && <p className="text-red-500 py-4">Error: {error.toLowerCase()}</p>}
-
-        {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.length === 0 && (
-          <motion.p 
-            className="text-neutral-300 py-4 text-xl"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          >
-            No tasks assigned for today. Check back soon!
-          </motion.p>
-        )}
-
-        <div className="w-full max-w-lg space-y-4 mt-2 text-left">
-          <AnimatePresence>
-            {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.map((task, index) => (
-              <motion.div
-                key={task.id}
-                layout 
-                initial={{ opacity: 0, y: 15 }}
+            {!isInitialLoading && !isLoadingProfile && personalizationPoints.length > 0 && (
+              <motion.div 
+                className="mb-12 w-full max-w-lg text-left text-2xl sm:text-3xl" 
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15, transition: { duration: 0.2 } }}
-                transition={{ type: "spring", stiffness: 180, damping: 25 }}
-                className="w-full"
+                transition={{ duration: 0.5, delay: 0.1 }}
               >
-                {!task.isRevealed ? (
-                  <Button 
-                    variant="outline"
-                    className="w-full justify-center py-6 text-xl font-semibold tracking-wide border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-700 hover:text-emerald-200"
-                    onClick={() => toggleIndividualTaskReveal(task.id)}
-                  >
-                    REVEAL TASK {index + 1}
-                    <ZapIcon className="ml-3 h-6 w-6" />
-                  </Button>
-                ) : (
-                  <div className="flex items-center justify-between w-full p-3 sm:p-4 bg-neutral-800 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`task-${task.id}`}
-                        checked={task.is_completed}
-                        onCheckedChange={() => handleTaskToggle(task.id, task.is_completed)}
-                        className="h-6 w-6 rounded-full data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white border-neutral-600"
-                      />
-                      <Label htmlFor={`task-${task.id}`} className={`text-base font-medium ${task.is_completed ? 'line-through text-neutral-500' : 'text-neutral-200'}`}>
-                        {task.task_description}
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-1 text-amber-400 font-semibold text-sm">
-                      <SparklesIcon className="h-4 w-4" />
-                      <span>{task.eco_score}</span>
-                    </div>
-                  </div>
+                <p className="text-neutral-300 mb-2">since you are:</p>
+                <p className="text-emerald-300 ml-4">• a {personalizationPoints.find(p => p.type === 'lifestyle')?.label}</p>
+                
+                <p className="text-neutral-300 mt-4 mb-2">and you want to:</p>
+                {personalizationPoints.filter(p => p.type === 'focus').map((point, idx) => (
+                  <p key={`focus-${idx}`} className="text-emerald-300 ml-4">• {point.label}</p>
+                ))}
+                <p className="text-emerald-300 ml-4">• be more motivated</p>
+
+                {personalizationPoints.some(p => p.type === 'challenge') && (
+                  <>
+                    <p className="text-neutral-300 mt-4 mb-2">while being affected by:</p>
+                    {personalizationPoints.filter(p => p.type === 'challenge').map((point, idx) => (
+                      <p key={`challenge-${idx}`} className="text-emerald-300 ml-4">• {point.label}</p>
+                    ))}
+                  </>
                 )}
+                <p className="text-neutral-300 mt-6">here are your tasks:</p>
               </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-        
-        {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.length > 0 && allTasksCompleted && (
-          <motion.div 
-              initial={{ opacity: 0, y:30}} 
-              animate={{ opacity:1, y:0}} 
-              transition={{delay: 0.5, type: "spring"}} 
-              className="mt-12 text-center" 
-          >
-              <p className="text-emerald-400 text-2xl drop-shadow-lg">
-                  🎉 All tasks completed! 🎉
-              </p>
-              {nextTaskDueAt && new Date() < nextTaskDueAt &&
-                 <p className="text-neutral-300 mt-3">Your next tasks arrive around {format(nextTaskDueAt, 'p').toLowerCase()}.</p>
-              }
-              <p className="text-neutral-300 mt-1">
-                  Curious about your progress? <a href="/impact" className="underline hover:text-emerald-400 transition-colors">See your impact!</a>
-              </p>
-          </motion.div>
-        )}
-      </div>
+            )}
+
+            {!isInitialLoading && !isLoadingProfile && error && <p className="text-red-500 py-4">error: {error.toLowerCase()}</p>}
+
+            {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.length === 0 && (
+              <motion.p 
+                className="text-neutral-300 py-4 text-xl"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+              >
+                no tasks assigned for today. check back soon!
+              </motion.p>
+            )}
+
+            <div className="w-full max-w-lg space-y-4 mt-2 text-left">
+              <AnimatePresence>
+                {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.map((task, index) => (
+                  <motion.div
+                    key={task.id}
+                    layout 
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15, transition: { duration: 0.2 } }}
+                    transition={{ type: "spring", stiffness: 180, damping: 25 }}
+                    className="w-full"
+                  >
+                    {!task.isRevealed ? (
+                      <Button 
+                        variant="outline"
+                        className="w-full justify-center py-6 text-xl font-semibold tracking-wide border-2 border-emerald-500 text-emerald-400 hover:bg-emerald-700 hover:text-emerald-200"
+                        onClick={() => toggleIndividualTaskReveal(task.id)}
+                      >
+                        REVEAL TASK {index + 1}
+                        <ZapIcon className="ml-3 h-6 w-6" />
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between w-full p-3 sm:p-4 bg-neutral-800 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            id={`task-${task.id}`}
+                            checked={task.is_completed}
+                            onCheckedChange={() => handleTaskToggle(task.id, task.is_completed)}
+                            className="h-6 w-6 rounded-full data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white border-neutral-600"
+                          />
+                          <Label htmlFor={`task-${task.id}`} className={`text-base font-medium ${task.is_completed ? 'line-through text-neutral-500' : 'text-neutral-200'}`}>
+                            {task.task_description.toLowerCase()}
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-1 text-amber-400 font-semibold text-sm">
+                          <SparklesIcon className="h-4 w-4" />
+                          <span>{task.eco_score}</span>
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            
+            {!isInitialLoading && !isLoadingProfile && !error && dailyTasks.length > 0 && allTasksCompleted && (
+              <motion.div 
+                  initial={{ opacity: 0, y:30}} 
+                  animate={{ opacity:1, y:0}} 
+                  transition={{delay: 0.5, type: "spring"}} 
+                  className="mt-12 text-center" 
+              >
+                  <p className="text-emerald-400 text-2xl drop-shadow-lg">
+                      🎉 All tasks completed! 🎉
+                  </p>
+                  {nextTaskDueAt && new Date() < nextTaskDueAt &&
+                     <p className="text-neutral-300 mt-3">Your next tasks arrive around {format(nextTaskDueAt, 'p').toLowerCase()}.</p>
+                  }
+                  <p className="text-neutral-300 mt-1">
+                      Curious about your progress? <a href="/impact" className="underline hover:text-emerald-400 transition-colors">See your impact!</a>
+                  </p>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <AlertDialog open={showUndoConfirm} onOpenChange={setShowUndoConfirm}>
         <AlertDialogContent className="bg-neutral-800 border-neutral-700 text-white">
@@ -371,6 +378,6 @@ export default function TasksPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
