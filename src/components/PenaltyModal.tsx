@@ -15,7 +15,7 @@ export function PenaltyModal({ isOpen, onClose }: PenaltyModalProps) {
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
           <FaExclamationTriangle className="h-6 w-6 text-yellow-600" aria-hidden="true" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold">Oh No!</h2>
+        <h2 className="text-3xl font-black text-yellow-500">Oh No!</h2>
         <p className="mt-4 text-gray-600">
           You didn&apos;t complete all your tasks yesterday, so your streak has
           been reset.

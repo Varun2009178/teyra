@@ -26,17 +26,17 @@ import { FiSettings, FiMessageSquare } from "react-icons/fi";
 
 const moodTexts = {
   HAPPY: [
-    "Don't skip a day to make me sad again!",
+    "Don&apos;t skip a day to make me sad again!",
     "How is your motivation feeling?",
-    "Keep it up! I'm really proud of you!",
+    "Keep it up! I&apos;m really proud of you!",
   ],
   MEDIUM: [
-    "Doing sustainable tasks is pretty fun, I can't even lie!",
+    "Doing sustainable tasks is pretty fun, I can&apos;t even lie!",
     "I am happy... but I can be happier!",
     "Just a few more tasks to unlock my full potential!",
   ],
   SAD: [
-    "I mean all you have to do is a few sustainable tasks, it can't be that hard...",
+    "I mean all you have to do is a few sustainable tasks, it can&apos;t be that hard...",
     "Make me slightly less sad by doing some easy tasks!",
     "I feel like being happy is better than being sad.",
   ],
@@ -196,9 +196,9 @@ export default function DashboardClient({
         .then((result) => {
           if (result.success && "tasks" in result && "user" in result) {
             setTasks(result.tasks);
-            setCurrentUser(result.user);
+            setCurrentUser(result.user as User);
             if (result.user) {
-              updateSession({ user: result.user });
+              updateSession({ user: result.user as User });
             }
             if (result.penaltyApplied) {
               setPenaltyModalOpen(true);
@@ -207,7 +207,7 @@ export default function DashboardClient({
         })
         .finally(() => setIsRegenerating(false));
     }
-  }, [user.id, updateSession]);
+  }, [user.id, user.tasksLastGeneratedAt, updateSession]);
 
   // --- Reveal Tasks Logic ---
   const getRevealStorageKey = (date: Date) => {
@@ -266,8 +266,8 @@ export default function DashboardClient({
       );
       if (result.success && "tasks" in result && "user" in result) {
         setTasks(result.tasks);
-        setCurrentUser(result.user);
-        await updateSession({ user: result.user });
+        setCurrentUser(result.user as User);
+        await updateSession({ user: result.user as User });
         setDisplayDate(newSimulatedDate); // Move to the next day on success
         // Show penalty modal if the simulation resulted in one
         if (result.penaltyApplied) {
@@ -320,7 +320,7 @@ export default function DashboardClient({
   } else {
     // HAPPY tier
     progress = 100;
-    progressText = "You've reached the highest level of happiness!";
+    progressText = "You&apos;ve reached the highest level of happiness!";
     progressColor = "bg-green-500";
   }
 
@@ -340,7 +340,7 @@ export default function DashboardClient({
     if (allTasksCompleted && user && !user.hasSeenCompletionPopup) {
       setCompletionModalOpen(true);
     }
-  }, [allTasksCompleted, user.hasSeenCompletionPopup]);
+  }, [allTasksCompleted, user]);
 
   const handleCloseCompletion = async () => {
     setCompletionModalOpen(false);
@@ -380,8 +380,8 @@ export default function DashboardClient({
 
         // Force a full state update with the authoritative data from the server
         setTasks(result.tasks);
-        setCurrentUser(result.user);
-        updateSession({ user: result.user });
+        setCurrentUser(result.user as User);
+        updateSession({ user: result.user as User });
       })
       .catch((error) => {
         console.error("Error updating task:", error);
@@ -425,7 +425,7 @@ export default function DashboardClient({
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
-            You've completed all your tasks for the day. New tasks will be
+            You&apos;ve completed all your tasks for the day. New tasks will be
             generated for you in 24 hours. Keep up the great work!
           </p>
           <div className="mt-6">
@@ -452,7 +452,7 @@ export default function DashboardClient({
             <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-8 text-center shadow-[8px_8px_0_0_#FCA311] lg:col-span-2">
               <div className="w-full">
                 <h2 className="text-2xl font-bold text-gray-700">
-                  Mike's Mood
+                  Mike&apos;s Mood
                 </h2>
               </div>
               <div className="h-80 w-full">
@@ -481,7 +481,7 @@ export default function DashboardClient({
               </div>
               <div className="mt-4 w-full max-w-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
-                  Mike's Mood Progress
+                  Mike&apos;s Mood Progress
                 </h3>
                 <div className="mt-2 h-4 w-full rounded-full border-2 border-gray-300 bg-gray-200">
                   <div
@@ -536,7 +536,7 @@ export default function DashboardClient({
                       onClick={handleRevealTasks}
                       className="rounded-xl border-4 border-black bg-white px-8 py-4 text-2xl font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none"
                     >
-                      Click to Reveal Today's Tasks!
+                      Click to Reveal Today&apos;s Tasks!
                     </button>
                   </div>
                 ) : (
@@ -551,7 +551,7 @@ export default function DashboardClient({
                   Streak Progress
                 </h2>
                 <p className="mt-2 text-lg font-bold text-gray-700">
-                  You're on a {user.currentStreak}-day streak!
+                  You&apos;re on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">

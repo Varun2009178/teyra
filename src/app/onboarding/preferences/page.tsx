@@ -13,13 +13,13 @@ const questions = [
   },
   {
     id: "q2",
-    text: "What&apos;s a typical meal for you?",
+    text: "What's a typical meal for you?",
     options: ["🥩 Meat is a must", "🍗 A mix of everything", "🌱 Mostly vegetarian", "🥗 Strictly vegetarian/vegan"],
   },
   {
     id: "q3",
     text: "When it comes to lights and electronics, you are...",
-    options: ["💡 A &apos;lights-on&apos; person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
+    options: ["💡 A 'lights-on' person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
   },
   {
     id: "q4",
