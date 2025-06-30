@@ -7,9 +7,6 @@ import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   title: "Teyra",
   description: "Stay Motivated Through Sustainability",
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default function RootLayout({
