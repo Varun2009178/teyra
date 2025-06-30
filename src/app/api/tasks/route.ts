@@ -1,6 +1,7 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getTasksByUserId } from "@/app/actions/tasks";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 

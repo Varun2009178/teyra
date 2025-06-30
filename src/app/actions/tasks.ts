@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { CactusState, User } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { generateAndSaveTasks } from "@/lib/generation";

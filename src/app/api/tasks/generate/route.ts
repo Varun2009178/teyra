@@ -1,5 +1,5 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { generateAndSaveTasks } from "@/lib/generation";
 import prisma from "@/lib/prisma";
 
