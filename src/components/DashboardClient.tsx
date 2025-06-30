@@ -7,7 +7,7 @@ import CactusAnimation from "@/components/CactusAnimation";
 import TaskList from "@/components/TaskList";
 import Modal from "@/components/Modal";
 import type { Session } from "next-auth";
-import type { Task, CactusState } from "@prisma/client";
+import type { Task, CactusState, User } from "@prisma/client";
 import { IntroPopup } from "@/components/IntroPopup";
 import { StreakModal } from "@/components/StreakModal";
 import { PenaltyModal } from "@/components/PenaltyModal";

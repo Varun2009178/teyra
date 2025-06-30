@@ -11,8 +11,8 @@ export default function FeedbackPage() {
           Suggestions & Bugs
         </h1>
         <p className="mt-6 text-lg text-gray-700">
-          Have an idea for a new feature? Found something that isn't working
-          right? I'd love to hear from you! Your feedback is crucial for making
+          Have an idea for a new feature? Found something that isn&apos;t working
+          right? I&apos;d love to hear from you! Your feedback is crucial for making
           this app better for everyone.
         </p>
         <p className="mt-8 text-xl font-bold text-gray-800">

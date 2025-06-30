@@ -9,7 +9,7 @@ declare module "next-auth" {
   interface User {
     id: string;
     username: string | null;
-    onboarded: boolean;
+    onboardingComplete: boolean;
     currentStreak: number;
     cactusState: CactusState;
     tasksCompletedForCactus: number;

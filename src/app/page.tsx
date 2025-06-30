@@ -64,7 +64,7 @@ export default function Page() {
             className="mx-auto my-8"
           />
           <p className="text-2xl text-foreground/80">
-            He's your new accountability partner.
+            He&apos;s your new accountability partner.
           </p>
         </div>
         <div className="absolute bottom-10 w-full text-center">
@@ -124,8 +124,8 @@ export default function Page() {
         <div className="max-w-2xl">
           <h2 className="text-7xl font-black">Mike is Motivation.</h2>
           <p className="mt-6 text-2xl">
-            He's a simple, visual representation of your progress. Keeping Mike
-            happy means you're building strong, consistent, and sustainable
+            He&apos;s a simple, visual representation of your progress. Keeping Mike
+            happy means you&apos;re building strong, consistent, and sustainable
             habits.
           </p>
           {!session && (

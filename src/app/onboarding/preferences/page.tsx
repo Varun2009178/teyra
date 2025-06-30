@@ -13,13 +13,13 @@ const questions = [
   },
   {
     id: "q2",
-    text: "What's a typical meal for you?",
+    text: "What&apos;s a typical meal for you?",
     options: ["🥩 Meat is a must", "🍗 A mix of everything", "🌱 Mostly vegetarian", "🥗 Strictly vegetarian/vegan"],
   },
   {
     id: "q3",
     text: "When it comes to lights and electronics, you are...",
-    options: ["💡 A 'lights-on' person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
+    options: ["💡 A &apos;lights-on&apos; person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
   },
   {
     id: "q4",
@@ -40,6 +40,7 @@ export default function PreferencesPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -79,6 +80,7 @@ export default function PreferencesPage() {
 
     } catch (error) {
       console.error(error);
+      setError(true);
       setIsSubmitting(false);
     }
   };
@@ -117,7 +119,7 @@ export default function PreferencesPage() {
               Welcome, {session.user?.username}!
             </h1>
             <p className="mt-4 text-lg text-gray-600">
-              Let's personalize your journey. Answer 5 quick questions to get sustainability tasks tailored just for you.
+              Let&apos;s personalize your journey. Answer 5 quick questions to get sustainability tasks tailored just for you.
             </p>
             <button
               onClick={() => setHasStarted(true)}
@@ -162,6 +164,14 @@ export default function PreferencesPage() {
                 </button>
               ))}
             </div>
+            <p className="text-sm text-foreground/70">
+              Your answers will help us tailor your experience.
+            </p>
+            {error && (
+              <p className="mt-2 text-red-500">
+                Something went wrong. Please try again.
+              </p>
+            )}
           </div>
         </div>
       </main>

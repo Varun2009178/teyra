@@ -25,7 +25,13 @@ export default function Navbar() {
     <nav className="fixed left-0 right-0 top-0 z-50 bg-white/80 px-4 py-3 shadow-md backdrop-blur-md sm:px-6">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img src="/teyra-logo.png" alt="Teyra Logo" className="h-8 w-auto" />
+          <Image
+            src="/teyra-logo.png"
+            alt="Teyra Logo"
+            width={32}
+            height={32}
+            className="h-8 w-auto"
+          />
           <span className="text-xl font-bold text-gray-800">Teyra</span>
         </Link>
         <div className="flex items-center gap-4">

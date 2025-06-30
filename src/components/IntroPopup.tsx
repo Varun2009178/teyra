@@ -11,13 +11,15 @@ export function IntroPopup({ isOpen, onClose }: IntroPopupProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="text-center">
-        <h2 className="text-2xl font-bold">Welcome to your Dashboard! 🌵</h2>
-        <p className="mt-4 text-gray-700">
-          This is Mike, your motivation cactus! To make him happy, you need to
-          complete your daily tasks.
-          <br />
-          <br />
-          Click the button below to reveal your first set of challenges!
+        <h2 className="text-3xl font-black text-gray-800">
+          Welcome to Teyra!
+        </h2>
+        <p className="mt-4 text-gray-600">
+          This is Mike, your personal accountability cactus. Your goal is to
+          keep him happy by completing daily sustainable tasks.
+        </p>
+        <p className="mt-4 text-gray-600">
+          If you miss a day, Mike gets sad. Don&apos;t make Mike sad.
         </p>
         <div className="mt-6 flex justify-center">
           <button
