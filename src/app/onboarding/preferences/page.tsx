@@ -41,7 +41,7 @@ const questions: Question[] = [
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [answers, setAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,6 +82,8 @@ export default function PreferencesPage() {
         throw new Error("Failed to generate tasks. Please try again.");
       }
       
+      await update();
+
       router.push("/dashboard");
 
     } catch (error) {
