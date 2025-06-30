@@ -14,7 +14,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (session?.user) {
-      if (session.user.onboardingComplete) {
+      if (session.user.onboarded) {
         router.push("/dashboard");
       } else {
         router.push("/onboarding/username");

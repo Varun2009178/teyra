@@ -57,7 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ...session.user, // Keep original properties like name, email, image
           id: user.id,
           username: user.username,
-          onboardingComplete: user.onboardingComplete,
+          onboarded: user.onboarded,
           currentStreak: user.currentStreak,
           cactusState: user.cactusState,
           hasSeenIntroPopup: user.hasSeenIntroPopup,

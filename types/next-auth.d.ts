@@ -9,7 +9,7 @@ declare module "next-auth" {
   interface User {
     id: string;
     username: string | null;
-    onboardingComplete: boolean;
+    onboarded: boolean;
     currentStreak: number;
     cactusState: CactusState;
     tasksCompletedForCactus: number;
@@ -33,7 +33,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     username: string;
-    onboardingComplete: boolean;
+    onboarded: boolean;
     currentStreak: number;
     cactusState: CactusState;
   }

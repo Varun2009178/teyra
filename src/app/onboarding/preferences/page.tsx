@@ -13,13 +13,13 @@ const questions = [
   },
   {
     id: "q2",
-    text: "What's a typical meal for you?",
+    text: "What&apos;s a typical meal for you?",
     options: ["🥩 Meat is a must", "🍗 A mix of everything", "🌱 Mostly vegetarian", "🥗 Strictly vegetarian/vegan"],
   },
   {
     id: "q3",
     text: "When it comes to lights and electronics, you are...",
-    options: ["💡 A 'lights-on' person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
+    options: ["💡 A &apos;lights-on&apos; person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
   },
   {
     id: "q4",
@@ -92,7 +92,7 @@ export default function PreferencesPage() {
           Generating your personalized tasks...
         </h1>
         <p className="mt-4 text-lg text-gray-600 animate-pulse">
-          This may take a moment. We're crafting your sustainable journey!
+          This may take a moment. We&apos;re crafting your sustainable journey!
         </p>
       </div>
     );

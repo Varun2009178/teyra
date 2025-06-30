@@ -114,7 +114,7 @@ export default function Page() {
           Completing Your Tasks Makes Mike Happy!
         </h2>
         <p className="mt-6 max-w-xl text-2xl">
-          Each day, you'll get a new set of sustainable tasks. The more you
+          Each day, you&apos;ll get a new set of sustainable tasks. The more you
           complete, the happier he gets.
         </p>
       </section>

@@ -28,7 +28,7 @@ export function PenaltyModal({ isOpen, onClose }: PenaltyModalProps) {
             onClick={onClose}
             className="w-full rounded-lg bg-yellow-500 px-6 py-2 font-semibold text-white transition hover:bg-yellow-600"
           >
-            I'll do my best!
+            I&apos;ll do my best!
           </button>
         </div>
       </div>

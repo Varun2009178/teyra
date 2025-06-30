@@ -6,9 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
-export default function LoginPage() {
+function LoginContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (session?.user) {
-      if (session.user.onboardingComplete) {
+      if (session.user.onboarded) {
         router.push("/dashboard");
       } else {
         router.push("/onboarding/username");
@@ -39,15 +39,13 @@ export default function LoginPage() {
             Let&apos;s get you signed in.
           </p>
           <div className="mt-8 space-y-4">
-            <form action={handleGoogleSignIn}>
-              <button
-                onClick={() => handleSignIn("google")}
-                className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
-              >
-                <FcGoogle className="text-xl" />
-                <span>Sign In with Google</span>
-              </button>
-            </form>
+            <button
+              onClick={() => handleSignIn("google")}
+              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
+            >
+              <FcGoogle className="text-xl" />
+              <span>Sign In with Google</span>
+            </button>
             <button
               onClick={() => handleSignIn("discord")}
               className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
@@ -73,5 +71,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 } 

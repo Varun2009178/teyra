@@ -26,7 +26,7 @@ export function IntroPopup({ isOpen, onClose }: IntroPopupProps) {
             onClick={onClose}
             className="rounded-lg bg-purple-500 px-6 py-2 font-semibold text-white transition hover:bg-purple-600"
           >
-            Let's Go!
+            Let&apos;s Go!
           </button>
         </div>
       </div>

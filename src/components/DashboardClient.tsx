@@ -234,7 +234,7 @@ export default function DashboardClient({
         setDisplayDate(serverDate);
       }
     }
-  }, [session.user.tasksLastGeneratedAt]);
+  }, [session.user.tasksLastGeneratedAt, displayDate]);
 
   const handleRevealTasks = () => {
     const key = getRevealStorageKey(displayDate);
