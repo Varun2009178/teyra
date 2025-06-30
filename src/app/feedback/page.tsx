@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
-import { Navbar } from "@/components/Navbar";
+import Navbar from "@/components/Navbar";
 
 export default function FeedbackPage() {
   return (
