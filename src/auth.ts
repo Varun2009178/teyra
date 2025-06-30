@@ -71,23 +71,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async session({ session, user }) {
-      // The user object here is the full user from the database, thanks to the Prisma adapter.
-      // We're creating a new session object to avoid direct mutation and type issues.
-      return {
-        ...session,
-        user: {
-          ...session.user, // Keep original properties like name, email, image
-          id: user.id,
-          username: user.username,
-          onboarded: user.onboarded,
-          currentStreak: user.currentStreak,
-          cactusState: user.cactusState,
-          hasSeenIntroPopup: user.hasSeenIntroPopup,
-          hasSeenStreakPopup: user.hasSeenStreakPopup,
-          hasSeenCompletionPopup: user.hasSeenCompletionPopup,
-          hasCompletedFirstTask: user.hasCompletedFirstTask,
-        },
-      };
+      if (session.user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+        });
+
+        if (dbUser) {
+          session.user.id = dbUser.id;
+          session.user.username = dbUser.username;
+          session.user.onboarded = dbUser.onboarded;
+          session.user.currentStreak = dbUser.currentStreak;
+          session.user.cactusState = dbUser.cactusState;
+          session.user.hasSeenIntroPopup = dbUser.hasSeenIntroPopup;
+          session.user.hasSeenStreakPopup = dbUser.hasSeenStreakPopup;
+          session.user.hasSeenCompletionPopup = dbUser.hasSeenCompletionPopup;
+          session.user.hasCompletedFirstTask = dbUser.hasCompletedFirstTask;
+          session.user.tasksLastGeneratedAt = dbUser.tasksLastGeneratedAt;
+          session.user.tasksCompletedForCactus = dbUser.tasksCompletedForCactus;
+        }
+      }
+      return session;
     },
   },
 }); 
