@@ -56,6 +56,11 @@ export default async function DashboardPage() {
     user = await prisma.user.update({
       where: { id: user.id },
       data: { tasksLastGeneratedAt: today },
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+      },
     });
   }
 
