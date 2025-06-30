@@ -48,8 +48,9 @@ const encouragingMessages = {
   ],
 };
 
-function getRandomText(state: CactusState): string {
-  const options = encouragingMessages[state] || encouragingMessages.MEDIUM;
+function getRandomText(state: CactusState | undefined): string {
+  const currentState = state || 'MEDIUM';
+  const options = encouragingMessages[currentState] || encouragingMessages.MEDIUM;
   return options[Math.floor(Math.random() * options.length)];
 }
 
