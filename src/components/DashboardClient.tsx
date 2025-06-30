@@ -175,7 +175,7 @@ export default function DashboardClient({
 
   // HYDRATION FIX: Set random text only on the client after initial mount
   useEffect(() => {
-    const state = user.cactusState;
+    const state = user.cactusState || 'MEDIUM';
     if (Array.isArray(encouragingMessages[state])) {
       setMoodText(
         encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
