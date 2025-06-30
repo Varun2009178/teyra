@@ -52,10 +52,9 @@ Do not include any other text, comments, or formatting. The output must be ONLY 
     // Failsafe: Always take the first 3 tasks.
     tasks = tasks.slice(0, 3);
 
-    const taskData = tasks.map((task: any) => ({
+    const taskData = tasks.map((taskTitle: string) => ({
       userId: userId,
-      title: task.title,
-      description: task.description,
+      title: taskTitle,
       assignedDate: assignedDate,
     }));
 

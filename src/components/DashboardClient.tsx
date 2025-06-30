@@ -237,7 +237,7 @@ export default function DashboardClient({
 
   // Effect to handle automatic daily task regeneration
   useEffect(() => {
-    // Check if it's a new calendar day since the last task generation
+    // Check if its a new calendar day since the last task generation
     const lastGenDate = user.tasksLastGeneratedAt
       ? startOfDay(new Date(user.tasksLastGeneratedAt))
       : null;
