@@ -227,12 +227,14 @@ export default function DashboardClient({
       prevCactusState === "MEDIUM";
 
     if (leveledUpToMedium || leveledUpToHappy) {
-      setIsLevelingUp(true);
-      setLevelUpState(user.cactusState);
-      setTimeout(() => {
-        setIsLevelingUp(false);
-        setLevelUpState(null);
-      }, 6000); // Celebrate for 6 seconds
+      if (user.cactusState) {
+        setIsLevelingUp(true);
+        setLevelUpState(user.cactusState);
+        setTimeout(() => {
+          setIsLevelingUp(false);
+          setLevelUpState(null);
+        }, 6000); // Celebrate for 6 seconds
+      }
     }
     setPrevCactusState(user.cactusState);
   }, [user.cactusState, prevCactusState]);
