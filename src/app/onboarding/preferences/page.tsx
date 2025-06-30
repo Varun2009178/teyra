@@ -5,31 +5,37 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import MinimalHeader from "@/components/MinimalHeader";
 
-const questions = [
+type Question = {
+  id: string;
+  text: string;
+  options: string[];
+}
+
+const questions: Question[] = [
   {
     id: "q1",
-    text: "How do you get around most days?",
-    options: ["🚗 Car", "🚌 Public Transit", "🚲 Bike / Walk", "🏠 I work from home"],
+    text: "On a scale of 1-5, how important is sustainable living to you right now?",
+    options: ["1 - Not very", "2", "3 - Moderately", "4", "5 - Extremely"],
   },
   {
     id: "q2",
-    text: "What&apos;s a typical meal for you?",
-    options: ["🥩 Meat is a must", "🍗 A mix of everything", "🌱 Mostly vegetarian", "🥗 Strictly vegetarian/vegan"],
+    text: "What is a typical meal for you?",
+    options: ["🥩 Mostly meat-based", "🍗 A mix of everything", "🌱 Mostly vegetarian", "🥗 Strictly vegetarian/vegan"],
   },
   {
     id: "q3",
     text: "When it comes to lights and electronics, you are...",
-    options: ["💡 A &apos;lights-on&apos; person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
+    options: ["💡 A 'lights-on' person", "🤔 I try to turn things off", "🔌 An energy-saving expert"],
   },
   {
     id: "q4",
-    text: "What natural disaster concerns you most in your area?",
-    options: ["🔥 Wildfires", "🌊 Flooding", "🌪️ Extreme Storms", "🌍 None"],
+    text: "How do you typically commute to work or school?",
+    options: ["🚗 Car", "🚌 Public Transport", "🚲 Bike", "🚶 Walk", "🏠 I work from home"],
   },
   {
     id: "q5",
-    text: "What area of sustainability do you care about most?",
-    options: ["🌳 Forests", "💧 Clean Water", "💨 Clean Air", "♻️ Reducing Waste"],
+    text: "What's your approach to shopping?",
+    options: ["🛍️ I love fast fashion", "💰 I look for bargains", "🌍 I prefer sustainable/local", "✨ I buy second-hand"],
   },
 ];
 
@@ -87,12 +93,10 @@ export default function PreferencesPage() {
 
   if (isSubmitting) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8F7F4] text-center">
-        <h1 className="text-4xl font-black text-gray-800 sm:text-5xl">
-          Generating your personalized tasks...
-        </h1>
-        <p className="mt-4 text-base text-gray-600 sm:text-lg animate-pulse">
-          This may take a moment. We&apos;re crafting your sustainable journey!
+      <div className="flex h-screen flex-col items-center justify-center space-y-4 bg-brand-light-green p-4 text-center">
+        <h1 className="text-2xl font-bold">Generating your personalized tasks...</h1>
+        <p className="max-w-md text-gray-700">
+          This may take a moment. We are crafting your sustainable journey!
         </p>
       </div>
     );
@@ -119,7 +123,7 @@ export default function PreferencesPage() {
               Welcome, {session.user?.username}!
             </h1>
             <p className="mt-4 text-base text-gray-600 sm:text-lg">
-              Let&apos;s personalize your journey. Answer 5 quick questions to get sustainability tasks tailored just for you.
+              Let us personalize your journey. Answer 5 quick questions to get sustainability tasks tailored just for you.
             </p>
             <button
               onClick={() => setHasStarted(true)}
@@ -152,9 +156,9 @@ export default function PreferencesPage() {
               {currentQuestion.text}
             </h2>
             <div className="mt-8 flex flex-wrap justify-center gap-4 sm:gap-6">
-              {currentQuestion.options.map((option) => (
+              {currentQuestion.options.map((option: string, index: number) => (
                 <button
-                  key={option}
+                  key={index}
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleOptionClick(currentQuestion.id, option)}

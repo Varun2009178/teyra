@@ -25,28 +25,51 @@ import { startOfDay } from "date-fns";
 import { FiSettings, FiMessageSquare } from "react-icons/fi";
 import { FaCheckCircle, FaLeaf, FaTrophy } from "react-icons/fa";
 
-const moodTexts = {
+const encouragingMessages = {
   HAPPY: [
-    "Don't skip a day to make me sad again!",
-    "How is your motivation feeling?",
-    "Keep it up! I'm really proud of you!",
+    "You are doing great! Let us keep this positive streak going.",
+    "Do not skip a day to make me sad again!",
+    "I am feeling so happy and energized thanks to you!",
+    "Keep it up! I am really proud of you!",
+    "Let us make sustainability a daily habit, together.",
+    "Doing sustainable tasks is pretty fun, I cannot even lie!",
+    "Your efforts are making a real difference, and I can feel it!",
+    "I believe in you! Let us make tomorrow even better.",
   ],
   MEDIUM: [
-    "Doing sustainable tasks is pretty fun, I can't even lie!",
-    "I am happy... but I can be happier!",
-    "Just a few more tasks to unlock my full potential!",
+    "You are on the right track! A little more effort and I will be overjoyed!",
+    "Almost there! Your consistency is key to my happiness.",
+    "I am feeling better already, let us not stop now!",
   ],
   SAD: [
-    "I mean all you have to do is a few sustainable tasks, it can't be that hard...",
-    "Make me slightly less sad by doing some easy tasks!",
-    "I feel like being happy is better than being sad.",
+    "I am feeling a bit down. Completing a task would really cheer me up.",
+    "I know you can do it! Let us turn things around.",
+    "I mean all you have to do is a few sustainable tasks, it cannot be that hard...",
   ],
 };
 
 function getRandomText(state: CactusState): string {
-  const options = moodTexts[state] || moodTexts.MEDIUM;
+  const options = encouragingMessages[state] || encouragingMessages.MEDIUM;
   return options[Math.floor(Math.random() * options.length)];
 }
+
+const cactusThoughts = {
+  sad: [
+    "Feeling a bit dry today...",
+    "A single task would be like a drop of rain.",
+    "Do not skip a day to make me sad again!",
+  ],
+  neutral: [
+    "Keep it up! I am really proud of you!",
+    "Every task you complete helps me grow a little.",
+    "Doing sustainable tasks is pretty fun, I cannot lie!",
+  ],
+  happy: [
+    "I am feeling fantastic, thanks to you!",
+    "We are making a real difference together!",
+    "I mean all you have to do is a few sustainable tasks, it cannot be that hard...",
+  ],
+};
 
 export default function DashboardClient({
   session,
@@ -93,7 +116,7 @@ export default function DashboardClient({
   // HYDRATION FIX: Initialize moodText with a deterministic value
   const [moodText, setMoodText] = useState(() => {
     const state = user.cactusState;
-    return Array.isArray(moodTexts[state]) ? moodTexts[state][0] : moodTexts[state];
+    return getRandomText(state);
   });
 
   const [isIdle, setIsIdle] = useState(false);
@@ -152,12 +175,12 @@ export default function DashboardClient({
   // HYDRATION FIX: Set random text only on the client after initial mount
   useEffect(() => {
     const state = user.cactusState;
-    if (Array.isArray(moodTexts[state])) {
+    if (Array.isArray(encouragingMessages[state])) {
       setMoodText(
-        moodTexts[state][Math.floor(Math.random() * moodTexts[state].length)]
+        encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
       );
     } else {
-      setMoodText(moodTexts[state]);
+      setMoodText(encouragingMessages[state]);
     }
   }, [user.cactusState]);
 
@@ -344,27 +367,33 @@ export default function DashboardClient({
 
   const { cactusState, tasksCompletedForCactus } = user;
 
-  let progress = 0;
-  let progressText = "";
-  let progressColor = "bg-gray-400";
+  const calculateMoodProgress = (state: CactusState) => {
+    let progress = 0;
+    let progressColor = "bg-gray-300";
+    let progressText = "Just getting started!";
 
-  // New, robust progress logic
-  if (tasksCompletedForCactus < 5) {
-    // SAD tier
-    progress = (tasksCompletedForCactus / 5) * 100;
-    progressText = `${tasksCompletedForCactus} / 5 tasks to reach Neutral`;
-    progressColor = "bg-yellow-400";
-  } else if (tasksCompletedForCactus < 15) {
-    // MEDIUM tier
-    progress = (tasksCompletedForCactus / 15) * 100;
-    progressText = `${tasksCompletedForCactus} / 15 tasks to become Happy`;
-    progressColor = "bg-green-400";
-  } else {
-    // HAPPY tier
-    progress = 100;
-    progressText = "You&apos;ve reached the highest level of happiness!";
-    progressColor = "bg-green-500";
-  }
+    if (state === "SAD") {
+      progress = 25;
+      progressColor = "bg-red-500";
+      progressText = "Feeling down";
+    } else if (state === "MEDIUM") {
+      progress = 60;
+      progressColor = "bg-yellow-500";
+      progressText = "Doing okay, keep it up!";
+    } else if (state === "HAPPY") {
+      progress = 100;
+      progressColor = "bg-green-500";
+      progressText = "You have reached the highest level of happiness!";
+    }
+
+    return { progress, progressColor, progressText };
+  };
+
+  const moodProgress = calculateMoodProgress(user.cactusState);
+
+  let progress = moodProgress.progress;
+  let progressText = moodProgress.progressText;
+  let progressColor = moodProgress.progressColor;
 
   const date = displayDate.toLocaleDateString("en-US", {
     weekday: "long",
@@ -413,7 +442,7 @@ export default function DashboardClient({
         // Celebrate if a task was completed
         if (completed) {
           setIsCelebrating(true);
-          setFeedbackMessage(`Task done. 🌱 Mike's mood is improving!`);
+          setFeedbackMessage(`Task done. 🌱 Cactus mood is improving!`);
           setTimeout(() => {
             setIsCelebrating(false);
             setFeedbackMessage("");
@@ -467,7 +496,7 @@ export default function DashboardClient({
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
-            You&apos;ve completed all your tasks for the day. New tasks will be
+            You've completed all your tasks for the day. New tasks will be
             generated for you in 24 hours. Keep up the great work!
           </p>
           <div className="mt-6">
@@ -511,7 +540,7 @@ export default function DashboardClient({
             <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 text-center shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-2">
               <div className="w-full">
                 <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
-                  Mike&apos;s Mood
+                  Cactus Mood
                 </h2>
               </div>
               <div className="h-64 w-full sm:h-80">
@@ -540,7 +569,7 @@ export default function DashboardClient({
               </div>
               <div className="mt-4 w-full max-w-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
-                  Mike&apos;s Mood Progress
+                  Cactus Mood Progress
                 </h3>
                 <div className="mt-2 h-4 w-full rounded-full border-2 border-gray-300 bg-gray-200">
                   <div
@@ -564,7 +593,7 @@ export default function DashboardClient({
               )}
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
-                  Daily Tasks
+                  Tasks for Today
                 </h2>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-lg font-bold text-orange-500 sm:text-xl">
@@ -595,7 +624,7 @@ export default function DashboardClient({
                       onClick={handleRevealTasks}
                       className="rounded-xl border-4 border-black bg-white px-6 py-3 text-lg font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none sm:px-8 sm:py-4 sm:text-2xl"
                     >
-                      Click to Reveal Today&apos;s Tasks!
+                      Click to Reveal Tasks for Today!
                     </button>
                   </div>
                 ) : (
@@ -610,7 +639,7 @@ export default function DashboardClient({
                   Streak Progress
                 </h2>
                 <p className="mt-2 text-base font-bold text-gray-700 sm:text-lg">
-                  You&apos;re on a {user.currentStreak}-day streak!
+                  You're on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">

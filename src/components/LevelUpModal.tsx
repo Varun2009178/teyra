@@ -12,13 +12,13 @@ interface LevelUpModalProps {
 export function LevelUpModal({ isOpen, onClose, newState }: LevelUpModalProps) {
   const messages = {
     MEDIUM: {
-      title: "Mike is feeling better!",
-      body: "Thanks to you, Mike is no longer sad. Keep completing tasks to make him truly happy!",
-      button: "Let's keep going!"
+      title: "You are a Sustainability Pro!",
+      body: "You have kept up your habits and are making a real impact. Keep it up!",
+      button: "Let us keep going!"
     },
     HAPPY: {
-      title: "You did it! Mike is HAPPY!",
-      body: "This is the highest level of happiness! You're a sustainability superstar. Keep up the great work to maintain this mood.",
+      title: "You are a Sustainability Champion!",
+      body: "This is the highest level of happiness! You are a sustainability superstar. Keep up the great work to maintain this mood.",
       button: "Awesome!"
     }
   }

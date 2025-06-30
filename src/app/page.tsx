@@ -64,7 +64,7 @@ export default function Page() {
             className="mx-auto my-8"
           />
           <p className="text-xl text-foreground/80 md:text-2xl">
-            He&apos;s your new accountability partner.
+            He is your new accountability partner.
           </p>
         </div>
         <div className="absolute bottom-10 w-full text-center">
@@ -114,8 +114,8 @@ export default function Page() {
           Completing Your Tasks Makes Mike Happy!
         </h2>
         <p className="mt-6 max-w-xl text-xl md:text-2xl">
-          Each day, you&apos;ll get a new set of sustainable tasks. The more you
-          complete, the happier he gets.
+          Each day, you will get a new set of sustainable tasks. The more you
+          complete, the healthier our planet gets.
         </p>
       </section>
 
@@ -124,8 +124,8 @@ export default function Page() {
         <div className="max-w-2xl">
           <h2 className="text-5xl font-black md:text-7xl">Mike is Motivation.</h2>
           <p className="mt-6 text-xl md:text-2xl">
-            He&apos;s a simple, visual representation of your progress. Keeping Mike
-            happy means you&apos;re building strong, consistent, and sustainable
+            He is a simple, visual representation of your progress. Keeping Mike
+            happy means you are building strong, consistent, and sustainable
             habits.
           </p>
           {!session && (

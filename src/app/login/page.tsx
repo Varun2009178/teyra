@@ -38,38 +38,46 @@ function LoginContent() {
             Welcome Back
           </h1>
           <p className="mt-2 text-center text-base text-foreground/70 sm:text-lg">
-            Let&apos;s get you signed in.
+            Let us get you signed in.
           </p>
+          {error && (
+            <div className="mt-4 rounded-md bg-red-100 p-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          )}
           <div className="mt-8 space-y-4">
             <button
               onClick={() => handleSignIn("google")}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FcGoogle className="text-xl" />
               <span>Sign In with Google</span>
             </button>
             <button
               onClick={() => handleSignIn("discord")}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FaDiscord className="text-xl text-[#5865F2]" />
               <span>Sign In with Discord</span>
             </button>
             <Link
               href="/"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FaHome className="text-xl" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <p className="mt-8 text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-semibold text-brand-sea-green">
+          <div className="mt-6 text-sm">
+            <span>Do not have an account? </span>
+            <Link
+              href="/signup"
+              className="font-bold text-brand-sea-green hover:underline"
+            >
               Sign up
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>

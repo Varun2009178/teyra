@@ -7,7 +7,7 @@ declare module "next-auth" {
    * This extends the default user with your custom fields.
    */
   interface User {
-    id: string;
+      id: string;
     username: string | null;
     onboarded: boolean;
     currentStreak: number;

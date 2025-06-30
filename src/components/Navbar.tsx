@@ -21,21 +21,21 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-              <Image
+          <Image
                 className="h-8 w-auto"
-                src="/teyra-logo.png"
+            src="/teyra-logo.png"
                 alt="Teyra"
-                width={32}
-                height={32}
-              />
+            width={32}
+            height={32}
+          />
               <span className="font-bold text-xl">Teyra</span>
-            </Link>
+        </Link>
           </div>
           <div className="flex items-center">
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
-                {session ? (
-                  <>
+          {session ? (
+            <>
                     <Link
                       href="/dashboard"
                       className={`px-3 py-2 rounded-md text-sm font-medium ${
@@ -55,27 +55,27 @@ export default function Navbar() {
                       }`}
                     >
                       Settings
-                    </Link>
-                    <SignOutButton />
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
+              </Link>
+              <SignOutButton />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
                       className="rounded-lg border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none sm:px-5"
-                    >
-                      Log In
-                    </Link>
-                    <Link
-                      href="/signup"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
                       className="ml-2 rounded-lg border-2 border-black bg-[#A18BFF] px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none sm:px-5"
-                    >
-                      Get Started
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
+              >
+                Get Started
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
           </div>
         </div>
       </div>

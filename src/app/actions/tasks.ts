@@ -68,11 +68,11 @@ export async function regenerateDailyTasks(
 
       const lastCycleDate = startOfDay(user.tasksLastGeneratedAt || new Date());
       const uncompletedTasks = await tx.task.findMany({
-        where: {
-          userId,
+          where: {
+              userId,
           assignedDate: lastCycleDate,
           completed: false,
-        },
+          },
       });
 
       let penaltyApplied = false;
@@ -120,8 +120,8 @@ export async function regenerateDailyTasks(
       }
       
       const newTasksWithIds = await tx.task.findMany({
-        where: {
-          userId,
+        where: { 
+            userId,
           assignedDate: startOfDay(now),
         },
         orderBy: { createdAt: "asc" },
@@ -205,10 +205,10 @@ export async function updateTaskStatus(taskId: string, completed: boolean) {
             lastCompletionDate.getTime() === yesterday.getTime()
           ) {
             newStreak = user.currentStreak + 1;
-          } else {
-            newStreak = 1;
-          }
-        }
+                } else {
+                    newStreak = 1;
+                }
+            }
         newLastTaskCompletedAt = now;
       } else {
         const mostRecentCompletedTask = await tx.task.findFirst({
@@ -260,7 +260,7 @@ export async function updateTaskStatus(taskId: string, completed: boolean) {
           hasCompletedFirstTask: user.hasCompletedFirstTask || completed,
         },
       });
-      
+
       const currentTasks = await tx.task.findMany({
           where: {
               userId,
@@ -297,7 +297,7 @@ export async function simulateTaskRegeneration(simulatedDateString: string) {
     q4: "Air",
     q5: "Waste",
   };
-
+  
   const simulatedDate = new Date(simulatedDateString);
 
   // Call the single, reliable source of truth for regeneration.
