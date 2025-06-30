@@ -362,7 +362,7 @@ export default function DashboardClient({
   } else {
     // HAPPY tier
     progress = 100;
-    progressText = "You've reached the highest level of happiness!";
+    progressText = "You&apos;ve reached the highest level of happiness!";
     progressColor = "bg-green-500";
   }
 
@@ -467,7 +467,7 @@ export default function DashboardClient({
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
-            You've completed all your tasks for the day. New tasks will be
+            You&apos;ve completed all your tasks for the day. New tasks will be
             generated for you in 24 hours. Keep up the great work!
           </p>
           <div className="mt-6">
@@ -511,7 +511,7 @@ export default function DashboardClient({
             <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 text-center shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-2">
               <div className="w-full">
                 <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
-                  Mike's Mood
+                  Mike&apos;s Mood
                 </h2>
               </div>
               <div className="h-64 w-full sm:h-80">
@@ -540,7 +540,7 @@ export default function DashboardClient({
               </div>
               <div className="mt-4 w-full max-w-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
-                  Mike's Mood Progress
+                  Mike&apos;s Mood Progress
                 </h3>
                 <div className="mt-2 h-4 w-full rounded-full border-2 border-gray-300 bg-gray-200">
                   <div
@@ -595,7 +595,7 @@ export default function DashboardClient({
                       onClick={handleRevealTasks}
                       className="rounded-xl border-4 border-black bg-white px-6 py-3 text-lg font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none sm:px-8 sm:py-4 sm:text-2xl"
                     >
-                      Click to Reveal Today's Tasks!
+                      Click to Reveal Today&apos;s Tasks!
                     </button>
                   </div>
                 ) : (
@@ -610,7 +610,7 @@ export default function DashboardClient({
                   Streak Progress
                 </h2>
                 <p className="mt-2 text-base font-bold text-gray-700 sm:text-lg">
-                  You're on a {user.currentStreak}-day streak!
+                  You&apos;re on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
