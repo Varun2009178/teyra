@@ -2,6 +2,8 @@
 
 import Modal from "./Modal";
 
+// hahahah
+
 interface StreakModalProps {
   isOpen: boolean;
   onClose: () => void;
