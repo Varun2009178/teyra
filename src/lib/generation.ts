@@ -21,31 +21,22 @@ export async function generateAndSaveTasks(
   // Production Mode: Call the real Gemini API
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  const completionHistory =
-    completedTasks && completedTasks.length > 0
-      ? `The user has recently completed the following tasks, so try to generate different ones: ${completedTasks.join(
-          ", "
-        )}`
-      : "This is the user's first set of tasks.";
+  const previousTaskTitles = completedTasks ? completedTasks : [];
+  const topics = [answers.q1, answers.q2, answers.q3, answers.q4, answers.q5];
+  const difficulty = "beginner";
+  const count = 3;
 
-  const prompt = `
-    Based on the following user answers to a sustainability questionnaire, generate EXACTLY 3 simple, actionable, daily tasks suitable for a beginner.
-    Each task should be easy to understand and have a clear, concise description.
-    ${completionHistory}
-    The user's answers are:
-    1. How they get around: "${answers.q1}"
-    2. Their typical meal: "${answers.q2}"
-    3. Their habits with lights/electronics: "${answers.q3}"
-    4. Their biggest local environmental concern: "${answers.q4}"
-    5. The area of sustainability they care about most: "${answers.q5}"
+  const prompt = `You are a sustainability assistant. Generate ${count} simple, actionable, and unique sustainable tasks for a user.
+The user has previously been assigned the following tasks: ${previousTaskTitles.join(", ")}.
+It is CRITICAL that you do not repeat any of the tasks from the list above.
+The tasks should be related to topics the user is interested in: ${topics.join(", ")}.
+The user's difficulty preference is ${difficulty}.
+The generated tasks must be fundamentally different from the previous tasks, not just rephrased.
+Format the output as a single JSON array of strings, where each string is a task title.
+Example: ["Unplug chargers when not in use", "Use a reusable water bottle", "Switch to LED light bulbs"]
+Do not include any other text, comments, or formatting. The output must be ONLY the JSON array.`;
 
-    Please provide the output as a valid JSON array of objects, where each object has a "title" and a "description". Do not include any other text or markdown formatting.
-    Example format:
-    [
-      {"title": "One Meat-Free Meal", "description": "Challenge yourself to make one of your meals today completely meat-free. It's a small change with a big impact!"},
-      {"title": "Unplug One Device", "description": "Before bed, find one electronic device (like a coffee maker or toaster) and unplug it completely. Many devices use 'phantom power' even when off."}
-    ]
-  `;
+  console.log("Generating tasks with prompt:", prompt);
 
   try {
     const result = await model.generateContent(prompt);

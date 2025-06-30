@@ -38,13 +38,21 @@ export default function Navbar() {
                   <>
                     <Link
                       href="/dashboard"
-                      className="text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        pathname === "/dashboard"
+                          ? "bg-gray-200 text-gray-900"
+                          : "text-gray-700 hover:bg-gray-200"
+                      }`}
                     >
                       Dashboard
                     </Link>
                     <Link
                       href="/settings"
-                      className="text-gray-700 hover:bg-gray-200 px-3 py-2 rounded-md text-sm font-medium"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        pathname === "/settings"
+                          ? "bg-gray-200 text-gray-900"
+                          : "text-gray-700 hover:bg-gray-200"
+                      }`}
                     >
                       Settings
                     </Link>

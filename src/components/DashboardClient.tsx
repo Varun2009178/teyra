@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import CactusAnimation from "@/components/CactusAnimation";
@@ -13,7 +13,7 @@ import { StreakModal } from "@/components/StreakModal";
 import { PenaltyModal } from "@/components/PenaltyModal";
 import { LevelUpModal } from "@/components/LevelUpModal";
 import { markPopupAsSeen } from "@/app/actions/user";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
   updateTaskStatus,
   regenerateDailyTasks,
@@ -23,20 +23,21 @@ import Confetti from "react-confetti";
 import { useMeasure } from "react-use";
 import { startOfDay } from "date-fns";
 import { FiSettings, FiMessageSquare } from "react-icons/fi";
+import { FaCheckCircle, FaLeaf, FaTrophy } from "react-icons/fa";
 
 const moodTexts = {
   HAPPY: [
-    "Don&apos;t skip a day to make me sad again!",
+    "Don't skip a day to make me sad again!",
     "How is your motivation feeling?",
-    "Keep it up! I&apos;m really proud of you!",
+    "Keep it up! I'm really proud of you!",
   ],
   MEDIUM: [
-    "Doing sustainable tasks is pretty fun, I can&apos;t even lie!",
+    "Doing sustainable tasks is pretty fun, I can't even lie!",
     "I am happy... but I can be happier!",
     "Just a few more tasks to unlock my full potential!",
   ],
   SAD: [
-    "I mean all you have to do is a few sustainable tasks, it can&apos;t be that hard...",
+    "I mean all you have to do is a few sustainable tasks, it can't be that hard...",
     "Make me slightly less sad by doing some easy tasks!",
     "I feel like being happy is better than being sad.",
   ],
@@ -94,6 +95,47 @@ export default function DashboardClient({
     const state = user.cactusState;
     return Array.isArray(moodTexts[state]) ? moodTexts[state][0] : moodTexts[state];
   });
+
+  const [isIdle, setIsIdle] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+
+    const events: (keyof WindowEventMap)[] = [
+      "mousemove",
+      "mousedown",
+      "keypress",
+      "scroll",
+      "touchstart",
+    ];
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        resetTimer();
+      }
+    };
+
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    resetTimer(); // Initial timer start
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  const handleLoginRedirect = () => {
+    signOut({ callbackUrl: "/login" });
+  };
 
   useEffect(() => {
     setTasks(initialTasks);
@@ -320,7 +362,7 @@ export default function DashboardClient({
   } else {
     // HAPPY tier
     progress = 100;
-    progressText = "You&apos;ve reached the highest level of happiness!";
+    progressText = "You've reached the highest level of happiness!";
     progressColor = "bg-green-500";
   }
 
@@ -425,7 +467,7 @@ export default function DashboardClient({
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
-            You&apos;ve completed all your tasks for the day. New tasks will be
+            You've completed all your tasks for the day. New tasks will be
             generated for you in 24 hours. Keep up the great work!
           </p>
           <div className="mt-6">
@@ -434,6 +476,23 @@ export default function DashboardClient({
               className="rounded-lg bg-brand-sea-green px-6 py-2 font-semibold text-white transition hover:bg-green-700"
             >
               Got it!
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={isIdle} onClose={() => {}}>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">You have been idle for a while</h2>
+          <p className="mt-4 text-gray-600">
+            For your security, you should log in again to continue.
+          </p>
+          <div className="mt-6">
+            <button
+              onClick={handleLoginRedirect}
+              className="w-full rounded-lg border-2 border-black bg-[#A18BFF] px-4 py-2 font-bold text-black shadow-[4px_4px_0_0_#000] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+            >
+              Log In
             </button>
           </div>
         </div>
@@ -452,7 +511,7 @@ export default function DashboardClient({
             <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 text-center shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-2">
               <div className="w-full">
                 <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
-                  Mike&apos;s Mood
+                  Mike's Mood
                 </h2>
               </div>
               <div className="h-64 w-full sm:h-80">
@@ -481,7 +540,7 @@ export default function DashboardClient({
               </div>
               <div className="mt-4 w-full max-w-sm">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
-                  Mike&apos;s Mood Progress
+                  Mike's Mood Progress
                 </h3>
                 <div className="mt-2 h-4 w-full rounded-full border-2 border-gray-300 bg-gray-200">
                   <div
@@ -536,7 +595,7 @@ export default function DashboardClient({
                       onClick={handleRevealTasks}
                       className="rounded-xl border-4 border-black bg-white px-6 py-3 text-lg font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none sm:px-8 sm:py-4 sm:text-2xl"
                     >
-                      Click to Reveal Today&apos;s Tasks!
+                      Click to Reveal Today's Tasks!
                     </button>
                   </div>
                 ) : (
@@ -551,7 +610,7 @@ export default function DashboardClient({
                   Streak Progress
                 </h2>
                 <p className="mt-2 text-base font-bold text-gray-700 sm:text-lg">
-                  You&apos;re on a {user.currentStreak}-day streak!
+                  You're on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
