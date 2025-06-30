@@ -24,7 +24,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md rounded-2xl border-4 border-black bg-white p-8 shadow-[8px_8px_0_0_#000]"
+            className="relative w-full max-w-md rounded-2xl border-4 border-black bg-white p-6 shadow-[8px_8px_0_0_#000] sm:p-8"
           >
             {children}
           </motion.div>

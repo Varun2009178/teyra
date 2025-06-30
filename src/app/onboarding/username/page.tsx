@@ -55,9 +55,9 @@ export default function UsernamePage() {
   return (
     <>
       <MinimalHeader />
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md text-center">
-          <h1 className="text-2xl text-foreground/80">
+          <h1 className="text-xl text-foreground/80 sm:text-2xl">
             First things first, what should we call you?
           </h1>
           <form
@@ -69,7 +69,7 @@ export default function UsernamePage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. SustainableSue"
-              className="w-full max-w-md rounded-xl border-4 border-black p-6 text-center text-lg font-bold shadow-[8px_8px_0_0_#000] focus:outline-none"
+              className="w-full max-w-md rounded-xl border-4 border-black p-4 text-center text-lg font-bold shadow-[8px_8px_0_0_#000] focus:outline-none sm:p-6"
               required
             />
             {error && (
@@ -84,7 +84,7 @@ export default function UsernamePage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full max-w-md rounded-xl border-4 border-black bg-[#A18BFF] px-8 py-4 font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none disabled:opacity-50"
+              className="w-full max-w-md rounded-xl border-4 border-black bg-[#A18BFF] px-6 py-3 font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none disabled:opacity-50 sm:px-8 sm:py-4"
             >
               {isSubmitting ? "Saving..." : "Continue"}
             </button>

@@ -91,7 +91,7 @@ export default function PreferencesPage() {
         <h1 className="text-4xl font-black text-gray-800 sm:text-5xl">
           Generating your personalized tasks...
         </h1>
-        <p className="mt-4 text-lg text-gray-600 animate-pulse">
+        <p className="mt-4 text-base text-gray-600 sm:text-lg animate-pulse">
           This may take a moment. We&apos;re crafting your sustainable journey!
         </p>
       </div>
@@ -118,7 +118,7 @@ export default function PreferencesPage() {
             <h1 className="text-4xl font-black text-gray-800 sm:text-5xl">
               Welcome, {session.user?.username}!
             </h1>
-            <p className="mt-4 text-lg text-gray-600">
+            <p className="mt-4 text-base text-gray-600 sm:text-lg">
               Let&apos;s personalize your journey. Answer 5 quick questions to get sustainability tasks tailored just for you.
             </p>
             <button
@@ -158,13 +158,13 @@ export default function PreferencesPage() {
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleOptionClick(currentQuestion.id, option)}
-                  className="w-full max-w-sm rounded-xl border-4 border-black bg-white px-8 py-4 text-lg font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none disabled:opacity-50 sm:w-auto hover:bg-yellow-100 active:bg-yellow-200"
+                  className="w-full max-w-sm rounded-xl border-4 border-black bg-white px-6 py-3 text-base font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none disabled:opacity-50 sm:w-auto sm:px-8 sm:py-4 sm:text-lg hover:bg-yellow-100 active:bg-yellow-200"
                 >
                   {option}
                 </button>
               ))}
             </div>
-            <p className="text-sm text-foreground/70">
+            <p className="mt-12 text-sm text-foreground/70">
               Your answers will help us tailor your experience.
             </p>
             {error && (

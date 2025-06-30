@@ -28,15 +28,15 @@ export function LevelUpModal({ isOpen, onClose, newState }: LevelUpModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-green-100 sm:h-12 sm:w-12">
           <FaArrowUp className="h-6 w-6 text-green-600" aria-hidden="true" />
         </div>
-        <h2 className="mt-4 text-2xl font-bold">{content.title}</h2>
-        <p className="mt-2 text-gray-600">{content.body}</p>
+        <h2 className="mt-4 text-xl font-bold sm:text-2xl">{content.title}</h2>
+        <p className="mt-2 text-base text-gray-600">{content.body}</p>
         <div className="mt-6">
           <button
             onClick={onClose}
-            className="w-full rounded-lg bg-green-500 px-6 py-2 font-semibold text-white transition hover:bg-green-600"
+            className="w-full rounded-lg bg-green-500 px-5 py-2 font-semibold text-white transition hover:bg-green-600 sm:px-6"
           >
             {content.button}
           </button>

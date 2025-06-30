@@ -32,30 +32,32 @@ function LoginContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-light-blue">
-      <div className="w-full max-w-sm rounded-2xl border-4 border-black bg-white p-8 text-center shadow-[8px_8px_0_0_#000]">
+      <div className="w-full max-w-sm rounded-2xl border-4 border-black bg-white p-6 text-center shadow-[8px_8px_0_0_#000] sm:p-8">
         <div className="w-full max-w-sm">
-          <h1 className="text-center text-4xl font-bold">Welcome Back</h1>
-          <p className="mt-2 text-center text-lg text-foreground/70">
+          <h1 className="text-center text-3xl font-bold sm:text-4xl">
+            Welcome Back
+          </h1>
+          <p className="mt-2 text-center text-base text-foreground/70 sm:text-lg">
             Let&apos;s get you signed in.
           </p>
           <div className="mt-8 space-y-4">
             <button
               onClick={() => handleSignIn("google")}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FcGoogle className="text-xl" />
               <span>Sign In with Google</span>
             </button>
             <button
               onClick={() => handleSignIn("discord")}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FaDiscord className="text-xl text-[#5865F2]" />
               <span>Sign In with Discord</span>
             </button>
             <Link
               href="/"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
+              className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100 sm:px-6 sm:py-3"
             >
               <FaHome className="text-xl" />
               <span>Back to Home</span>

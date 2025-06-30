@@ -439,23 +439,23 @@ export default function DashboardClient({
         </div>
       </Modal>
 
-      <main className="min-h-screen bg-[#F8F7F4] p-4 pt-24 sm:p-8 sm:pt-28">
+      <main className="min-h-screen bg-[#F8F7F4] p-4 pt-20 sm:p-8 sm:pt-28">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
-            <h1 className="text-5xl font-black text-gray-800 sm:text-6xl">
+            <h1 className="text-4xl font-black text-gray-800 sm:text-5xl lg:text-6xl">
               Welcome, {user.username}!
             </h1>
           </header>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {/* Left Column: Cactus */}
-            <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-8 text-center shadow-[8px_8px_0_0_#FCA311] lg:col-span-2">
+            <div className="flex flex-col items-center justify-center rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 text-center shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-2">
               <div className="w-full">
-                <h2 className="text-2xl font-bold text-gray-700">
+                <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
                   Mike&apos;s Mood
                 </h2>
               </div>
-              <div className="h-80 w-full">
+              <div className="h-64 w-full sm:h-80">
                 <CactusAnimation
                   state={user.cactusState}
                   isCelebrating={isCelebrating || isLevelingUp}
@@ -465,7 +465,7 @@ export default function DashboardClient({
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={isCelebrating ? feedbackMessage : moodText}
-                    className="text-lg font-bold text-gray-700"
+                    className="text-base font-bold text-gray-700 sm:text-lg"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -496,7 +496,7 @@ export default function DashboardClient({
             </div>
 
             {/* Right Column: Tasks & Status */}
-            <div className="relative rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-8 shadow-[8px_8px_0_0_#FCA311] lg:col-span-1">
+            <div className="relative rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-1">
               {isCelebrating && !isLevelingUp && (
                 <Confetti recycle={false} numberOfPieces={200} />
               )}
@@ -504,11 +504,11 @@ export default function DashboardClient({
                 <Confetti recycle={false} numberOfPieces={500} gravity={0.3} />
               )}
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-700">
+                <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
                   Daily Tasks
                 </h2>
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-xl font-bold text-orange-500">
+                  <div className="flex items-center gap-2 text-lg font-bold text-orange-500 sm:text-xl">
                     <span>🔥</span>
                     <span>{user.currentStreak || 0}</span>
                   </div>
@@ -534,7 +534,7 @@ export default function DashboardClient({
                   <div className="flex h-48 w-full flex-col items-center justify-center rounded-lg bg-blue-100 p-4">
                     <button
                       onClick={handleRevealTasks}
-                      className="rounded-xl border-4 border-black bg-white px-8 py-4 text-2xl font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none"
+                      className="rounded-xl border-4 border-black bg-white px-6 py-3 text-lg font-bold text-black shadow-[8px_8px_0_0_#000] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[5px_5px_0_0_#000] active:translate-x-[8px] active:translate-y-[8px] active:shadow-none sm:px-8 sm:py-4 sm:text-2xl"
                     >
                       Click to Reveal Today&apos;s Tasks!
                     </button>
@@ -547,10 +547,10 @@ export default function DashboardClient({
                 )}
               </div>
               <div className="mt-6 border-t-2 border-gray-200 pt-6">
-                <h2 className="text-2xl font-bold text-gray-700">
+                <h2 className="text-xl font-bold text-gray-700 sm:text-2xl">
                   Streak Progress
                 </h2>
-                <p className="mt-2 text-lg font-bold text-gray-700">
+                <p className="mt-2 text-base font-bold text-gray-700 sm:text-lg">
                   You&apos;re on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">

@@ -37,7 +37,7 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
       <motion.li
         layoutId={`task-item-${task.id}`}
         onClick={handleClick}
-        className="flex w-full max-w-md cursor-pointer items-center gap-4 rounded-xl border-4 border-brand-dark-purple p-4 text-xl font-bold"
+        className="flex w-full max-w-md cursor-pointer items-center gap-4 rounded-xl border-4 border-brand-dark-purple p-3 text-lg font-bold sm:p-4 sm:text-xl"
         animate={{
           backgroundColor: task.completed ? "#D1FAE5" : "#FEF3C7",
           opacity: task.completed ? 0.7 : 1,
@@ -45,7 +45,7 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
         transition={{ duration: 0.3 }}
       >
         <div
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md border-2 border-brand-dark-purple"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border-2 border-brand-dark-purple sm:h-8 sm:w-8"
           style={{
             backgroundColor: task.completed ? "#8B5CF6" : "#FFFFFF",
           }}
@@ -80,21 +80,21 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="text-center">
-          <h2 className="text-2xl font-bold">Undo Task?</h2>
-          <p className="mt-2 text-gray-600">
+          <h2 className="text-xl font-bold sm:text-2xl">Undo Task?</h2>
+          <p className="mt-2 text-base text-gray-600">
             Are you sure you want to mark this task as incomplete? This may
             affect your streak.
           </p>
           <div className="mt-6 flex justify-center gap-4">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="rounded-lg border-2 border-gray-300 bg-white px-6 py-2 font-semibold text-gray-800 transition hover:bg-gray-100"
+              className="rounded-lg border-2 border-gray-300 bg-white px-4 py-2 font-semibold text-gray-800 transition hover:bg-gray-100 sm:px-6"
             >
               Cancel
             </button>
             <button
               onClick={handleUndo}
-              className="rounded-lg bg-red-500 px-6 py-2 font-semibold text-white transition hover:bg-red-600"
+              className="rounded-lg bg-red-500 px-4 py-2 font-semibold text-white transition hover:bg-red-600 sm:px-6"
             >
               Undo Task
             </button>
