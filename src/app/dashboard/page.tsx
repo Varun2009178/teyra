@@ -3,25 +3,9 @@ import { auth } from "@/auth";
 import { getTasksByUserId } from "@/app/actions/tasks";
 import DashboardClient from "@/components/DashboardClient";
 import prisma from "@/lib/prisma";
-import { CactusState } from "@prisma/client";
-import type { Session } from "next-auth";
+import { Session } from "next-auth";
 import { generateAndSaveTasks } from "@/lib/generation";
 import { startOfDay } from "date-fns";
-
-type DashboardSession = Session & {
-  user: {
-    id: string;
-    username?: string | null;
-    currentStreak?: number;
-    cactusState?: string;
-    tasksCompletedForCactus?: number;
-    tasksLastGeneratedAt?: Date | null;
-    hasSeenIntroPopup?: boolean;
-    hasSeenStreakPopup?: boolean;
-    hasSeenCompletionPopup?: boolean;
-    hasCompletedFirstTask?: boolean;
-  };
-};
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -117,5 +101,5 @@ export default async function DashboardPage() {
     },
   };
 
-  return <DashboardClient session={updatedSession as DashboardSession} tasks={tasks} />;
+  return <DashboardClient session={updatedSession as Session} tasks={tasks} />;
 } 

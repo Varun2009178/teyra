@@ -1,22 +1,31 @@
-import "next-auth";
+import { type DefaultSession } from "next-auth";
 import { CactusState } from "@prisma/client";
 
 declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      username: string;
-      onboardingComplete: boolean;
-      currentStreak: number;
-      cactusState: CactusState;
-    } & import("next-auth").DefaultSession["user"];
-  }
-
-  interface User extends import("next-auth").DefaultUser {
-    username: string;
-    onboardingComplete: boolean;
+  /**
+   * Represents the user object in your application.
+   * This extends the default user with your custom fields.
+   */
+  interface User {
+    id: string;
+    username: string | null;
+    onboarded: boolean;
     currentStreak: number;
     cactusState: CactusState;
+    tasksCompletedForCactus: number;
+    tasksLastGeneratedAt: Date | null;
+    hasSeenIntroPopup: boolean;
+    hasSeenStreakPopup: boolean;
+    hasSeenCompletionPopup: boolean;
+    hasCompletedFirstTask: boolean;
+  }
+
+  /**
+   * Represents the session object.
+   * This ensures that `session.user` will have the custom fields defined in the User interface.
+   */
+  interface Session {
+    user: User & DefaultSession["user"];
   }
 }
 

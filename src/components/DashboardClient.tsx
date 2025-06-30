@@ -47,58 +47,18 @@ function getRandomText(state: CactusState): string {
   return options[Math.floor(Math.random() * options.length)];
 }
 
-type DashboardSession = {
-  user: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-    username: string | null;
-    onboarded: boolean;
-    currentStreak: number;
-    cactusState: CactusState;
-    tasksCompletedForCactus: number;
-    tasksLastGeneratedAt: Date | null;
-    hasSeenIntroPopup: boolean;
-    hasSeenStreakPopup: boolean;
-    hasSeenCompletionPopup: boolean;
-    hasCompletedFirstTask: boolean;
-  };
-  expires: Session["expires"];
-};
-
-// This is the shape of the user object we'll use consistently in the client state
-interface DashboardUser {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-  username: string | null;
-  onboarded: boolean;
-  currentStreak: number;
-  cactusState: CactusState;
-  tasksCompletedForCactus: number;
-  tasksLastGeneratedAt: Date | null;
-  hasSeenIntroPopup: boolean;
-  hasSeenStreakPopup: boolean;
-  hasSeenCompletionPopup: boolean;
-  hasCompletedFirstTask: boolean;
-}
-
 export default function DashboardClient({
   session,
   tasks: initialTasks,
 }: {
-  session: DashboardSession;
+  session: Session;
   tasks: Task[];
 }) {
   const [tasks, setTasks] = useState(initialTasks);
   const { data: sessionData, update: updateSession } = useSession();
 
   // New Local State: The single source of truth for the UI
-  const [currentUser, setCurrentUser] = useState<DashboardUser>(
-    session.user as DashboardUser
-  );
+  const [currentUser, setCurrentUser] = useState(session.user);
 
   // The `user` variable will now always point to our reliable local state
   const user = currentUser;
@@ -236,7 +196,7 @@ export default function DashboardClient({
         .then((result) => {
           if (result.success && "tasks" in result && "user" in result) {
             setTasks(result.tasks);
-            setCurrentUser(result.user as DashboardUser);
+            setCurrentUser(result.user);
             if (result.user) {
               updateSession({ user: result.user });
             }
@@ -306,7 +266,7 @@ export default function DashboardClient({
       );
       if (result.success && "tasks" in result && "user" in result) {
         setTasks(result.tasks);
-        setCurrentUser(result.user as DashboardUser);
+        setCurrentUser(result.user);
         await updateSession({ user: result.user });
         setDisplayDate(newSimulatedDate); // Move to the next day on success
         // Show penalty modal if the simulation resulted in one
@@ -420,7 +380,7 @@ export default function DashboardClient({
 
         // Force a full state update with the authoritative data from the server
         setTasks(result.tasks);
-        setCurrentUser(result.user as DashboardUser);
+        setCurrentUser(result.user);
         updateSession({ user: result.user });
       })
       .catch((error) => {
