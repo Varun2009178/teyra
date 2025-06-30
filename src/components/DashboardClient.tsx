@@ -496,7 +496,7 @@ export default function DashboardClient({
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
-            You've completed all your tasks for the day. New tasks will be
+            You have completed all your tasks for the day. New tasks will be
             generated for you in 24 hours. Keep up the great work!
           </p>
           <div className="mt-6">
@@ -639,7 +639,7 @@ export default function DashboardClient({
                   Streak Progress
                 </h2>
                 <p className="mt-2 text-base font-bold text-gray-700 sm:text-lg">
-                  You're on a {user.currentStreak}-day streak!
+                  You are on a {user.currentStreak}-day streak!
                 </p>
                 <div className="mt-4 w-full">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">
