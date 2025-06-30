@@ -90,7 +90,7 @@ export default function DashboardClient({
 
   const [isIntroModalOpen, setIntroModalOpen] = useState(false);
   const [isStreakModalOpen, setStreakModalOpen] = useState(false);
-  const [prevStreak, setPrevStreak] = useState(user.currentStreak);
+  const [prevStreak, setPrevStreak] = useState(user.currentStreak ?? 0);
   const [isCompletionModalOpen, setCompletionModalOpen] = useState(false);
   const [isPenaltyModalOpen, setPenaltyModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -188,13 +188,14 @@ export default function DashboardClient({
   useEffect(() => {
     // Logic for the STREAK modal (when streak increases)
     if (
+      typeof user.currentStreak === 'number' &&
       user.currentStreak > prevStreak &&
       user.currentStreak > 1 &&
       !user.hasSeenStreakPopup
     ) {
       setStreakModalOpen(true);
     }
-    setPrevStreak(user.currentStreak);
+    setPrevStreak(user.currentStreak ?? 0);
   }, [user.currentStreak, prevStreak, user.hasSeenStreakPopup]);
 
   // New, robust logic for the FIRST TASK modal
