@@ -68,18 +68,18 @@ const cactusThoughts = {
 };
 
 export default function DashboardClient({
-  session,
+  session: initialSession,
   tasks: initialTasks,
 }: {
   session: Session;
   tasks: Task[];
 }) {
   const [tasks, setTasks] = useState(initialTasks);
-  const { data: sessionData, update: updateSession } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [currentUser, setCurrentUser] = useState(session.user);
-  const user = currentUser;
+
+  const user = useMemo(() => session?.user ?? initialSession.user, [session, initialSession.user]);
 
   // Combine all modal states
   const [modals, setModals] = useState({
@@ -116,7 +116,7 @@ export default function DashboardClient({
 
   const [isSimulating, setIsSimulating] = useState(false);
   const [displayDate, setDisplayDate] = useState(
-    () => new Date(session.user.tasksLastGeneratedAt || Date.now())
+    () => new Date(user.tasksLastGeneratedAt || Date.now())
   );
 
   // HYDRATION FIX: Initialize moodText with a deterministic value
@@ -250,7 +250,6 @@ export default function DashboardClient({
         .then((result) => {
           if (result.success && "tasks" in result && "user" in result) {
             setTasks(result.tasks);
-            setCurrentUser(result.user as User);
             if (result.user) {
               updateSession({ user: result.user as User });
             }
@@ -312,7 +311,6 @@ export default function DashboardClient({
       );
       if (result.success && "tasks" in result && "user" in result) {
         setTasks(result.tasks);
-        setCurrentUser(result.user as User);
         await updateSession({ user: result.user as User });
         setDisplayDate(newSimulatedDate); // Move to the next day on success
         // Show penalty modal if the simulation resulted in one
@@ -337,8 +335,7 @@ export default function DashboardClient({
     localStorage.setItem("hasSeenIntroPopup", "true");
     // Then, update the database as the source of truth
     await markPopupAsSeen("intro");
-    await updateSession({ user: { ...currentUser, hasSeenIntroPopup: true } });
-    setCurrentUser({ ...currentUser, hasSeenIntroPopup: true });
+    await updateSession({ user: { ...user, hasSeenIntroPopup: true } });
   };
 
   const handleCloseStreak = () => {
@@ -400,10 +397,8 @@ export default function DashboardClient({
   const handleCloseCompletion = async () => {
     setModals(m => ({ ...m, completion: false }));
     // Immediately update local state to prevent re-opening
-    setCurrentUser({ ...currentUser, hasSeenCompletionPopup: true });
-    await markPopupAsSeen("completion");
     // Sync with the server session
-    await updateSession({ user: { ...currentUser, hasSeenCompletionPopup: true } });
+    await updateSession({ user: { ...user, hasSeenCompletionPopup: true } });
   };
 
   const handleTaskStateChange = async (taskId: string, completed: boolean) => {
@@ -432,8 +427,7 @@ export default function DashboardClient({
       }
 
       // Only update user state if something has changed
-      if (JSON.stringify(currentUser) !== JSON.stringify(result.user)) {
-        setCurrentUser(result.user as User);
+      if (JSON.stringify(user) !== JSON.stringify(result.user)) {
         // Update the session in the background
         await updateSession({ user: result.user as User });
       }
