@@ -283,14 +283,14 @@ export default function DashboardClient({
   useEffect(() => {
     // This effect ensures the date displayed on the dashboard always matches
     // the authoritative date from the user's session data, fixing the sync issue.
-    if (session.user.tasksLastGeneratedAt) {
+    if (session?.user?.tasksLastGeneratedAt) {
       const serverDate = new Date(session.user.tasksLastGeneratedAt);
       // Only update if the client date is different to avoid infinite loops
       if (displayDate.toISOString().split("T")[0] !== serverDate.toISOString().split("T")[0]) {
         setDisplayDate(serverDate);
       }
     }
-  }, [session.user.tasksLastGeneratedAt, displayDate]);
+  }, [session, displayDate]);
 
   const handleRevealTasks = () => {
     const key = getRevealStorageKey(displayDate);
