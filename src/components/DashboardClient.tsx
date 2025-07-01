@@ -97,11 +97,16 @@ export default function DashboardClient({
   });
 
   // Combine all animation states
-  const [animations, setAnimations] = useState({
+  const [animations, setAnimations] = useState<{
+    isCelebrating: boolean;
+    isLevelingUp: boolean;
+    feedbackMessage: string;
+    levelUpState: CactusState | null;
+  }>({
     isCelebrating: false,
     isLevelingUp: false,
     feedbackMessage: "",
-    levelUpState: null as CactusState | null
+    levelUpState: null
   });
 
   // Track previous states in one object
@@ -137,7 +142,7 @@ export default function DashboardClient({
     // Set initial tasks revealed state
     const key = getRevealStorageKey(new Date(user.tasksLastGeneratedAt || Date.now()));
     setTasksRevealed(localStorage.getItem(key) === "true");
-  }, []);
+  }, [user.hasSeenIntroPopup, user.tasksLastGeneratedAt]);
 
   // Single effect for idle timer
   useEffect(() => {
@@ -169,7 +174,7 @@ export default function DashboardClient({
       );
       document.removeEventListener("visibilitychange", resetTimer);
     };
-  }, [isClient]);
+  }, [isClient, modals.idle]);
 
   // Single effect for user state updates
   useEffect(() => {
@@ -201,7 +206,7 @@ export default function DashboardClient({
       setAnimations(a => ({
         ...a,
         isLevelingUp: true,
-        levelUpState: user.cactusState
+        levelUpState: user.cactusState || "MEDIUM"
       }));
       setTimeout(() => {
         setAnimations(a => ({
@@ -218,7 +223,15 @@ export default function DashboardClient({
       hasCompletedFirstTask: user.hasCompletedFirstTask,
       cactusState: user.cactusState
     });
-  }, [user.currentStreak, user.hasCompletedFirstTask, user.cactusState, user.hasSeenStreakPopup]);
+  }, [
+    user.currentStreak,
+    user.hasCompletedFirstTask,
+    user.cactusState,
+    user.hasSeenStreakPopup,
+    prevStates.streak,
+    prevStates.hasCompletedFirstTask,
+    prevStates.cactusState
+  ]);
 
   // Single effect for task regeneration
   useEffect(() => {
@@ -253,7 +266,7 @@ export default function DashboardClient({
         })
         .finally(() => setIsRegenerating(false));
     }
-  }, [isClient, user.id, user.tasksLastGeneratedAt]);
+  }, [isClient, user.id, user.tasksLastGeneratedAt, updateSession]);
 
   // --- Reveal Tasks Logic ---
   const getRevealStorageKey = (date: Date) => {

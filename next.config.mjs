@@ -16,6 +16,17 @@ const nextConfig = {
       },
     ],
   },
+  // Optimize build performance
+  poweredByHeader: false,
+  reactStrictMode: true,
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['@prisma/client', 'framer-motion', 'date-fns'],
+  },
 };
  
 export default nextConfig; 
