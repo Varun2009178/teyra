@@ -81,6 +81,7 @@ export default function DashboardClient({
 }) {
   const [tasks, setTasks] = useState(initialTasks);
   const { data: sessionData, update: updateSession } = useSession();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // New Local State: The single source of truth for the UI
   const [currentUser, setCurrentUser] = useState(session.user);
@@ -124,7 +125,7 @@ export default function DashboardClient({
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+    const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
     const events: (keyof WindowEventMap)[] = [
       "mousemove",
@@ -132,9 +133,14 @@ export default function DashboardClient({
       "keypress",
       "scroll",
       "touchstart",
+      "click",
+      "focus",
     ];
 
     const resetTimer = () => {
+      if (isIdle) {
+        setIsIdle(false);
+      }
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
     };
@@ -155,7 +161,7 @@ export default function DashboardClient({
       events.forEach((event) => window.removeEventListener(event, resetTimer));
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [isIdle]);
 
   const handleLoginRedirect = () => {
     signOut({ callbackUrl: "/login" });
@@ -429,7 +435,8 @@ export default function DashboardClient({
     await updateSession({ user: { ...currentUser, hasSeenCompletionPopup: true } });
   };
 
-  const handleTaskStateChange = (taskId: string, completed: boolean) => {
+  const handleTaskStateChange = async (taskId: string, completed: boolean) => {
+    setIsUpdating(true);
     // Optimistically update the UI for instant feedback
     const originalTasks = [...tasks];
     const updatedTasks = tasks.map((t) =>
@@ -437,34 +444,44 @@ export default function DashboardClient({
     );
     setTasks(updatedTasks);
 
-    // Call the server action and update the state with the authoritative result
-    updateTaskStatus(taskId, completed)
-      .then((result) => {
-        if (!result.success || !result.user || !result.tasks) {
-          console.error("Failed to update task, reverting.");
-          setTasks(originalTasks); // Revert on failure
-          return;
-        }
+    try {
+      // Call the server action and update the state with the authoritative result
+      const result = await updateTaskStatus(taskId, completed);
+      
+      if (!result.success || !result.user || !result.tasks) {
+        console.error("Failed to update task, reverting.");
+        setTasks(originalTasks); // Revert on failure
+        setIsUpdating(false);
+        return;
+      }
 
-        // Celebrate if a task was completed
-        if (completed) {
-          setIsCelebrating(true);
-          setFeedbackMessage(`Task done. 🌱 Cactus mood is improving!`);
-          setTimeout(() => {
-            setIsCelebrating(false);
-            setFeedbackMessage("");
-          }, 4000);
-        }
-
-        // Force a full state update with the authoritative data from the server
+      // Only update state if the values have actually changed
+      if (JSON.stringify(tasks) !== JSON.stringify(result.tasks)) {
         setTasks(result.tasks);
+      }
+
+      // Only update user state if something has changed
+      if (JSON.stringify(currentUser) !== JSON.stringify(result.user)) {
         setCurrentUser(result.user as User);
-        updateSession({ user: result.user as User });
-      })
-      .catch((error) => {
-        console.error("Error updating task:", error);
-        setTasks(originalTasks);
-      });
+        // Update the session in the background
+        await updateSession({ user: result.user as User });
+      }
+
+      // Celebrate if a task was completed
+      if (completed) {
+        setIsCelebrating(true);
+        setFeedbackMessage(`Task done. 🌱 Cactus mood is improving!`);
+        setTimeout(() => {
+          setIsCelebrating(false);
+          setFeedbackMessage("");
+        }, 4000);
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+      setTasks(originalTasks);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   if (isRegenerating) {
@@ -620,6 +637,8 @@ export default function DashboardClient({
               <div className="mt-4">
                 {!isClient ? (
                   <div className="h-48 w-full animate-pulse rounded-lg bg-gray-200"></div>
+                ) : isUpdating ? (
+                  <div className="h-48 w-full animate-pulse rounded-lg bg-gray-100"></div>
                 ) : tasks.length > 0 && tasksRevealed ? (
                   <TaskList
                     tasks={tasks}
