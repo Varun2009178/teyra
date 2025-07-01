@@ -371,20 +371,23 @@ export default function DashboardClient({
 
   const { cactusState, tasksCompletedForCactus } = user;
 
-  const calculateMoodProgress = (state: CactusState) => {
+  const calculateMoodProgress = (state: CactusState | undefined) => {
     let progress = 0;
     let progressColor = "bg-gray-300";
     let progressText = "Just getting started!";
 
-    if (state === "SAD") {
+    // Provide a default state if it's undefined to prevent crashes
+    const currentState = state || "MEDIUM";
+
+    if (currentState === "SAD") {
       progress = 25;
       progressColor = "bg-red-500";
       progressText = "Feeling down";
-    } else if (state === "MEDIUM") {
+    } else if (currentState === "MEDIUM") {
       progress = 60;
       progressColor = "bg-yellow-500";
       progressText = "Doing okay, keep it up!";
-    } else if (state === "HAPPY") {
+    } else if (currentState === "HAPPY") {
       progress = 100;
       progressColor = "bg-green-500";
       progressText = "You have reached the highest level of happiness!";

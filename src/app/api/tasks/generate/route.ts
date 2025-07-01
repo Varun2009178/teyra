@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+gimport { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { generateAndSaveTasks } from "@/lib/generation";
 import prisma from "@/lib/prisma";
