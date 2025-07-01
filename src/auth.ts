@@ -22,7 +22,12 @@ Object.entries(requiredEnvVars).forEach(([key, value]) => {
   }
 });
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const {
+  handlers: { GET, POST },
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -36,6 +41,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       allowDangerousEmailAccountLinking: true,
     }),
   ],
+  session: {
+    strategy: "database"
+  },
   callbacks: {
     async signIn({ user, account }) {
       if (!user?.email) {
@@ -44,58 +52,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       try {
-        const cookieStore = cookies();
-        const isLoginAttempt =
-          cookieStore.get("next-auth.login-attempt")?.value === "true";
-        const isSignUpAttempt =
-          cookieStore.get("next-auth.signup-attempt")?.value === "true";
-
-        // Clean up cookies immediately
-        if (isLoginAttempt) cookieStore.delete("next-auth.login-attempt");
-        if (isSignUpAttempt) cookieStore.delete("next-auth.signup-attempt");
-
-        console.log("Sign in attempt details:", {
-          email: user.email,
-          provider: account?.provider,
-          isLoginAttempt,
-          isSignUpAttempt,
-        });
-
         // Verify database connection
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: user.email },
-          });
-          
-          console.log("Database lookup result:", {
-            email: user.email,
-            userFound: !!dbUser,
-            isLoginAttempt,
-            isSignUpAttempt,
-          });
-
-          if (isLoginAttempt && !dbUser) {
-            console.log("Login blocked: Account not found");
-            return "/login?error=AccountNotFound";
-          }
-
-          if (isSignUpAttempt && dbUser) {
-            console.log("Signup blocked: Account already exists");
-            return "/login?error=AccountExists";
-          }
-
-          return true;
-        } catch (dbError) {
-          console.error("Database error during sign in:", dbError);
-          throw new Error("Database connection failed");
-        }
-      } catch (error) {
-        console.error("Sign in error:", {
-          message: error instanceof Error ? error.message : "Unknown error",
-          email: user.email,
-          provider: account?.provider,
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
         });
-        return "/api/auth/error?error=ServerError";
+        
+        console.log("Database lookup result:", {
+          email: user.email,
+          userFound: !!dbUser,
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Database error during sign in:", error);
+        throw new Error("Database connection failed");
       }
     },
     async session({ session, user }) {
@@ -133,10 +103,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       }
       return session;
-    },
+    }
   },
   pages: {
-    error: "/auth/error",
     signIn: "/login",
+    error: "/auth/error",
   },
 }); 
