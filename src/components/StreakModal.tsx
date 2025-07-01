@@ -23,12 +23,12 @@ export function StreakModal({ isOpen, onClose, streak }: StreakModalProps) {
         <div className="my-8 text-7xl">
           🔥
         </div>
-        <button
-          onClick={onClose}
+          <button
+            onClick={onClose}
           className="mt-6 rounded-lg border-2 border-black bg-brand-yellow px-6 py-2 font-bold text-black"
-        >
+          >
           Let us Go!
-        </button>
+          </button>
       </div>
     </Modal>
   );

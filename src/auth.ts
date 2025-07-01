@@ -35,68 +35,50 @@ export const {
     }),
   ],
   session: {
-    strategy: "database"
+    strategy: "jwt"
   },
   callbacks: {
-    async signIn({ user, account }) {
-      if (!user?.email) {
-        console.error("Sign in failed: No email provided");
-        return false;
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session) {
+        return { ...token, ...session.user };
       }
 
-      try {
-        // Verify database connection
+      if (user) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: user.email },
+          where: { id: user.id },
         });
-        
-        console.log("Database lookup result:", {
-          email: user.email,
-          userFound: !!dbUser,
-        });
-
-        return true;
-      } catch (error) {
-        console.error("Database error during sign in:", error);
-        throw new Error("Database connection failed");
-      }
-    },
-    async session({ session, user }) {
-      if (session.user) {
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-          });
-
-          if (!dbUser) {
-            console.error("Session error: User not found in database", {
-              userId: user.id,
-              email: session.user.email,
-            });
-            return session;
-          }
-
-          session.user.id = dbUser.id;
-          session.user.username = dbUser.username;
-          session.user.onboarded = dbUser.onboarded;
-          session.user.currentStreak = dbUser.currentStreak;
-          session.user.cactusState = dbUser.cactusState;
-          session.user.hasSeenIntroPopup = dbUser.hasSeenIntroPopup;
-          session.user.hasSeenStreakPopup = dbUser.hasSeenStreakPopup;
-          session.user.hasSeenCompletionPopup = dbUser.hasSeenCompletionPopup;
-          session.user.hasCompletedFirstTask = dbUser.hasCompletedFirstTask;
-          session.user.tasksLastGeneratedAt = dbUser.tasksLastGeneratedAt;
-          session.user.tasksCompletedForCactus = dbUser.tasksCompletedForCactus;
-        } catch (error) {
-          console.error("Session database error:", {
-            message: error instanceof Error ? error.message : "Unknown error",
-            userId: user.id,
-            email: session.user.email,
-          });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.username = dbUser.username;
+          token.onboarded = dbUser.onboarded;
+          token.currentStreak = dbUser.currentStreak;
+          token.cactusState = dbUser.cactusState;
+          token.hasSeenIntroPopup = dbUser.hasSeenIntroPopup;
+          token.hasSeenStreakPopup = dbUser.hasSeenStreakPopup;
+          token.hasSeenCompletionPopup = dbUser.hasSeenCompletionPopup;
+          token.hasCompletedFirstTask = dbUser.hasCompletedFirstTask;
+          token.tasksLastGeneratedAt = dbUser.tasksLastGeneratedAt;
+          token.tasksCompletedForCactus = dbUser.tasksCompletedForCactus;
         }
       }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.username = token.username;
+        session.user.onboarded = token.onboarded;
+        session.user.currentStreak = token.currentStreak;
+        session.user.cactusState = token.cactusState;
+        session.user.hasSeenIntroPopup = token.hasSeenIntroPopup;
+        session.user.hasSeenStreakPopup = token.hasSeenStreakPopup;
+        session.user.hasSeenCompletionPopup = token.hasSeenCompletionPopup;
+        session.user.hasCompletedFirstTask = token.hasCompletedFirstTask;
+        session.user.tasksLastGeneratedAt = token.tasksLastGeneratedAt;
+        session.user.tasksCompletedForCactus = token.tasksCompletedForCactus;
+      }
       return session;
-    }
+    },
   },
   pages: {
     signIn: "/login",

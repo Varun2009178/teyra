@@ -83,7 +83,7 @@ export default function PreferencesPage() {
       }
       
       await update();
-
+      
       router.push("/dashboard");
 
     } catch (error) {

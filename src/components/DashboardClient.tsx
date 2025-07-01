@@ -349,7 +349,7 @@ export default function DashboardClient({
   const { cactusState, tasksCompletedForCactus } = user;
 
   const calculateMoodProgress = (state: CactusState | undefined) => {
-    let progress = 0;
+  let progress = 0;
     let progressColor = "bg-gray-300";
     let progressText = "Just getting started!";
 
@@ -365,8 +365,8 @@ export default function DashboardClient({
       progressColor = "bg-yellow-500";
       progressText = "Doing okay, keep it up!";
     } else if (currentState === "HAPPY") {
-      progress = 100;
-      progressColor = "bg-green-500";
+    progress = 100;
+    progressColor = "bg-green-500";
       progressText = "You have reached the highest level of happiness!";
     }
 
@@ -416,15 +416,15 @@ export default function DashboardClient({
     setTasks(updatedTasks);
 
     try {
-      // Call the server action and update the state with the authoritative result
+    // Call the server action and update the state with the authoritative result
       const result = await updateTaskStatus(taskId, completed);
       
-      if (!result.success || !result.user || !result.tasks) {
-        console.error("Failed to update task, reverting.");
-        setTasks(originalTasks); // Revert on failure
+        if (!result.success || !result.user || !result.tasks) {
+          console.error("Failed to update task, reverting.");
+          setTasks(originalTasks); // Revert on failure
         setIsUpdating(false);
-        return;
-      }
+          return;
+        }
 
       // Only update state if the values have actually changed
       if (JSON.stringify(tasks) !== JSON.stringify(result.tasks)) {
@@ -438,24 +438,24 @@ export default function DashboardClient({
         await updateSession({ user: result.user as User });
       }
 
-      // Celebrate if a task was completed
-      if (completed) {
+        // Celebrate if a task was completed
+        if (completed) {
         setAnimations(a => ({
           ...a,
           isCelebrating: true,
           feedbackMessage: `Task done. 🌱 Cactus mood is improving!`
         }));
-        setTimeout(() => {
+          setTimeout(() => {
           setAnimations(a => ({
             ...a,
             isCelebrating: false,
             feedbackMessage: ""
           }));
-        }, 4000);
-      }
+          }, 4000);
+        }
     } catch (error) {
-      console.error("Error updating task:", error);
-      setTasks(originalTasks);
+        console.error("Error updating task:", error);
+        setTasks(originalTasks);
     } finally {
       setIsUpdating(false);
     }

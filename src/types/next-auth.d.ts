@@ -1,41 +1,50 @@
-import type { DefaultSession } from "next-auth";
-import type { User as PrismaUser, CactusState } from "../../prisma/generated/client";
-import "next-auth";
+import { DefaultSession, DefaultUser } from "next-auth";
+import { JWT as DefaultJWT } from "next-auth/jwt";
+import { CactusState } from "@prisma/client";
 
 declare module "next-auth" {
-  /**
-   * Extends the built-in session.user type with our custom fields.
-   */
-  interface User {
-    username?: string | null;
-    onboarded?: boolean;
-    currentStreak?: number;
-    longestStreak?: number;
-    lastTaskCompletedAt?: Date | null;
-    cactusState?: CactusState;
-    tasksCompletedForCactus?: number;
-    tasksLastGeneratedAt?: Date | null;
-    hasSeenIntroPopup?: boolean;
-    hasSeenStreakPopup?: boolean;
-    hasSeenCompletionPopup?: boolean;
-    hasCompletedFirstTask?: boolean;
-  }
-
   interface Session {
     user: {
       id: string;
       username: string | null;
       onboarded: boolean;
       currentStreak: number;
-      longestStreak: number;
-      lastTaskCompletedAt: Date | null;
       cactusState: CactusState;
-      tasksCompletedForCactus: number;
-      tasksLastGeneratedAt: Date | null;
       hasSeenIntroPopup: boolean;
       hasSeenStreakPopup: boolean;
       hasSeenCompletionPopup: boolean;
       hasCompletedFirstTask: boolean;
+      tasksLastGeneratedAt: Date | null;
+      tasksCompletedForCactus: number;
     } & DefaultSession["user"];
   }
-} 
+
+  interface User extends DefaultUser {
+    username: string | null;
+    onboarded: boolean;
+    currentStreak: number;
+    cactusState: CactusState;
+    hasSeenIntroPopup: boolean;
+    hasSeenStreakPopup: boolean;
+    hasSeenCompletionPopup: boolean;
+    hasCompletedFirstTask: boolean;
+    tasksLastGeneratedAt: Date | null;
+    tasksCompletedForCactus: number;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT extends DefaultJWT {
+    id: string;
+    username: string | null;
+    onboarded: boolean;
+    currentStreak: number;
+    cactusState: CactusState;
+    hasSeenIntroPopup: boolean;
+    hasSeenStreakPopup: boolean;
+    hasSeenCompletionPopup: boolean;
+    hasCompletedFirstTask: boolean;
+    tasksLastGeneratedAt: Date | null;
+    tasksCompletedForCactus: number;
+  }
+}
