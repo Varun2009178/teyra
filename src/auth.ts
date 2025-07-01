@@ -38,6 +38,39 @@ export const {
     strategy: "jwt"
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (!user.email) {
+        // This should not happen with OAuth providers like Google and Discord
+        // as they always provide an email.
+        return false;
+      }
+      
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email },
+        include: { accounts: true },
+      });
+
+      if (existingUser && account) {
+        const existingAccount = existingUser.accounts.find(
+          (acc) => acc.provider === account.provider
+        );
+
+        if (existingAccount) {
+          // User is signing in with a provider they have already linked.
+          return true;
+        }
+
+        // User exists but is trying to sign in with a new provider.
+        // `allowDangerousEmailAccountLinking` is true, so NextAuth will link it.
+        // If you want to prevent this, you can return a redirect to the login page
+        // with an error.
+        const providerName = existingUser.accounts[0]?.provider.charAt(0).toUpperCase() + existingUser.accounts[0]?.provider.slice(1);
+        throw new Error(`You have already signed up with ${providerName}. Please log in using that method.`);
+      }
+      
+      // New user or user signing in with their first/only linked provider.
+      return true;
+    },
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session) {
         return { ...token, ...session.user };
