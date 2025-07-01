@@ -15,11 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <NextAuthSessionProvider>
           <Navbar />
-          <main className="animate-fadeIn">{children}</main>
+          <main className="animate-fadeIn min-h-screen">{children}</main>
         </NextAuthSessionProvider>
         <Analytics />
       </body>
