@@ -4,9 +4,14 @@ import { PrismaClient } from "@prisma/client";
 // It creates a single, global instance of the PrismaClient and reuses it.
 
 const prismaClientSingleton = () => {
-  return new PrismaClient();
+  return new PrismaClient({
+    // Log queries only in development
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    errorFormat: 'minimal',
+  });
 };
 
+// Prevent multiple instances of Prisma Client in development
 declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }

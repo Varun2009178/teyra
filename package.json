@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "build": "NEXT_TELEMETRY_DISABLED=1 prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -19,6 +19,7 @@
     "@rive-app/react-canvas": "^4.21.4",
     "@tippyjs/react": "^4.2.6",
     "@vercel/analytics": "^1.5.0",
+    "boolbase": "^1.0.0",
     "critters": "^0.0.23",
     "date-fns": "^3.6.0",
     "framer-motion": "^12.19.2",
