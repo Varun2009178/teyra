@@ -82,19 +82,35 @@ export default function DashboardClient({
   const [tasks, setTasks] = useState(initialTasks);
   const { data: sessionData, update: updateSession } = useSession();
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // New Local State: The single source of truth for the UI
+  const [isClient, setIsClient] = useState(false);
   const [currentUser, setCurrentUser] = useState(session.user);
-
-  // The `user` variable will now always point to our reliable local state
   const user = currentUser;
 
-  const [isIntroModalOpen, setIntroModalOpen] = useState(false);
-  const [isStreakModalOpen, setStreakModalOpen] = useState(false);
-  const [prevStreak, setPrevStreak] = useState(user.currentStreak ?? 0);
-  const [isCompletionModalOpen, setCompletionModalOpen] = useState(false);
-  const [isPenaltyModalOpen, setPenaltyModalOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  // Combine all modal states
+  const [modals, setModals] = useState({
+    intro: false,
+    streak: false,
+    penalty: false,
+    completion: false,
+    levelUp: false,
+    idle: false
+  });
+
+  // Combine all animation states
+  const [animations, setAnimations] = useState({
+    isCelebrating: false,
+    isLevelingUp: false,
+    feedbackMessage: "",
+    levelUpState: null as CactusState | null
+  });
+
+  // Track previous states in one object
+  const [prevStates, setPrevStates] = useState({
+    streak: user.currentStreak ?? 0,
+    hasCompletedFirstTask: user.hasCompletedFirstTask,
+    cactusState: user.cactusState
+  });
+
   const [isRegenerating, setIsRegenerating] = useState(false);
   const router = useRouter();
 
@@ -103,162 +119,117 @@ export default function DashboardClient({
     () => new Date(session.user.tasksLastGeneratedAt || Date.now())
   );
 
-  // State for celebration animations
-  const [isCelebrating, setIsCelebrating] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [isLevelingUp, setIsLevelingUp] = useState(false);
-  const [levelUpState, setLevelUpState] = useState<CactusState | null>(null);
-
-  // State to track the previous value of hasCompletedFirstTask for reliable popup logic
-  const [prevHasCompletedFirstTask, setPrevHasCompletedFirstTask] = useState(
-    user.hasCompletedFirstTask
-  );
-  const [prevCactusState, setPrevCactusState] = useState(user.cactusState);
-
   // HYDRATION FIX: Initialize moodText with a deterministic value
   const [moodText, setMoodText] = useState(() => {
     const state = user.cactusState;
     return getRandomText(state);
   });
 
-  const [isIdle, setIsIdle] = useState(false);
+  const [tasksRevealed, setTasksRevealed] = useState(false);
 
+  // Single effect for client-side initialization
+  useEffect(() => {
+    setIsClient(true);
+    // Check intro popup condition
+    if (!user.hasSeenIntroPopup && localStorage.getItem("hasSeenIntroPopup") !== "true") {
+      setModals(m => ({ ...m, intro: true }));
+    }
+    // Set initial tasks revealed state
+    const key = getRevealStorageKey(new Date(user.tasksLastGeneratedAt || Date.now()));
+    setTasksRevealed(localStorage.getItem(key) === "true");
+  }, []);
+
+  // Single effect for idle timer
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-
-    const events: (keyof WindowEventMap)[] = [
-      "mousemove",
-      "mousedown",
-      "keypress",
-      "scroll",
-      "touchstart",
-      "click",
-      "focus",
-    ];
-
+    const IDLE_TIMEOUT = 30 * 60 * 1000;
+    
     const resetTimer = () => {
-      if (isIdle) {
-        setIsIdle(false);
+      if (modals.idle) {
+        setModals(m => ({ ...m, idle: false }));
       }
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT);
+      timeoutId = setTimeout(() => setModals(m => ({ ...m, idle: true })), IDLE_TIMEOUT);
     };
 
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        resetTimer();
-      }
-    };
-
-    events.forEach((event) => window.addEventListener(event, resetTimer));
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    resetTimer(); // Initial timer start
+    if (isClient) {
+      ["mousemove", "mousedown", "keypress", "scroll", "touchstart", "click", "focus"].forEach(
+        event => window.addEventListener(event, resetTimer)
+      );
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) resetTimer();
+      });
+      resetTimer();
+    }
 
     return () => {
       clearTimeout(timeoutId);
-      events.forEach((event) => window.removeEventListener(event, resetTimer));
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [isIdle]);
-
-  const handleLoginRedirect = () => {
-    signOut({ callbackUrl: "/login" });
-  };
-
-  useEffect(() => {
-    setTasks(initialTasks);
-  }, [initialTasks]);
-
-  useEffect(() => {
-    setIsClient(true);
-    // Prioritize database value, then check local storage.
-    if (!user.hasSeenIntroPopup && localStorage.getItem("hasSeenIntroPopup") !== "true") {
-      setIntroModalOpen(true);
-    }
-  }, [user.hasSeenIntroPopup]);
-
-  // HYDRATION FIX: Set random text only on the client after initial mount
-  useEffect(() => {
-    const state = user.cactusState || 'MEDIUM';
-    if (Array.isArray(encouragingMessages[state])) {
-      setMoodText(
-        encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
+      ["mousemove", "mousedown", "keypress", "scroll", "touchstart", "click", "focus"].forEach(
+        event => window.removeEventListener(event, resetTimer)
       );
-    } else {
-      setMoodText(encouragingMessages[state]);
-    }
-  }, [user.cactusState]);
+      document.removeEventListener("visibilitychange", resetTimer);
+    };
+  }, [isClient]);
 
+  // Single effect for user state updates
   useEffect(() => {
-    // Logic for the STREAK modal (when streak increases)
+    // Handle streak modal
     if (
       typeof user.currentStreak === 'number' &&
-      user.currentStreak > prevStreak &&
+      user.currentStreak > prevStates.streak &&
       user.currentStreak > 1 &&
       !user.hasSeenStreakPopup
     ) {
-      setStreakModalOpen(true);
+      setModals(m => ({ ...m, streak: true }));
     }
-    setPrevStreak(user.currentStreak ?? 0);
-  }, [user.currentStreak, prevStreak, user.hasSeenStreakPopup]);
 
-  // New, robust logic for the FIRST TASK modal
-  useEffect(() => {
+    // Handle first task completion
     if (
       user.hasCompletedFirstTask &&
-      !prevHasCompletedFirstTask &&
+      !prevStates.hasCompletedFirstTask &&
       !user.hasSeenStreakPopup
     ) {
-      setStreakModalOpen(true);
+      setModals(m => ({ ...m, streak: true }));
     }
-    setPrevHasCompletedFirstTask(user.hasCompletedFirstTask);
-  }, [
-    user.hasCompletedFirstTask,
-    prevHasCompletedFirstTask,
-    user.hasSeenStreakPopup,
-  ]);
 
-  // Effect to handle cactus level-up celebrations
-  useEffect(() => {
-    const stateChanged = user.cactusState !== prevCactusState;
-    const leveledUpToMedium =
-      stateChanged &&
-      user.cactusState === "MEDIUM" &&
-      prevCactusState === "SAD";
-    const leveledUpToHappy =
-      stateChanged &&
-      user.cactusState === "HAPPY" &&
-      prevCactusState === "MEDIUM";
+    // Handle cactus level up
+    const stateChanged = user.cactusState !== prevStates.cactusState;
+    const leveledUpToMedium = stateChanged && user.cactusState === "MEDIUM" && prevStates.cactusState === "SAD";
+    const leveledUpToHappy = stateChanged && user.cactusState === "HAPPY" && prevStates.cactusState === "MEDIUM";
 
     if (leveledUpToMedium || leveledUpToHappy) {
-      if (user.cactusState) {
-        setIsLevelingUp(true);
-        setLevelUpState(user.cactusState);
-        setTimeout(() => {
-          setIsLevelingUp(false);
-          setLevelUpState(null);
-        }, 6000); // Celebrate for 6 seconds
-      }
+      setAnimations(a => ({
+        ...a,
+        isLevelingUp: true,
+        levelUpState: user.cactusState
+      }));
+      setTimeout(() => {
+        setAnimations(a => ({
+          ...a,
+          isLevelingUp: false,
+          levelUpState: null
+        }));
+      }, 6000);
     }
-    setPrevCactusState(user.cactusState);
-  }, [user.cactusState, prevCactusState]);
 
-  // Effect to handle automatic daily task regeneration
+    // Update previous states
+    setPrevStates({
+      streak: user.currentStreak ?? 0,
+      hasCompletedFirstTask: user.hasCompletedFirstTask,
+      cactusState: user.cactusState
+    });
+  }, [user.currentStreak, user.hasCompletedFirstTask, user.cactusState, user.hasSeenStreakPopup]);
+
+  // Single effect for task regeneration
   useEffect(() => {
-    // Check if its a new calendar day since the last task generation
-    const lastGenDate = user.tasksLastGeneratedAt
-      ? startOfDay(new Date(user.tasksLastGeneratedAt))
-      : null;
-    const today = startOfDay(new Date());
+    if (!isClient) return;
 
-    const shouldRegenerate =
-      lastGenDate && lastGenDate.getTime() < today.getTime();
+    const lastGenDate = user.tasksLastGeneratedAt ? startOfDay(new Date(user.tasksLastGeneratedAt)) : null;
+    const today = startOfDay(new Date());
+    const shouldRegenerate = lastGenDate && lastGenDate.getTime() < today.getTime();
 
     if (shouldRegenerate) {
       setIsRegenerating(true);
-      // We need a proper way to get user answers here. For now, using placeholders.
       const placeholderAnswers = {
         q1: "Car",
         q2: "Mix of everything",
@@ -276,13 +247,13 @@ export default function DashboardClient({
               updateSession({ user: result.user as User });
             }
             if (result.penaltyApplied) {
-              setPenaltyModalOpen(true);
+              setModals(m => ({ ...m, penalty: true }));
             }
           }
         })
         .finally(() => setIsRegenerating(false));
     }
-  }, [user.id, user.tasksLastGeneratedAt, updateSession]);
+  }, [isClient, user.id, user.tasksLastGeneratedAt]);
 
   // --- Reveal Tasks Logic ---
   const getRevealStorageKey = (date: Date) => {
@@ -290,14 +261,21 @@ export default function DashboardClient({
     return `tasksRevealed-${date.toISOString().split("T")[0]}`;
   };
 
-  const [tasksRevealed, setTasksRevealed] = useState(false);
+  const handleLoginRedirect = () => {
+    signOut({ callbackUrl: "/login" });
+  };
 
+  // HYDRATION FIX: Set random text only on the client after initial mount
   useEffect(() => {
-    if (isClient) {
-      const key = getRevealStorageKey(displayDate);
-      setTasksRevealed(localStorage.getItem(key) === "true");
+    const state = user.cactusState || 'MEDIUM';
+    if (Array.isArray(encouragingMessages[state])) {
+      setMoodText(
+        encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
+      );
+    } else {
+      setMoodText(encouragingMessages[state]);
     }
-  }, [isClient, displayDate]);
+  }, [user.cactusState]);
 
   useEffect(() => {
     // This effect ensures the date displayed on the dashboard always matches
@@ -317,20 +295,9 @@ export default function DashboardClient({
     setTasksRevealed(true);
   };
 
-  useEffect(() => {
-    // Prioritize database value, then check local storage.
-    if (
-      isClient &&
-      !user.hasSeenIntroPopup &&
-      localStorage.getItem("hasSeenIntroPopup") !== "true"
-    ) {
-      setIntroModalOpen(true);
-    }
-  }, [user.hasSeenIntroPopup, isClient]);
-
   const handleSimulate = async () => {
     setIsSimulating(true);
-    setPenaltyModalOpen(false); // Close any existing penalty modal
+    setModals(m => ({ ...m, penalty: false })); // Close any existing penalty modal
 
     const newSimulatedDate = new Date(displayDate.getTime());
     newSimulatedDate.setDate(newSimulatedDate.getDate() + 1);
@@ -346,7 +313,7 @@ export default function DashboardClient({
         setDisplayDate(newSimulatedDate); // Move to the next day on success
         // Show penalty modal if the simulation resulted in one
         if (result.penaltyApplied) {
-          setPenaltyModalOpen(true);
+          setModals(m => ({ ...m, penalty: true }));
         }
       } else {
         console.error("Failed to update task, reverting.");
@@ -361,7 +328,7 @@ export default function DashboardClient({
   };
 
   const handleCloseIntro = async () => {
-    setIntroModalOpen(false);
+    setModals(m => ({ ...m, intro: false }));
     // Set local storage immediately for responsiveness
     localStorage.setItem("hasSeenIntroPopup", "true");
     // Then, update the database as the source of truth
@@ -371,7 +338,7 @@ export default function DashboardClient({
   };
 
   const handleCloseStreak = () => {
-    setStreakModalOpen(false);
+    setModals(m => ({ ...m, streak: false }));
     markPopupAsSeen("streak");
   };
 
@@ -422,12 +389,12 @@ export default function DashboardClient({
 
   useEffect(() => {
     if (allTasksCompleted && user && !user.hasSeenCompletionPopup) {
-      setCompletionModalOpen(true);
+      setModals(m => ({ ...m, completion: true }));
     }
   }, [allTasksCompleted, user]);
 
   const handleCloseCompletion = async () => {
-    setCompletionModalOpen(false);
+    setModals(m => ({ ...m, completion: false }));
     // Immediately update local state to prevent re-opening
     setCurrentUser({ ...currentUser, hasSeenCompletionPopup: true });
     await markPopupAsSeen("completion");
@@ -469,11 +436,17 @@ export default function DashboardClient({
 
       // Celebrate if a task was completed
       if (completed) {
-        setIsCelebrating(true);
-        setFeedbackMessage(`Task done. 🌱 Cactus mood is improving!`);
+        setAnimations(a => ({
+          ...a,
+          isCelebrating: true,
+          feedbackMessage: `Task done. 🌱 Cactus mood is improving!`
+        }));
         setTimeout(() => {
-          setIsCelebrating(false);
-          setFeedbackMessage("");
+          setAnimations(a => ({
+            ...a,
+            isCelebrating: false,
+            feedbackMessage: ""
+          }));
         }, 4000);
       }
     } catch (error) {
@@ -499,24 +472,24 @@ export default function DashboardClient({
 
   return (
     <>
-      <IntroPopup isOpen={isIntroModalOpen} onClose={handleCloseIntro} />
+      <IntroPopup isOpen={modals.intro} onClose={handleCloseIntro} />
       <StreakModal
-        isOpen={isStreakModalOpen}
+        isOpen={modals.streak}
         onClose={handleCloseStreak}
         streak={user.currentStreak || 0}
       />
       <PenaltyModal
-        isOpen={isPenaltyModalOpen}
-        onClose={() => setPenaltyModalOpen(false)}
+        isOpen={modals.penalty}
+        onClose={() => setModals(m => ({ ...m, penalty: false }))}
       />
-      {levelUpState && (levelUpState === 'MEDIUM' || levelUpState === 'HAPPY') && (
+      {animations.levelUpState && (animations.levelUpState === 'MEDIUM' || animations.levelUpState === 'HAPPY') && (
         <LevelUpModal
-          isOpen={isLevelingUp}
-          onClose={() => setIsLevelingUp(false)}
-          newState={levelUpState}
+          isOpen={animations.isLevelingUp}
+          onClose={() => setAnimations(a => ({ ...a, isLevelingUp: false }))}
+          newState={animations.levelUpState}
         />
       )}
-      <Modal isOpen={isCompletionModalOpen} onClose={handleCloseCompletion}>
+      <Modal isOpen={modals.completion} onClose={handleCloseCompletion}>
         <div className="text-center">
           <h2 className="text-2xl font-bold">Great Job!</h2>
           <p className="mt-2 text-gray-600">
@@ -534,7 +507,7 @@ export default function DashboardClient({
         </div>
       </Modal>
 
-      <Modal isOpen={isIdle} onClose={() => {}}>
+      <Modal isOpen={modals.idle} onClose={() => {}}>
         <div className="text-center">
           <h2 className="text-2xl font-bold">You have been idle for a while</h2>
           <p className="mt-4 text-gray-600">
@@ -570,24 +543,20 @@ export default function DashboardClient({
               <div className="h-64 w-full sm:h-80">
                 <CactusAnimation
                   state={user.cactusState || 'MEDIUM'}
-                  isCelebrating={isCelebrating || isLevelingUp}
+                  isCelebrating={animations.isCelebrating}
                 />
               </div>
               <div className="flex h-14 items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.p
-                    key={isCelebrating ? feedbackMessage : moodText}
+                    key={animations.feedbackMessage || moodText}
                     className="text-base font-bold text-gray-700 sm:text-lg"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    {isCelebrating ? (
-                      <span className="text-green-600">{feedbackMessage}</span>
-                    ) : (
-                      moodText
-                    )}
+                    {animations.feedbackMessage || moodText}
                   </motion.p>
                 </AnimatePresence>
               </div>
@@ -609,10 +578,10 @@ export default function DashboardClient({
 
             {/* Right Column: Tasks & Status */}
             <div className="relative rounded-2xl border-4 border-brand-dark-orange bg-yellow-50 p-4 shadow-[8px_8px_0_0_#FCA311] sm:p-8 lg:col-span-1">
-              {isCelebrating && !isLevelingUp && (
+              {animations.isCelebrating && !animations.isLevelingUp && (
                 <Confetti recycle={false} numberOfPieces={200} />
               )}
-              {isLevelingUp && (
+              {animations.isLevelingUp && (
                 <Confetti recycle={false} numberOfPieces={500} gravity={0.3} />
               )}
               <div className="flex items-center justify-between">
