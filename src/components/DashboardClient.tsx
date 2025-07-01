@@ -338,15 +338,18 @@ export default function DashboardClient({
     await updateSession({ user: { ...user, hasSeenIntroPopup: true } });
   };
 
-  const handleCloseStreak = () => {
+  const handleCloseStreak = async () => {
     setModals(m => ({ ...m, streak: false }));
-    markPopupAsSeen("streak");
+    // Update database first to ensure persistence
+    await markPopupAsSeen("streak");
+    // Then update session to reflect the change
+    await updateSession({ user: { ...user, hasSeenStreakPopup: true } });
   };
 
   const { cactusState, tasksCompletedForCactus } = user;
 
-  const calculateMoodProgress = (state: CactusState | undefined) => {
-  let progress = 0;
+  const calculateMoodProgress = (state: CactusState | undefined, tasksCompleted: number) => {
+    let progress = 0;
     let progressColor = "bg-gray-300";
     let progressText = "Just getting started!";
 
@@ -354,23 +357,33 @@ export default function DashboardClient({
     const currentState = state || "MEDIUM";
 
     if (currentState === "SAD") {
-      progress = 25;
+      // Need 5 tasks to get to MEDIUM
+      const tasksNeeded = 5;
+      const tasksToGo = Math.max(0, tasksNeeded - tasksCompleted);
+      progress = Math.min(100, (tasksCompleted / tasksNeeded) * 100);
       progressColor = "bg-red-500";
-      progressText = "Feeling down";
+      progressText = tasksToGo > 0 
+        ? `${tasksToGo} more tasks to reach Medium mood!`
+        : "Ready to advance to Medium mood!";
     } else if (currentState === "MEDIUM") {
-      progress = 60;
+      // Need 15 total tasks to get to HAPPY (10 more from MEDIUM)
+      const tasksNeeded = 15;
+      const tasksToGo = Math.max(0, tasksNeeded - tasksCompleted);
+      progress = Math.min(100, (tasksCompleted / tasksNeeded) * 100);
       progressColor = "bg-yellow-500";
-      progressText = "Doing okay, keep it up!";
+      progressText = tasksToGo > 0 
+        ? `${tasksToGo} more tasks to reach Happy mood!`
+        : "Ready to advance to Happy mood!";
     } else if (currentState === "HAPPY") {
-    progress = 100;
-    progressColor = "bg-green-500";
+      progress = 100;
+      progressColor = "bg-green-500";
       progressText = "You have reached the highest level of happiness!";
     }
 
     return { progress, progressColor, progressText };
   };
 
-  const moodProgress = calculateMoodProgress(user.cactusState);
+  const moodProgress = calculateMoodProgress(user.cactusState, user.tasksCompletedForCactus || 0);
 
   let progress = moodProgress.progress;
   let progressText = moodProgress.progressText;
@@ -389,15 +402,21 @@ export default function DashboardClient({
   );
 
   useEffect(() => {
-    if (allTasksCompleted && user && !user.hasSeenCompletionPopup) {
+    // Only show completion popup if:
+    // 1. All tasks are completed
+    // 2. User exists
+    // 3. User hasn't seen completion popup yet
+    // 4. Modal isn't already open (prevent loops)
+    if (allTasksCompleted && user && !user.hasSeenCompletionPopup && !modals.completion) {
       setModals(m => ({ ...m, completion: true }));
     }
-  }, [allTasksCompleted, user]);
+  }, [allTasksCompleted, user, modals.completion]);
 
   const handleCloseCompletion = async () => {
     setModals(m => ({ ...m, completion: false }));
-    // Immediately update local state to prevent re-opening
-    // Sync with the server session
+    // Update database first to ensure persistence
+    await markPopupAsSeen("completion");
+    // Then update session to reflect the change
     await updateSession({ user: { ...user, hasSeenCompletionPopup: true } });
   };
 
@@ -526,8 +545,14 @@ export default function DashboardClient({
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
             <h1 className="text-4xl font-black text-gray-800 sm:text-5xl lg:text-6xl">
-              Welcome, {user.username}!
+              Welcome, {user.username || user.name || 'User'}!
             </h1>
+            {/* Debug info - remove this later */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-2 text-sm text-gray-500">
+                Debug: username={user.username}, name={user.name}, id={user.id}
+              </div>
+            )}
           </header>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -570,6 +595,9 @@ export default function DashboardClient({
                 </div>
                 <p className="mt-1 text-sm font-medium text-gray-600">
                   {progressText}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Tasks completed: {user.tasksCompletedForCactus || 0}
                 </p>
               </div>
             </div>

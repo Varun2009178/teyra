@@ -1,9 +1,6 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prismaClient = new PrismaClient();
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -21,11 +18,27 @@ export async function POST(req: Request) {
   }
 
   try {
-    await prismaClient.user.update({
+    const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
       data: { username: username },
     });
-    return NextResponse.json({ success: true });
+    
+    return NextResponse.json({ 
+      success: true, 
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        onboarded: updatedUser.onboarded,
+        currentStreak: updatedUser.currentStreak,
+        cactusState: updatedUser.cactusState,
+        hasSeenIntroPopup: updatedUser.hasSeenIntroPopup,
+        hasSeenStreakPopup: updatedUser.hasSeenStreakPopup,
+        hasSeenCompletionPopup: updatedUser.hasSeenCompletionPopup,
+        hasCompletedFirstTask: updatedUser.hasCompletedFirstTask,
+        tasksLastGeneratedAt: updatedUser.tasksLastGeneratedAt,
+        tasksCompletedForCactus: updatedUser.tasksCompletedForCactus,
+      }
+    });
   } catch (error) {
     // Check for unique constraint violation (P2002)
     if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {

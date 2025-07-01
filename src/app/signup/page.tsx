@@ -23,9 +23,9 @@ export default function SignupPage() {
   }, [session, router]);
 
   const handleSignIn = (provider: "google" | "discord") => {
-    // Set a temporary cookie to indicate this is a sign-up attempt
-    document.cookie = "next-auth.signup-attempt=true; path=/; max-age=10;"; // Expires in 10 seconds
-    signIn(provider, { callbackUrl: "/onboarding/username" });
+    // Don't force a callbackUrl - let the auth system handle redirects
+    // New users will go to onboarding, existing users will be redirected to login with error
+    signIn(provider);
   };
 
   return (

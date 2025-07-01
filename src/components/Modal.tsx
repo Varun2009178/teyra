@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect } from "react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,6 +10,27 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -18,6 +40,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
           exit={{ opacity: 0 }}
           onClick={onClose}
           className="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm"
+          style={{ position: 'fixed' }}
         >
           <motion.div
             initial={{ scale: 0.95, y: 20 }}

@@ -132,6 +132,8 @@ export async function regenerateDailyTasks(
           cactusState: newCactusState,
           tasksCompletedForCactus: newTasksCompletedForCactus,
           currentStreak: newStreak,
+          // Reset completion popup flag so user can see it again when they complete all tasks
+          hasSeenCompletionPopup: false,
         },
       });
 

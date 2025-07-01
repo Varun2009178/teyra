@@ -30,12 +30,14 @@ export default function UsernamePage() {
         body: JSON.stringify({ username }),
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Something went wrong");
       }
 
-      await update({ username });
+      // Update the session with the complete user data
+      await update(data.user);
       router.push("/onboarding/preferences");
     } catch (err: any) {
       setError(err.message);

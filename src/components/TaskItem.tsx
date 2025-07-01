@@ -8,7 +8,6 @@ import Modal from "./Modal";
 import { FaInfoCircle } from "react-icons/fa";
 import Tippy from "@tippyjs/react";
 import "tippy.js/dist/tippy.css";
-import { motion } from "framer-motion";
 
 interface TaskItemProps {
   task: Task;
@@ -33,15 +32,13 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
 
   return (
     <>
-      <motion.li
-        layoutId={`task-item-${task.id}`}
+      <li
         onClick={handleClick}
         className="flex w-full max-w-md cursor-pointer items-center gap-4 rounded-xl border-4 border-brand-dark-purple p-3 text-lg font-bold sm:p-4 sm:text-xl"
-        animate={{
+        style={{
           backgroundColor: task.completed ? "#D1FAE5" : "#FEF3C7",
           opacity: task.completed ? 0.7 : 1,
         }}
-        transition={{ duration: 0.3 }}
       >
         <div
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border-2 border-brand-dark-purple sm:h-8 sm:w-8"
@@ -50,13 +47,9 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
           }}
         >
           {task.completed && (
-            <motion.span
-              className="font-sans text-xl text-white"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-            >
+            <span className="font-sans text-xl text-white">
               ✓
-            </motion.span>
+            </span>
           )}
         </div>
         <span
@@ -75,7 +68,7 @@ export default function TaskItem({ task, onUpdateTask }: TaskItemProps) {
             </span>
           </Tippy>
         )}
-      </motion.li>
+      </li>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="text-center">

@@ -26,54 +26,82 @@ export const {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
     }),
     DiscordProvider({
       clientId: process.env.DISCORD_CLIENT_ID ?? "",
       clientSecret: process.env.DISCORD_CLIENT_SECRET ?? "",
-      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
     strategy: "jwt"
   },
   callbacks: {
-    async signIn({ user, account }) {
-      if (!user.email) {
-        // This should not happen with OAuth providers like Google and Discord
-        // as they always provide an email.
+    async signIn({ user, account, profile }) {
+      if (!user.email || !account) {
         return false;
       }
       
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        include: { accounts: true },
-      });
+      try {
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          include: { accounts: true },
+        });
 
-      if (existingUser && account) {
-        const existingAccount = existingUser.accounts.find(
-          (acc) => acc.provider === account.provider
-        );
+        if (existingUser) {
+          // Check if they already have an account with this provider
+          const existingAccount = existingUser.accounts.find(
+            (acc) => acc.provider === account.provider
+          );
 
-        if (existingAccount) {
-          // User is signing in with a provider they have already linked.
-          return true;
+          if (existingAccount) {
+            // User is signing in with a provider they have already linked - allow
+            return true;
+          } else {
+            // User exists but is trying to sign in with a new provider
+            // Get the provider name of their existing account
+            const existingProviderName = existingUser.accounts[0]?.provider;
+            const providerDisplayName = existingProviderName 
+              ? existingProviderName.charAt(0).toUpperCase() + existingProviderName.slice(1)
+              : 'another provider';
+            
+            // Redirect to login with error
+            return `/login?error=AccountExists&provider=${providerDisplayName}`;
+          }
         }
-
-        // User exists but is trying to sign in with a new provider.
-        // `allowDangerousEmailAccountLinking` is true, so NextAuth will link it.
-        // If you want to prevent this, you can return a redirect to the login page
-        // with an error.
-        const providerName = existingUser.accounts[0]?.provider.charAt(0).toUpperCase() + existingUser.accounts[0]?.provider.slice(1);
-        throw new Error(`You have already signed up with ${providerName}. Please log in using that method.`);
+        
+        // New user - allow sign up
+        return true;
+      } catch (error) {
+        console.error("Error in signIn callback:", error);
+        return false;
       }
-      
-      // New user or user signing in with their first/only linked provider.
-      return true;
     },
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session) {
-        return { ...token, ...session.user };
+        // When session is updated, merge the new data
+        const updatedToken = { ...token, ...session };
+        
+        // Also fetch fresh data from database to ensure we have the latest
+        if (token.id) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+          });
+          if (dbUser) {
+            updatedToken.username = dbUser.username;
+            updatedToken.onboarded = dbUser.onboarded;
+            updatedToken.currentStreak = dbUser.currentStreak;
+            updatedToken.cactusState = dbUser.cactusState;
+            updatedToken.hasSeenIntroPopup = dbUser.hasSeenIntroPopup;
+            updatedToken.hasSeenStreakPopup = dbUser.hasSeenStreakPopup;
+            updatedToken.hasSeenCompletionPopup = dbUser.hasSeenCompletionPopup;
+            updatedToken.hasCompletedFirstTask = dbUser.hasCompletedFirstTask;
+            updatedToken.tasksLastGeneratedAt = dbUser.tasksLastGeneratedAt;
+            updatedToken.tasksCompletedForCactus = dbUser.tasksCompletedForCactus;
+          }
+        }
+        
+        return updatedToken;
       }
 
       if (user) {
@@ -112,9 +140,24 @@ export const {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // If the URL is already absolute, use it
+      if (url.startsWith("http")) {
+        return url;
+      }
+      
+      // If it's a relative URL starting with /, prepend baseUrl
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // Default to base URL
+      return baseUrl;
+    },
   },
   pages: {
     signIn: "/login",
     error: "/auth/error",
+    newUser: "/onboarding/username", // Where new users go after signing up
   },
 }); 
