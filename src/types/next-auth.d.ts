@@ -1,4 +1,5 @@
-import type { User as PrismaUser } from "@prisma/client";
+import type { DefaultSession } from "next-auth";
+import type { User as PrismaUser, CactusState } from "../../prisma/generated/client";
 import "next-auth";
 
 declare module "next-auth" {
@@ -9,18 +10,32 @@ declare module "next-auth" {
     username?: string | null;
     onboarded?: boolean;
     currentStreak?: number;
-    cactusState?: PrismaUser["cactusState"]; // Use the enum type from Prisma
+    longestStreak?: number;
+    lastTaskCompletedAt?: Date | null;
+    cactusState?: CactusState;
+    tasksCompletedForCactus?: number;
+    tasksLastGeneratedAt?: Date | null;
     hasSeenIntroPopup?: boolean;
     hasSeenStreakPopup?: boolean;
     hasSeenCompletionPopup?: boolean;
     hasCompletedFirstTask?: boolean;
-    tasksLastGeneratedAt?: Date | null;
-    tasksCompletedForCactus?: number;
   }
 
   interface Session {
-    user: User & {
+    user: {
       id: string;
-    };
+      username: string | null;
+      onboarded: boolean;
+      currentStreak: number;
+      longestStreak: number;
+      lastTaskCompletedAt: Date | null;
+      cactusState: CactusState;
+      tasksCompletedForCactus: number;
+      tasksLastGeneratedAt: Date | null;
+      hasSeenIntroPopup: boolean;
+      hasSeenStreakPopup: boolean;
+      hasSeenCompletionPopup: boolean;
+      hasCompletedFirstTask: boolean;
+    } & DefaultSession["user"];
   }
 } 

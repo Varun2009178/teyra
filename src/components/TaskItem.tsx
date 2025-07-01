@@ -1,15 +1,14 @@
 "use client";
 
-import { Prisma } from "@prisma/client";
 import { useState } from "react";
+import { Task } from "@prisma/client";
+import { format } from "date-fns";
 import { updateTaskStatus } from "@/app/actions/tasks";
 import Modal from "./Modal";
 import { FaInfoCircle } from "react-icons/fa";
 import Tippy from "@tippyjs/react";
 import "tippy.js/dist/tippy.css";
 import { motion } from "framer-motion";
-
-type Task = Prisma.TaskGetPayload<{}>;
 
 interface TaskItemProps {
   task: Task;

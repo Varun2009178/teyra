@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "npm run vercel-build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
@@ -8,5 +8,8 @@
       "memory": 1024,
       "maxDuration": 10
     }
+  },
+  "env": {
+    "PRISMA_GENERATE_DATAPROXY": "true"
   }
 } 

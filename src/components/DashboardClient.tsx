@@ -25,26 +25,21 @@ import { startOfDay } from "date-fns";
 import { FiSettings, FiMessageSquare } from "react-icons/fi";
 import { FaCheckCircle, FaLeaf, FaTrophy } from "react-icons/fa";
 
-const encouragingMessages = {
+const encouragingMessages: Record<CactusState, string[]> = {
   HAPPY: [
-    "You are doing great! Let us keep this positive streak going.",
-    "Do not skip a day to make me sad again!",
-    "I am feeling so happy and energized thanks to you!",
-    "Keep it up! I am really proud of you!",
-    "Let us make sustainability a daily habit, together.",
-    "Doing sustainable tasks is pretty fun, I cannot even lie!",
-    "Your efforts are making a real difference, and I can feel it!",
-    "I believe in you! Let us make tomorrow even better.",
+    "You're doing great! Keep up the amazing work! 🌟",
+    "Your dedication is truly inspiring! 🎯",
+    "You're on fire! Nothing can stop you now! 🔥",
   ],
   MEDIUM: [
-    "You are on the right track! A little more effort and I will be overjoyed!",
-    "Almost there! Your consistency is key to my happiness.",
-    "I am feeling better already, let us not stop now!",
+    "You're making progress! Keep going! 💪",
+    "Every step counts! You've got this! 🌱",
+    "Stay focused, you're doing well! 🎯",
   ],
   SAD: [
-    "I am feeling a bit down. Completing a task would really cheer me up.",
-    "I know you can do it! Let us turn things around.",
-    "I mean all you have to do is a few sustainable tasks, it cannot be that hard...",
+    "Don't give up! Every new day is a fresh start! 🌅",
+    "Small steps lead to big changes! 🌱",
+    "You can do this! Believe in yourself! ⭐",
   ],
 };
 
@@ -126,7 +121,7 @@ export default function DashboardClient({
 
   // HYDRATION FIX: Initialize moodText with a deterministic value
   const [moodText, setMoodText] = useState(() => {
-    const state = user.cactusState;
+    const state: CactusState = user.cactusState || 'MEDIUM';
     return getRandomText(state);
   });
 
@@ -280,14 +275,10 @@ export default function DashboardClient({
 
   // HYDRATION FIX: Set random text only on the client after initial mount
   useEffect(() => {
-    const state = user.cactusState || 'MEDIUM';
-    if (Array.isArray(encouragingMessages[state])) {
-      setMoodText(
-        encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
-      );
-    } else {
-      setMoodText(encouragingMessages[state]);
-    }
+    const state: CactusState = user.cactusState || 'MEDIUM';
+    setMoodText(
+      encouragingMessages[state][Math.floor(Math.random() * encouragingMessages[state].length)]
+    );
   }, [user.cactusState]);
 
   useEffect(() => {

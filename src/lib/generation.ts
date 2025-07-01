@@ -2,6 +2,8 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import prisma from "./prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Task } from "@prisma/client";
+import { addDays } from "date-fns";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
 

@@ -3,11 +3,9 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { CactusState, User } from "@prisma/client";
+import { CactusState, User, Task, Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from "next/cache";
 import { generateAndSaveTasks } from "@/lib/generation";
-import type { Task } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 import { isToday, isYesterday, startOfDay, subDays, addDays } from "date-fns";
 
 export async function getTasksByUserId(userId: string) {

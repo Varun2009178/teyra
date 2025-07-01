@@ -25,7 +25,13 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@prisma/client', 'framer-motion', 'date-fns'],
+    optimizePackageImports: ['framer-motion', 'date-fns']
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [...config.externals, '@prisma/client', 'prisma']
+    }
+    return config
   },
 };
  
