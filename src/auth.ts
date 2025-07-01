@@ -6,21 +6,13 @@ import prisma from "@/lib/prisma";
 import { cookies } from "next/headers";
 
 // Validate required environment variables
-const requiredEnvVars = {
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
-  DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
-  DATABASE_URL: process.env.DATABASE_URL,
-};
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("NEXTAUTH_SECRET is not set");
+}
 
-Object.entries(requiredEnvVars).forEach(([key, value]) => {
-  if (!value) {
-    console.error(`Missing required environment variable: ${key}`);
-  } else {
-    console.log(`${key}: Loaded`);
-  }
-});
+if (!process.env.NEXTAUTH_URL) {
+  throw new Error("NEXTAUTH_URL is not set");
+}
 
 export const {
   handlers: { GET, POST },
@@ -29,6 +21,7 @@ export const {
   signOut,
 } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
