@@ -486,7 +486,7 @@ export default function DashboardClient({
       <StreakModal
         isOpen={isStreakModalOpen}
         onClose={handleCloseStreak}
-        streak={user.currentStreak}
+        streak={user.currentStreak || 0}
       />
       <PenaltyModal
         isOpen={isPenaltyModalOpen}
@@ -552,7 +552,7 @@ export default function DashboardClient({
               </div>
               <div className="h-64 w-full sm:h-80">
                 <CactusAnimation
-                  state={user.cactusState}
+                  state={user.cactusState || 'MEDIUM'}
                   isCelebrating={isCelebrating || isLevelingUp}
                 />
               </div>
@@ -656,7 +656,7 @@ export default function DashboardClient({
                     <div
                       className="h-full rounded-full bg-blue-400 transition-all duration-500"
                       style={{
-                        width: `${(user.currentStreak / 15) * 100}%`,
+                        width: `${((user.currentStreak || 0) / 15) * 100}%`,
                       }}
                     ></div>
                   </div>
