@@ -8,13 +8,5 @@
       "memory": 1024,
       "maxDuration": 10
     }
-  },
-  "crons": {
-    "cleanup": "0 0 * * *"
-  },
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
   }
 } 
