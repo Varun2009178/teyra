@@ -3,21 +3,25 @@ import { PrismaClient } from "@prisma/client";
 // This setup prevents Prisma from creating too many connections in a development environment.
 // It creates a single, global instance of the PrismaClient and reuses it.
 
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
 const prismaClientSingleton = () => {
   return new PrismaClient({
     // Log queries only in development
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     errorFormat: 'minimal',
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      },
+    },
   });
 };
 
-// Prevent multiple instances of Prisma Client in development
-declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
-}
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
-const prisma = globalThis.prisma ?? prismaClientSingleton();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-export default prisma;
-
-if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma; 
+export default prisma; 
