@@ -79,7 +79,8 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
         createdAt: task.createdAt || task.created_at,
         completedAt: task.completedAt || task.completed_at,
         assignedDate: task.assignedDate || task.assigned_date,
-        expired: task.expired
+        expired: task.expired,
+        hasBeenSplit: task.has_been_split || false
       }
     }).filter(Boolean) // Remove any null entries
 
@@ -103,8 +104,8 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
   
   const taskData: Record<string, unknown> = {
     title: text.trim(),
-    completed: false
-    // Temporarily removed has_been_split until column is added to production
+    completed: false,
+    has_been_split: isSplitTasks
   }
   
   console.log('📤 Inserting task data:', taskData)
@@ -143,7 +144,7 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
       completedAt: data.completedAt || data.completed_at,
       assignedDate: data.assignedDate || data.assigned_date,
       expired: data.expired,
-      hasBeenSplit: false // Default to false until column is added
+      hasBeenSplit: data.has_been_split || false
     }
 
     console.log('✅ Task created successfully:', transformedData)
@@ -320,12 +321,14 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     
     console.log('🔄 Converted updates for database:', dbUpdates)
     
+    // Use LIMIT 1 to handle multiple tasks with same title
     const { data, error } = await supabase
       .from('tasks')
       .update(dbUpdates)
       .eq(userIdCol, userId)
       .eq('title', title)
       .select()
+      .limit(1)
       .single()
 
     if (error) {
