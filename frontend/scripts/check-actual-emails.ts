@@ -60,7 +60,7 @@ async function checkActualEmails() {
     console.log('\n📧 Unique Email Addresses:')
     console.log('=========================')
     Array.from(uniqueEmails).forEach(email => {
-      const count = emailCounts[email]
+      const count = emailCounts[email as string]
       console.log(`  ${email} (used by ${count} user${count > 1 ? 's' : ''})`)
     })
 

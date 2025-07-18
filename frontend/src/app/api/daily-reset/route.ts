@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Reset daily limits for this user
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           mood_checkins_today: 0,
           ai_splits_today: 0,
           last_daily_reset: new Date().toISOString()

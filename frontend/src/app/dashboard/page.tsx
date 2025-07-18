@@ -75,7 +75,13 @@ export default function Dashboard() {
   
   // Daily reset popup state
   const [taskSummaryPopupOpen, setTaskSummaryPopupOpen] = useState(false)
-  const [taskSummary, setTaskSummary] = useState<any>(null)
+  const [taskSummary, setTaskSummary] = useState<{
+    completed: string[];
+    not_completed: string[];
+    total: number;
+    completed_count: number;
+    not_completed_count: number;
+  } | null>(null)
 
   const { getToken } = useAuth();
   const supabase = useMemo(() => {
@@ -101,7 +107,7 @@ export default function Dashboard() {
         return // Don't try to update if stats don't exist yet
       }
       
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         last_activity_at: new Date().toISOString(),
         timezone: timezone
       }
@@ -861,7 +867,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleAddMultipleTasks = async (taskTexts: string[], isSplitTasks: boolean = false) => {
+  const handleAddMultipleTasks = async (taskTexts: string[], isSplitTasks = false) => {
     if (!user || !supabase) {
       console.error('❌ Missing user or supabase in handleAddMultipleTasks')
       return;
@@ -875,7 +881,7 @@ export default function Dashboard() {
       console.log('📝 Creating tasks in database...')
       const newTasksPromises = taskTexts.map(text => createTask(supabase, user.id, text, isSplitTasks));
       const createdTasks = await Promise.all(newTasksPromises);
-      const validTasks = createdTasks.filter((t: any): t is Task => t !== null);
+      const validTasks = createdTasks.filter((t: unknown): t is Task => t !== null);
       
       console.log('✅ Created tasks:', validTasks)
       console.log('📊 Valid tasks count:', validTasks.length)

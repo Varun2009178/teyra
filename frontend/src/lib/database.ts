@@ -32,7 +32,7 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
     console.log('📊 Raw tasks data:', data)
 
     // Transform data to match TypeScript interface
-    const transformedData = (data || []).map((task: any) => {
+    const transformedData = (data || []).map((task: Record<string, unknown>) => {
       if (!task) {
         console.warn('⚠️ Skipping null task in data')
         return null
@@ -257,7 +257,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
   
   try {
     // Convert field names to match database schema
-    const dbUpdates: any = {}
+    const dbUpdates: Record<string, unknown> = {}
     if (updates.title !== undefined) dbUpdates.title = updates.title
     if (updates.completed !== undefined) dbUpdates.completed = updates.completed
     if (updates.userId !== undefined) dbUpdates["userId"] = updates.userId
