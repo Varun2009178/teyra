@@ -5,6 +5,8 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import TransitionProvider from '@/components/TransitionProvider'
 import { Analytics } from '@vercel/analytics/react'
+import { useEffect } from 'react'
+import AnalyticsDebug from '@/components/AnalyticsDebug'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,6 +20,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Debug analytics loading
+  useEffect(() => {
+    console.log('🔍 Vercel Analytics: Checking if script is loaded...')
+    const script = document.querySelector('script[src*="va.vercel-scripts.com"]')
+    if (script) {
+      console.log('✅ Vercel Analytics script found:', script.src)
+    } else {
+      console.log('❌ Vercel Analytics script not found')
+    }
+  }, [])
+
   return (
     <ClerkProvider
       appearance={{
@@ -34,6 +47,7 @@ export default function RootLayout({
           <TransitionProvider>{children}</TransitionProvider>
           <Toaster />
           <Analytics />
+          <AnalyticsDebug />
         </body>
       </html>
     </ClerkProvider>

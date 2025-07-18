@@ -85,6 +85,8 @@ export default function Dashboard() {
   
   // Track if daily reset has been processed this session
   const [dailyResetProcessed, setDailyResetProcessed] = useState(false)
+  const [isNewUser, setIsNewUser] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(false)
 
   const { getToken } = useAuth();
   const supabase = useMemo(() => {
@@ -135,11 +137,9 @@ export default function Dashboard() {
       isLoaded 
     })
     
-    if (user && supabase) {
+    if (user && supabase && !isLoadingData) {
+      setIsLoadingData(true)
       try {
-        // Update user activity first
-        await updateUserActivity()
-        
         console.log('🔄 Fetching data for user:', user.id)
         
         // Get tasks first
@@ -149,9 +149,13 @@ export default function Dashboard() {
         let fetchedUserStats = await getUserStats(supabase, user.id)
         if (!fetchedUserStats) {
           console.log('📝 Creating new user stats for new user')
+          setIsNewUser(true)
           const userEmail = user.primaryEmailAddress?.emailAddress
           fetchedUserStats = await createUserStats(supabase, user.id, userEmail)
         }
+        
+        // Update user activity AFTER user stats are created
+        await updateUserActivity()
         
         console.log('📊 Fetched data:', {
           tasksCount: fetchedTasks.length,
@@ -307,7 +311,15 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error('Error loading data from database:', error)
-        toast.error('Could not load your data. Please try again.')
+        
+        // Only show error toast for non-new-user errors
+        if (isNewUser) {
+          console.log('🆕 New user detected, suppressing error toast')
+        } else {
+          toast.error('Could not load your data. Please try again.')
+        }
+      } finally {
+        setIsLoadingData(false)
       }
     }
   }, [user, supabase, updateUserActivity])
