@@ -103,18 +103,16 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
   
   const taskData: Record<string, unknown> = {
     title: text.trim(),
-    completed: false,
-    has_been_split: isSplitTasks
+    completed: false
+    // Temporarily removed has_been_split until column is added to production
   }
   
   console.log('📤 Inserting task data:', taskData)
   
   try {
-    let query = supabase.from('tasks').insert([taskData])
-    
     // Add userId with correct column name
     const userIdCol = getUserIdColumn('tasks')
-    query = supabase.from('tasks').insert([{ ...taskData, [userIdCol]: userId }])
+    const query = supabase.from('tasks').insert([{ ...taskData, [userIdCol]: userId }])
     
     const { data, error } = await query.select().single()
 
@@ -145,7 +143,7 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
       completedAt: data.completedAt || data.completed_at,
       assignedDate: data.assignedDate || data.assigned_date,
       expired: data.expired,
-      hasBeenSplit: data.has_been_split || false
+      hasBeenSplit: false // Default to false until column is added
     }
 
     console.log('✅ Task created successfully:', transformedData)
