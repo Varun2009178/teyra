@@ -378,7 +378,7 @@ export async function createUserStats(supabase: SupabaseClient, userId: string, 
     email: userEmail, // Include email if provided
     mood_checkins_today: 0,
     ai_splits_today: 0,
-    last_daily_reset: new Date().toISOString(),
+    last_daily_reset: new Date().toISOString(), // Set to current time for new users
     last_activity_at: new Date().toISOString(),
     timezone: 'UTC', // Will be updated when they first visit
   }

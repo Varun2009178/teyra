@@ -10,6 +10,7 @@ interface DailyCountdownTimerProps {
   timezone?: string;
   onResetDue?: (isDue: boolean) => void;
   onEmailDue?: (isDue: boolean) => void;
+  isNewUser?: boolean;
 }
 
 export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
@@ -17,7 +18,8 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
   lastActivityAt,
   timezone = 'UTC',
   onResetDue,
-  onEmailDue
+  onEmailDue,
+  isNewUser = false
 }) => {
   const [timeUntilReset, setTimeUntilReset] = useState<{
     hours: number;
@@ -64,7 +66,7 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
         totalSeconds: resetSeconds
       });
       
-      const newIsResetDue = resetSeconds === 0;
+      const newIsResetDue = resetSeconds === 0 && !isNewUser;
       setIsResetDue(newIsResetDue);
       onResetDue?.(newIsResetDue);
       
@@ -92,7 +94,7 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
         totalSeconds: emailSeconds
       });
       
-      const newIsEmailDue = emailSeconds === 0;
+      const newIsEmailDue = emailSeconds === 0 && !isNewUser;
       setIsEmailDue(newIsEmailDue);
       onEmailDue?.(newIsEmailDue);
     };

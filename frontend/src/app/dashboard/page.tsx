@@ -210,7 +210,8 @@ export default function Dashboard() {
         
         // Check if user needs daily reset (24 hours since last reset)
         // Only process once per session to prevent spam
-        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed) {
+        // Skip for brand new users (first time loading)
+        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed && !isNewUser) {
           const lastReset = new Date(fetchedUserStats.last_daily_reset)
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
           
@@ -1402,6 +1403,7 @@ export default function Dashboard() {
                       lastDailyReset={userStats?.last_daily_reset || null}
                       lastActivityAt={userStats?.last_activity_at || null}
                       timezone={userStats?.timezone || 'UTC'}
+                      isNewUser={isNewUser}
                       onResetDue={(isDue) => {
                         setIsResetDue(isDue);
                         if (isDue) {
