@@ -211,7 +211,7 @@ export default function Dashboard() {
         // Check if user needs daily reset (24 hours since last reset)
         // Only process once per session to prevent spam
         // Skip for brand new users (first time loading)
-        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed && !isNewUser && fetchedUserStats.all_time_completed > 0) {
+        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed && !isNewUser && fetchedUserStats.all_time_completed > 0 && fetchedTasks.length > 0) {
           const lastReset = new Date(fetchedUserStats.last_daily_reset)
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
           
@@ -333,6 +333,7 @@ export default function Dashboard() {
     if (user && supabase && isLoaded) {
       // Reset daily reset processed state for new user
       setDailyResetProcessed(false)
+      setIsLoadingData(true)
       loadData()
     }
   }, [user?.id, supabase, isLoaded]) // Only depend on user ID, not the entire user object
@@ -1146,17 +1147,19 @@ export default function Dashboard() {
         </div>
       </motion.header>
 
-      {/* Daily Reset Notification */}
-      <DailyResetNotification
-        isResetDue={isResetDue}
-        isEmailDue={isEmailDue}
-        onDismiss={() => setShowResetNotification(false)}
-        onRefresh={() => {
-          if (user && supabase) {
-            loadData();
-          }
-        }}
-      />
+      {/* Daily Reset Notification - Only show for existing users */}
+      {!isNewUser && userStats && userStats.all_time_completed > 0 && (
+        <DailyResetNotification
+          isResetDue={isResetDue}
+          isEmailDue={isEmailDue}
+          onDismiss={() => setShowResetNotification(false)}
+          onRefresh={() => {
+            if (user && supabase) {
+              loadData();
+            }
+          }}
+        />
+      )}
 
       {/* Daily Reset Popup */}
       <DailyResetPopup
@@ -1434,25 +1437,29 @@ export default function Dashboard() {
                       </motion.div>
                     </div>
                     
-                    {/* Daily Countdown Timer */}
-                    <DailyCountdownTimer
-                      lastDailyReset={userStats?.last_daily_reset || null}
-                      lastActivityAt={userStats?.last_activity_at || null}
-                      timezone={userStats?.timezone || 'UTC'}
-                      isNewUser={isNewUser}
-                      onResetDue={(isDue) => {
-                        setIsResetDue(isDue);
-                        if (isDue) {
-                          setShowResetNotification(true);
-                        }
-                      }}
-                      onEmailDue={(isDue) => {
-                        setIsEmailDue(isDue);
-                        if (isDue) {
-                          setShowResetNotification(true);
-                        }
-                      }}
-                    />
+                    {/* Daily Countdown Timer - Only show for existing users */}
+                    {!isNewUser && (
+                      <DailyCountdownTimer
+                        lastDailyReset={userStats?.last_daily_reset || null}
+                        lastActivityAt={userStats?.last_activity_at || null}
+                        timezone={userStats?.timezone || 'UTC'}
+                        isNewUser={isNewUser}
+                        onResetDue={(isDue) => {
+                          setIsResetDue(isDue);
+                          // Only show notification if reset is actually due and user has completed tasks before
+                          if (isDue && userStats && userStats.all_time_completed > 0) {
+                            setShowResetNotification(true);
+                          }
+                        }}
+                        onEmailDue={(isDue) => {
+                          setIsEmailDue(isDue);
+                          // Only show notification if email is actually due and user has completed tasks before
+                          if (isDue && userStats && userStats.all_time_completed > 0) {
+                            setShowResetNotification(true);
+                          }
+                        }}
+                      />
+                    )}
                     
                     {/* Motivational Message */}
                     {userStats?.subscription_level === 'pro' && motivationalMessage && (

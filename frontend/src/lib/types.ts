@@ -31,6 +31,6 @@ export interface UserStats {
   ai_splits_today?: number
   last_daily_reset?: string
   last_task_summary?: string
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 } 

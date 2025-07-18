@@ -66,7 +66,13 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
         totalSeconds: resetSeconds
       });
       
-      const newIsResetDue = resetSeconds === 0 && !isNewUser;
+      // Only show reset as due if timer has reached zero AND user is not new
+      // AND the last reset was actually more than 24 hours ago
+      const lastResetTime = lastDailyReset ? new Date(lastDailyReset) : null;
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const actuallyNeedsReset = lastResetTime && lastResetTime < twentyFourHoursAgo;
+      
+      const newIsResetDue = resetSeconds === 0 && !isNewUser && actuallyNeedsReset;
       setIsResetDue(newIsResetDue);
       onResetDue?.(newIsResetDue);
       
@@ -94,7 +100,13 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
         totalSeconds: emailSeconds
       });
       
-      const newIsEmailDue = emailSeconds === 0 && !isNewUser;
+      // Only show email as due if timer has reached zero AND user is not new
+      // AND the last activity was actually more than 48 hours ago
+      const lastActivityTime = lastActivityAt ? new Date(lastActivityAt) : null;
+      const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      const actuallyNeedsEmail = lastActivityTime && lastActivityTime < fortyEightHoursAgo;
+      
+      const newIsEmailDue = emailSeconds === 0 && !isNewUser && actuallyNeedsEmail;
       setIsEmailDue(newIsEmailDue);
       onEmailDue?.(newIsEmailDue);
     };
@@ -106,7 +118,7 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
     const interval = setInterval(calculateTimeRemaining, 1000);
     
     return () => clearInterval(interval);
-  }, [lastDailyReset, lastActivityAt]);
+  }, [lastDailyReset, lastActivityAt, isNewUser, onResetDue, onEmailDue]);
 
   const formatTime = (hours: number, minutes: number, seconds: number) => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;

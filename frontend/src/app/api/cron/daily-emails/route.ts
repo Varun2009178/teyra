@@ -2,48 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  'https://qaixpzbbqocssdznztev.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEW_SUPABASE_SERVICE_KEY!
 )
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify the request is from a legitimate cron service
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get all users who have enabled notifications and haven't been active for 48+ hours
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    console.log('📧 Daily emails cron job triggered')
+    
+    // Get all users who have been inactive for 48+ hours
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     
     const { data: users, error } = await supabase
       .from('user_stats')
-      .select('user_id, email, last_completed_date, all_time_completed, timezone, last_activity_at, created_at')
+      .select('userId, email, last_completed_date, all_time_completed, timezone, last_activity_at, createdAt')
       .eq('notifications_enabled', true)
-      .not('email', 'is', null)
-      .neq('email', 'null') // Also exclude string "null" values
-      .neq('email', '') // Also exclude empty strings
       .lt('last_activity_at', fortyEightHoursAgo)
-      // Only send emails to users inactive for 48+ hours
 
     if (error) {
-      console.error('Error fetching users:', error)
-      return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      console.error('Error fetching inactive users:', error)
+      return NextResponse.json({ error: 'Database error', details: error }, { status: 500 })
     }
 
     if (!users || users.length === 0) {
-      return NextResponse.json({ message: 'No users to notify (all users have been active for less than 48 hours)' })
+      return NextResponse.json({ 
+        message: 'No users need email notifications',
+        testInfo: {
+          fortyEightHoursAgo,
+          totalUsers: 0
+        }
+      })
     }
 
-    console.log(`📧 Found ${users.length} users who haven't been active for 48+ hours`)
+    console.log(`📧 Found ${users.length} users who need email notifications`)
 
-    // Disable notifications for users who haven't been active for 48+ hours
-    const { data: inactiveUsers, error: disableError } = await supabase
+    // Disable notifications for users who have been inactive for too long
+    const { error: disableError } = await supabase
       .from('user_stats')
       .update({ notifications_enabled: false })
-      .eq('notifications_enabled', true)
       .lt('last_activity_at', fortyEightHoursAgo)
 
     if (disableError) {
@@ -60,7 +56,7 @@ export async function POST(request: NextRequest) {
     for (const user of users) {
       try {
         // Determine email type based on user's activity
-        const userCreatedDate = new Date(user.created_at).toISOString().split('T')[0]
+        const userCreatedDate = new Date(user.createdAt).toISOString().split('T')[0]
         const isNewUser = userCreatedDate === yesterday || userCreatedDate === today
         
         let emailType = 'daily_checkin'
@@ -85,9 +81,9 @@ export async function POST(request: NextRequest) {
             ai_splits_today: 0,
             last_daily_reset: new Date().toISOString()
           })
-          .eq('user_id', user.user_id)
+          .eq('userId', user.userId)
 
-        // Send email
+        // Send email notification
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
           method: 'POST',
           headers: {
@@ -95,36 +91,45 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             email: user.email,
-            name: 'there', // We'll need to get the actual name from Clerk or store it
+            name: 'there',
             type: emailType,
             timezone: userTimezone,
-            hoursSinceActivity
+            hoursInactive: hoursSinceActivity
           }),
         })
 
         if (response.ok) {
+          console.log(`✅ Sent ${emailType} email to ${user.email}`)
           emailsSent++
-          console.log(`✅ Email sent to ${user.email} (${emailType})`)
         } else {
+          console.error(`❌ Failed to send ${emailType} email to ${user.email}`)
           errors++
-          console.error(`❌ Failed to send email to ${user.email}`)
         }
+
       } catch (error) {
+        console.error(`❌ Error processing user ${user.userId}:`, error)
         errors++
-        console.error(`❌ Error sending email to ${user.email}:`, error)
       }
     }
 
     return NextResponse.json({
       success: true,
+      message: 'Daily emails completed',
       emailsSent,
       errors,
       totalUsers: users.length,
-      message: `Sent ${emailsSent} emails to users inactive for 48+ hours`
+      testInfo: {
+        fortyEightHoursAgo,
+        processedUsers: users.map(u => ({
+          userId: u.userId,
+          email: u.email,
+          lastActivity: u.last_activity_at
+        }))
+      }
     })
 
   } catch (error) {
-    console.error('Cron job error:', error)
+    console.error('❌ Daily emails failed:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

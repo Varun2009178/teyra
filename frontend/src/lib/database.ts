@@ -3,25 +3,19 @@ import { Task, UserStats } from './types' // We'll create this file next
 
 // Schema detection based on environment and actual database structure
 function getSchema(): 'mixed' | 'snake_case' {
-  // Production database uses mixed schema (tasks: userId, user_stats: user_id)
-  // Local database also uses mixed schema
+  // After migrations, all tables use camelCase column names
   return 'mixed'
 }
 
 // Get the correct column name based on schema and table
 function getUserIdColumn(table?: string): string {
-  // Production database now uses 'user_id' for all tables
-  return 'user_id'
+  // After migration 008, all tables use 'userId'
+  return 'userId'
 }
 
 function getCreatedAtColumn(table?: string): string {
-  const schema = getSchema()
-  if (schema === 'mixed') {
-    // Mixed schema: tasks use createdAt, user_stats use created_at
-    return table === 'tasks' ? 'createdAt' : 'created_at'
-  } else {
-    return 'created_at'
-  }
+  // After migration 008, all tables use 'createdAt'
+  return 'createdAt'
 }
 
 // Task operations
@@ -67,14 +61,14 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
       }
       
       return {
-        id: task.id, // Keep the original ID, even if it's null
-        userId: task.userId || task.user_id,
+        id: task.id || `temp_${Date.now()}_${Math.random()}`, // Ensure we always have an ID
+        userId: task.userId,
         title: task.title,
         completed: task.completed || false,
-        createdAt: task.createdAt || task.created_at,
-        completedAt: task.completedAt || task.completed_at,
-        assignedDate: task.assignedDate || task.assigned_date,
-        expired: task.expired,
+        createdAt: task.createdAt || new Date().toISOString(),
+        completedAt: task.completedAt || task.completedat,
+        assignedDate: task.assignedDate || task.assigneddate,
+        expired: task.expired || false,
         hasBeenSplit: task.has_been_split || false
       }
     }).filter(Boolean) // Remove any null entries
@@ -100,7 +94,9 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
   const taskData: Record<string, unknown> = {
     title: text.trim(),
     completed: false,
-    has_been_split: isSplitTasks
+    has_been_split: isSplitTasks,
+    createdAt: new Date().toISOString(),
+    expired: false
   }
   
   console.log('📤 Inserting task data:', taskData)
@@ -132,13 +128,13 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
     // Transform data to match TypeScript interface
     const transformedData = {
       id: data.id || `temp_${Date.now()}_${Math.random()}`, // Ensure we always have an ID
-      userId: data.userId || data.user_id,
+      userId: data.userId,
       title: data.title,
       completed: data.completed,
-      createdAt: data.createdAt || data.created_at,
-      completedAt: data.completedAt || data.completed_at,
-      assignedDate: data.assignedDate || data.assigned_date,
-      expired: data.expired,
+      createdAt: data.createdAt,
+      completedAt: data.completedAt || data.completedat,
+      assignedDate: data.assignedDate || data.assigneddate,
+      expired: data.expired || false,
       hasBeenSplit: data.has_been_split || false
     }
 
@@ -212,12 +208,12 @@ export async function updateTask(supabase: SupabaseClient, taskId: string, updat
     // Transform data to match TypeScript interface
     const transformedData = {
       id: data.id,
-      userId: data.userId || data.user_id,
+      userId: data.userId,
       title: data.title,
       completed: data.completed,
-      createdAt: data.createdAt || data.created_at,
-      completedAt: data.completedAt || data.completed_at,
-      assignedDate: data.assignedDate || data.assigned_date,
+      createdAt: data.createdAt,
+      completedAt: data.completedAt || data.completedat,
+      assignedDate: data.assignedDate || data.assigneddate,
       expired: data.expired,
       hasBeenSplit: data.has_been_split || false
     }
@@ -364,13 +360,13 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     // Transform data to match TypeScript interface
     const transformedData = {
       id: data.id, // Keep the original ID, even if it's null
-      userId: data.userId || data.user_id,
+      userId: data.userId,
       title: data.title,
       completed: data.completed,
       createdAt: data.createdAt,
-      completedAt: data.completedAt,
-      assignedDate: data.assignedDate,
-      expired: data.expired,
+      completedAt: data.completedAt || data.completedat,
+      assignedDate: data.assignedDate || data.assigneddate,
+      expired: data.expired || false,
       hasBeenSplit: data.has_been_split || false
     }
 
@@ -466,11 +462,9 @@ export async function createUserStats(supabase: SupabaseClient, userId: string, 
   console.log('📤 Inserting user stats data:', userStatsData)
   
   try {
-    let query = supabase.from('user_stats').insert([userStatsData])
-    
     // Add userId with correct column name
     const userIdCol = getUserIdColumn('user_stats')
-    query = supabase.from('user_stats').insert([{ ...userStatsData, [userIdCol]: userId }])
+    const query = supabase.from('user_stats').insert([{ ...userStatsData, [userIdCol]: userId }])
     
     const { data, error } = await query.select().single()
 
@@ -595,86 +589,58 @@ export async function incrementAISplit(supabase: SupabaseClient, userId: string)
     await updateUserStats(supabase, userId, {
       ai_splits_today: currentCount + 1
     })
-
+    
     console.log('✅ AI split count incremented successfully')
   } catch (err) {
-    console.error('❌ Exception in incrementAISplit:', err)
+    console.error('❌ Error incrementing AI split count:', err)
     throw err
   }
 }
 
+// Fix completed tasks count by counting actual completed tasks
 export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: string): Promise<{ fixed: boolean; oldCount: number; newCount: number }> {
   console.log('🔧 fixCompletedTasksCount called with userId:', userId)
   
   try {
-    // Get all completed tasks for the user
-    const schema = getSchema()
     const userIdCol = getUserIdColumn('tasks')
-    const completedAtCol = getCreatedAtColumn()
-
-    const { data: completedTasks, error: tasksError } = await supabase
+    
+    // Get all completed tasks for this user
+    const { data: completedTasks, error } = await supabase
       .from('tasks')
       .select('id')
       .eq(userIdCol, userId)
       .eq('completed', true)
 
-    if (tasksError) {
-      console.error('❌ Error fetching completed tasks:', tasksError)
-      throw new Error(`Failed to fetch completed tasks: ${tasksError.message}`)
+    if (error) {
+      console.error('❌ Error fetching completed tasks:', error)
+      throw error
     }
 
     const actualCompletedCount = completedTasks?.length || 0
-    console.log('📊 Actual completed tasks count:', actualCompletedCount)
-
+    
     // Get current user stats
-    const userStatsUserIdCol = getUserIdColumn('user_stats')
-    const { data: userStats, error: statsError } = await supabase
-      .from('user_stats')
-      .select('all_time_completed')
-      .eq(userStatsUserIdCol, userId)
-      .single()
-
-    if (statsError) {
-      console.error('❌ Error fetching user stats:', statsError)
-      throw new Error(`Failed to fetch user stats: ${statsError.message}`)
+    const userStats = await getUserStats(supabase, userId)
+    if (!userStats) {
+      console.log('📝 No user stats found, cannot fix count')
+      return { fixed: false, oldCount: 0, newCount: 0 }
     }
 
-    const currentCount = userStats?.all_time_completed || 0
-    console.log('📊 Current all_time_completed count:', currentCount)
-
-    // Only update if there's a mismatch
-    if (actualCompletedCount !== currentCount) {
-      console.log('🔧 Fixing completed tasks count mismatch...')
+    const oldCount = userStats.all_time_completed || 0
+    
+    if (oldCount !== actualCompletedCount) {
+      console.log(`🔧 Fixing completed count: ${oldCount} → ${actualCompletedCount}`)
       
-      const { error: updateError } = await supabase
-        .from('user_stats')
-        .update({ 
-          all_time_completed: actualCompletedCount,
-          updated_at: new Date().toISOString()
-        })
-        .eq(userStatsUserIdCol, userId)
-
-      if (updateError) {
-        console.error('❌ Error updating completed tasks count:', updateError)
-        throw new Error(`Failed to update completed tasks count: ${updateError.message}`)
-      }
-
-      console.log('✅ Completed tasks count fixed successfully')
-      return {
-        fixed: true,
-        oldCount: currentCount,
-        newCount: actualCompletedCount
-      }
+      await updateUserStats(supabase, userId, {
+        all_time_completed: actualCompletedCount
+      })
+      
+      return { fixed: true, oldCount, newCount: actualCompletedCount }
     } else {
-      console.log('✅ Completed tasks count is already correct')
-      return {
-        fixed: false,
-        oldCount: currentCount,
-        newCount: actualCompletedCount
-      }
+      console.log('✅ Completed count is already correct')
+      return { fixed: false, oldCount, newCount: actualCompletedCount }
     }
   } catch (err) {
-    console.error('❌ Exception in fixCompletedTasksCount:', err)
+    console.error('❌ Error fixing completed tasks count:', err)
     throw err
   }
 } 

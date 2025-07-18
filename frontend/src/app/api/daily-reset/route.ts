@@ -2,35 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  'https://qaixpzbbqocssdznztev.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEW_SUPABASE_SERVICE_KEY!
 )
 
 // Schema detection based on environment and actual database structure
 function getSchema(): 'mixed' | 'snake_case' {
-  // Production database uses mixed schema (tasks: userId, user_stats: user_id)
+  // After migrations, all tables use camelCase column names
   return 'mixed'
 }
 
 // Get the correct column name based on schema and table
 function getUserIdColumn(table?: string): string {
-  const schema = getSchema()
-  if (schema === 'mixed') {
-    // Mixed schema: tasks use userId, user_stats use user_id
-    return table === 'tasks' ? 'userId' : 'user_id'
-  } else {
-    return 'user_id'
-  }
+  // After migration 008, all tables use 'userId'
+  return 'userId'
 }
 
 function getCreatedAtColumn(table?: string): string {
-  const schema = getSchema()
-  if (schema === 'mixed') {
-    // Mixed schema: tasks use createdAt, user_stats use created_at
-    return table === 'tasks' ? 'createdAt' : 'created_at'
-  } else {
-    return 'created_at'
-  }
+  // After migration 011, all tables use 'createdAt'
+  return 'createdAt'
 }
 
 export async function POST(request: NextRequest) {
@@ -47,8 +37,8 @@ export async function POST(request: NextRequest) {
       console.log(`🔄 Force reset for user: ${userId}`)
       const { data: user, error: userError } = await supabase
         .from('user_stats')
-        .select('user_id, email, last_daily_reset, mood_checkins_today, ai_splits_today')
-        .eq('user_id', userId)
+        .select('userId, email, last_daily_reset, mood_checkins_today, ai_splits_today')
+        .eq('userId', userId)
         .single()
       
       if (userError) {
@@ -63,7 +53,7 @@ export async function POST(request: NextRequest) {
       
       const { data: allUsers, error } = await supabase
         .from('user_stats')
-        .select('user_id, email, last_daily_reset, mood_checkins_today, ai_splits_today')
+        .select('userId, email, last_daily_reset, mood_checkins_today, ai_splits_today')
         .or(`last_daily_reset.is.null,last_daily_reset.lt.${twentyFourHoursAgo}`)
       
       if (error) {
@@ -104,11 +94,11 @@ export async function POST(request: NextRequest) {
         const { data: userTasks, error: tasksError } = await supabase
           .from('tasks')
           .select('id, title, completed, ' + createdAtCol)
-          .eq(userIdCol, user.user_id)
+          .eq(userIdCol, user.userId)
           .order(createdAtCol, { ascending: true })
 
         if (tasksError) {
-          console.error(`Error fetching tasks for user ${user.user_id}:`, tasksError)
+          console.error(`Error fetching tasks for user ${user.userId}:`, tasksError)
         }
 
         // Calculate task statistics with smarter missed task detection
@@ -142,72 +132,45 @@ export async function POST(request: NextRequest) {
           console.log('⚠️ Could not store task summary (column may not exist)')
         }
         
-        await supabase
+        const { error: updateError } = await supabase
           .from('user_stats')
           .update(updateData)
-          .eq('user_id', user.user_id)
+          .eq('userId', user.userId)
 
-        // Delete all tasks for this user
-        const { error: deleteError } = await supabase
-          .from('tasks')
-          .delete()
-          .eq(userIdCol, user.user_id)
-        if (!deleteError) tasksCleared++
-
-        // Send reset email with task summary
-        if (user.email) {
-          try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                email: user.email,
-                name: 'there',
-                type: 'daily_reset',
-                taskSummary: taskSummary
-              }),
-            })
-
-            if (response.ok) {
-              console.log(`✅ Sent daily reset email to ${user.email}`)
-              emailsSent++
-            } else {
-              console.error(`❌ Failed to send reset email to ${user.email}`)
-            }
-          } catch (emailError) {
-            console.error(`❌ Error sending reset email to ${user.email}:`, emailError)
-          }
+        if (updateError) {
+          console.error(`❌ Error resetting user ${user.userId}:`, updateError)
+          errors++
+          continue
         }
 
         resetsCompleted++
-        console.log(`✅ Reset completed for user ${user.user_id}: ${completedTasks.length} completed, ${notCompletedTasks.length} not completed tasks`)
+        console.log(`✅ Reset completed for user ${user.userId}: ${completedTasks.length} completed, ${notCompletedTasks.length} not completed tasks`)
+
       } catch (error) {
+        console.error(`❌ Error resetting user ${user.userId}:`, error)
         errors++
-        console.error(`❌ Error resetting user ${user.user_id}:`, error)
       }
     }
 
     return NextResponse.json({
-      success: true,
+      message: 'Daily reset completed',
+      totalUsers: users.length,
       resetsCompleted,
       emailsSent,
       tasksCleared,
       errors,
-      totalUsers: users.length,
-      message: `Reset daily limits, cleared tasks, and sent emails for ${resetsCompleted} users`,
       testInfo: {
-        twentyFourHoursAgo,
-        usersProcessed: users.map(u => ({
-          userId: u.user_id,
-          email: u.email
+        twentyFourHoursAgo: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        processedUsers: users.map(u => ({
+          userId: u.userId,
+          email: u.email,
+          hadReset: !!u.last_daily_reset
         }))
       }
     })
 
   } catch (error) {
-    console.error('Daily reset error:', error)
+    console.error('❌ Daily reset failed:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 
