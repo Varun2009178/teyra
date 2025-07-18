@@ -10,13 +10,8 @@ function getSchema(): 'mixed' | 'snake_case' {
 
 // Get the correct column name based on schema and table
 function getUserIdColumn(table?: string): string {
-  const schema = getSchema()
-  if (schema === 'mixed') {
-    // Mixed schema: tasks use userId, user_stats use user_id
-    return table === 'tasks' ? 'userId' : 'user_id'
-  } else {
-    return 'user_id'
-  }
+  // Production database now uses 'user_id' for all tables
+  return 'user_id'
 }
 
 function getCreatedAtColumn(table?: string): string {
