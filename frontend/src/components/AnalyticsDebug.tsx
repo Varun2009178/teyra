@@ -7,6 +7,15 @@ export default function AnalyticsDebug() {
   const pathname = usePathname()
 
   useEffect(() => {
+    // Debug analytics loading
+    console.log('🔍 Vercel Analytics: Checking if script is loaded...')
+    const script = document.querySelector('script[src*="va.vercel-scripts.com"]')
+    if (script) {
+      console.log('✅ Vercel Analytics script found:', script.src)
+    } else {
+      console.log('❌ Vercel Analytics script not found')
+    }
+
     // Manual page view tracking
     console.log('📊 Manual Analytics: Page view detected:', pathname)
     
