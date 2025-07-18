@@ -14,7 +14,7 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -67,7 +67,7 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
   }
   
   const taskData = {
-    "userId": userId,
+    user_id: userId,
     title: text.trim(),
     completed: false,
     has_been_split: isSplitTasks
@@ -147,7 +147,7 @@ export async function updateTask(supabase: SupabaseClient, taskId: string, updat
     const dbUpdates: any = {}
     if (updates.title !== undefined) dbUpdates.title = updates.title
     if (updates.completed !== undefined) dbUpdates.completed = updates.completed
-    if (updates.userId !== undefined) dbUpdates["userId"] = updates.userId
+    if (updates.userId !== undefined) dbUpdates.user_id = updates.userId
     if (updates.hasBeenSplit !== undefined) dbUpdates.has_been_split = updates.hasBeenSplit
     
     console.log('🔄 Converted updates for database:', dbUpdates)
@@ -228,7 +228,7 @@ export async function deleteTaskByTitle(supabase: SupabaseClient, userId: string
   const { error } = await supabase
     .from('tasks')
     .delete()
-    .eq('"userId"', userId)
+    .eq('user_id', userId)
     .eq('title', title)
 
   if (error) {
@@ -260,7 +260,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     const dbUpdates: Record<string, unknown> = {}
     if (updates.title !== undefined) dbUpdates.title = updates.title
     if (updates.completed !== undefined) dbUpdates.completed = updates.completed
-    if (updates.userId !== undefined) dbUpdates["userId"] = updates.userId
+    if (updates.userId !== undefined) dbUpdates.user_id = updates.userId
     if (updates.hasBeenSplit !== undefined) dbUpdates.has_been_split = updates.hasBeenSplit
     
     console.log('🔄 Converted updates for database:', dbUpdates)
@@ -268,7 +268,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     const { data, error } = await supabase
       .from('tasks')
       .update(dbUpdates)
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .eq('title', title)
       .select()
       .single()
@@ -312,7 +312,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
 
 export async function deleteAllTasks(supabase: SupabaseClient, userId: string): Promise<void> {
   if (!userId) return
-  await supabase.from('tasks').delete().eq('"userId"', userId)
+  await supabase.from('tasks').delete().eq('user_id', userId)
 }
 
 // User stats operations
@@ -328,7 +328,7 @@ export async function getUserStats(supabase: SupabaseClient, userId: string): Pr
     const { data, error } = await supabase
       .from('user_stats')
       .select('*')
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .single()
 
     if (error) {
@@ -364,7 +364,7 @@ export async function createUserStats(supabase: SupabaseClient, userId: string, 
   }
   
   const userStatsData = {
-    "userId": userId,
+    user_id: userId,
     all_time_completed: 0,
     current_streak: 0,
     completed_this_week: 0,
@@ -429,7 +429,7 @@ export async function updateUserStats(supabase: SupabaseClient, userId: string, 
     const { data, error } = await supabase
       .from('user_stats')
       .update(updates)
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .select()
       .single()
 
@@ -526,7 +526,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
     const { data: completedTasks, error: tasksError } = await supabase
       .from('tasks')
       .select('id')
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .eq('completed', true)
 
     if (tasksError) {
@@ -541,7 +541,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
     const { data: userStats, error: statsError } = await supabase
       .from('user_stats')
       .select('all_time_completed')
-      .eq('"userId"', userId)
+      .eq('user_id', userId)
       .single()
 
     if (statsError) {
@@ -562,7 +562,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
           all_time_completed: actualCompletedCount,
           updated_at: new Date().toISOString()
         })
-        .eq('"userId"', userId)
+        .eq('user_id', userId)
 
       if (updateError) {
         console.error('❌ Error updating completed tasks count:', updateError)

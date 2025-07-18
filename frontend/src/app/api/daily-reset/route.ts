@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
         // Get user's tasks before clearing them
         const { data: userTasks, error: tasksError } = await supabase
           .from('tasks')
-          .select('id, title, completed, "createdAt"')
-          .eq('"userId"', user.user_id)
-          .order('"createdAt"', { ascending: true })
+          .select('id, title, completed, created_at')
+          .eq('user_id', user.user_id)
+          .order('created_at', { ascending: true })
 
         if (tasksError) {
           console.error(`Error fetching tasks for user ${user.user_id}:`, tasksError)
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         const { error: deleteError } = await supabase
           .from('tasks')
           .delete()
-          .eq('"userId"', user.user_id)
+          .eq('user_id', user.user_id)
         if (!deleteError) tasksCleared++
 
         // Send reset email with task summary
