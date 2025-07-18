@@ -6,6 +6,23 @@ const supabase = createClient(
   process.env.NEW_SUPABASE_SERVICE_KEY!
 )
 
+// Schema detection based on environment and actual database structure
+function getSchema(): 'mixed' | 'snake_case' {
+  // Server-side: use NODE_ENV
+  return process.env.NODE_ENV === 'development' ? 'mixed' : 'snake_case'
+}
+
+// Get the correct column name based on schema
+function getUserIdColumn(): string {
+  const schema = getSchema()
+  return schema === 'mixed' ? '"userId"' : 'user_id'
+}
+
+function getCreatedAtColumn(): string {
+  const schema = getSchema()
+  return schema === 'mixed' ? 'created_at' : 'created_at' // Both use snake_case
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -66,12 +83,19 @@ export async function POST(request: NextRequest) {
 
     for (const user of users) {
       try {
+        // Get schema for this request
+        const schema = getSchema()
+        const userIdCol = getUserIdColumn()
+        const createdAtCol = getCreatedAtColumn()
+        
+        console.log('🔍 Using schema:', schema, 'with columns:', { userIdCol, createdAtCol })
+        
         // Get user's tasks before clearing them
         const { data: userTasks, error: tasksError } = await supabase
           .from('tasks')
-          .select('id, title, completed, created_at')
-          .eq('user_id', user.user_id)
-          .order('created_at', { ascending: true })
+          .select('id, title, completed, ' + createdAtCol)
+          .eq(userIdCol, user.user_id)
+          .order(createdAtCol, { ascending: true })
 
         if (tasksError) {
           console.error(`Error fetching tasks for user ${user.user_id}:`, tasksError)
@@ -117,7 +141,7 @@ export async function POST(request: NextRequest) {
         const { error: deleteError } = await supabase
           .from('tasks')
           .delete()
-          .eq('user_id', user.user_id)
+          .eq(userIdCol, user.user_id)
         if (!deleteError) tasksCleared++
 
         // Send reset email with task summary
