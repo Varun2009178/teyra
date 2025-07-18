@@ -211,7 +211,7 @@ export default function Dashboard() {
         // Check if user needs daily reset (24 hours since last reset)
         // Only process once per session to prevent spam
         // Skip for brand new users (first time loading)
-        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed) {
+        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed && !isNewUser) {
           const lastReset = new Date(fetchedUserStats.last_daily_reset)
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
           
@@ -293,15 +293,19 @@ export default function Dashboard() {
         })
         
         // Show onboarding for new users (no tasks and no completed tasks in stats)
+        const isNewUserCheck = (fetchedUserStats?.all_time_completed === 0 || !fetchedUserStats?.all_time_completed) && fetchedTasks.length === 0
+        setIsNewUser(isNewUserCheck)
+        
         console.log('🔍 Onboarding check:', {
           hasUserStats: !!fetchedUserStats,
           lastCompletedDate: fetchedUserStats?.last_completed_date,
           allTimeCompleted: fetchedUserStats?.all_time_completed,
           tasksLength: fetchedTasks.length,
-          shouldShowOnboarding: (fetchedUserStats?.all_time_completed === 0 || !fetchedUserStats?.all_time_completed) && fetchedTasks.length === 0
+          shouldShowOnboarding: isNewUserCheck,
+          isNewUser: isNewUserCheck
         })
         
-        if ((fetchedUserStats?.all_time_completed === 0 || !fetchedUserStats?.all_time_completed) && fetchedTasks.length === 0) {
+        if (isNewUserCheck) {
           console.log('🚨 Triggering onboarding modal - new user with no completed tasks')
           setOnboardingModalOpen(true)
         } else if (fetchedUserStats?.all_time_completed === 0 && fetchedTasks.length > 0) {
@@ -423,7 +427,13 @@ export default function Dashboard() {
       if (isCompletionChange) {
         if (willBeCompleted) {
           // Move task to completed list
-          setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id))
+          setTasks(prevTasks => prevTasks.filter(t => {
+            if (task.id && task.id !== 'null') {
+              return t.id !== task.id
+            } else {
+              return t.title !== task.title // Use title for null IDs
+            }
+          }))
           setCompletedTasks(prevCompleted => [{ ...task, completed: true }, ...prevCompleted])
           
           // Add to undo stack
@@ -436,7 +446,13 @@ export default function Dashboard() {
           setTimeout(() => setShowGlobalUndo(false), 10000)
         } else {
           // Move task back to active list
-          setCompletedTasks(prevCompleted => prevCompleted.filter(t => t.id !== task.id))
+          setCompletedTasks(prevCompleted => prevCompleted.filter(t => {
+            if (task.id && task.id !== 'null') {
+              return t.id !== task.id
+            } else {
+              return t.title !== task.title // Use title for null IDs
+            }
+          }))
           setTasks(prevTasks => [{ ...task, completed: false }, ...prevTasks])
         }
         
@@ -474,10 +490,22 @@ export default function Dashboard() {
       } else {
         // Regular updates (like title changes)
         setTasks(prevTasks =>
-          prevTasks.map(t => t.id === task.id ? { ...t, ...updates } : t)
+          prevTasks.map(t => {
+            if (task.id && task.id !== 'null') {
+              return t.id === task.id ? { ...t, ...updates } : t
+            } else {
+              return t.title === task.title ? { ...t, ...updates } : t
+            }
+          })
         )
         setCompletedTasks(prevCompleted =>
-          prevCompleted.map(t => t.id === task.id ? { ...t, ...updates } : t)
+          prevCompleted.map(t => {
+            if (task.id && task.id !== 'null') {
+              return t.id === task.id ? { ...t, ...updates } : t
+            } else {
+              return t.title === task.title ? { ...t, ...updates } : t
+            }
+          })
         )
       }
       
