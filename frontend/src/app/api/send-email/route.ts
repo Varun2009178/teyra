@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name, type, timezone, hoursSinceActivity, taskSummary } = await request.json()
+    const { email, name, type, timezone, hoursSinceActivity, taskSummary, userData } = await request.json()
 
     if (!email || !name) {
       return NextResponse.json(
@@ -23,6 +23,69 @@ export async function POST(request: NextRequest) {
     let htmlContent = ''
 
     switch (type) {
+      case 'migration_invite':
+        const tasksCompleted = userData?.tasks_completed || 0
+        const currentStreak = userData?.current_streak || 0
+        const longestStreak = userData?.longest_streak || 0
+        
+        subject = '🌵 Welcome back to Teyra - Your account is ready!'
+        htmlContent = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #ffffff;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🌵</div>
+              <h1 style="color: #111827; font-size: 24px; font-weight: 600; margin: 0 0 8px 0;">Welcome back, ${name}!</h1>
+              <p style="color: #6b7280; font-size: 16px; margin: 0;">Your account has been migrated and is ready to use</p>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div style="background: #f9fafb; border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+              <h3 style="color: #111827; font-size: 18px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">Your Progress</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; text-align: center;">
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #059669; line-height: 1;">${tasksCompleted}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Tasks Completed</div>
+                </div>
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #2563eb; line-height: 1;">${currentStreak}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Current Streak</div>
+                </div>
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #7c3aed; line-height: 1;">${longestStreak}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Longest Streak</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- What's New -->
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+              <h3 style="color: #92400e; margin-bottom: 16px; text-align: center;">🌟 What's New</h3>
+              <ul style="color: #92400e; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li>Daily mood check-ins</li>
+                <li>AI-powered task splitting</li>
+                <li>Personalized productivity insights</li>
+                <li>Beautiful new interface</li>
+              </ul>
+            </div>
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-bottom: 32px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.app'}/sign-up" 
+                 style="display: inline-block; background: #059669; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);">
+                Create Your Account 🌵
+              </a>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                Your data is safe and ready • <a href="#" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>
+              </p>
+            </div>
+          </div>
+        `
+        break
+
       case 'daily_checkin':
         subject = '🌵 Your daily reset is ready!'
         htmlContent = `

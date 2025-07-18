@@ -8,14 +8,19 @@ const supabase = createClient(
 
 // Schema detection based on environment and actual database structure
 function getSchema(): 'mixed' | 'snake_case' {
-  // Server-side: use NODE_ENV
-  return process.env.NODE_ENV === 'development' ? 'mixed' : 'snake_case'
+  // Production database uses mixed schema (tasks: userId, user_stats: user_id)
+  return 'mixed'
 }
 
-// Get the correct column name based on schema
-function getUserIdColumn(): string {
+// Get the correct column name based on schema and table
+function getUserIdColumn(table?: string): string {
   const schema = getSchema()
-  return schema === 'mixed' ? '"userId"' : 'user_id'
+  if (schema === 'mixed') {
+    // Mixed schema: tasks use userId, user_stats use user_id
+    return table === 'tasks' ? 'userId' : 'user_id'
+  } else {
+    return 'user_id'
+  }
 }
 
 function getCreatedAtColumn(): string {
@@ -85,7 +90,7 @@ export async function POST(request: NextRequest) {
       try {
         // Get schema for this request
         const schema = getSchema()
-        const userIdCol = getUserIdColumn()
+        const userIdCol = getUserIdColumn('tasks')
         const createdAtCol = getCreatedAtColumn()
         
         console.log('🔍 Using schema:', schema, 'with columns:', { userIdCol, createdAtCol })

@@ -3,21 +3,20 @@ import { Task, UserStats } from './types' // We'll create this file next
 
 // Schema detection based on environment and actual database structure
 function getSchema(): 'mixed' | 'snake_case' {
-  // Use environment variable or default to snake_case for production
-  if (typeof window !== 'undefined') {
-    // Client-side: check if we're on localhost
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    return isLocalhost ? 'mixed' : 'snake_case'
-  } else {
-    // Server-side: use NODE_ENV
-    return process.env.NODE_ENV === 'development' ? 'mixed' : 'snake_case'
-  }
+  // Production database uses mixed schema (tasks: userId, user_stats: user_id)
+  // Local database also uses mixed schema
+  return 'mixed'
 }
 
-// Get the correct column name based on schema
-function getUserIdColumn(): string {
+// Get the correct column name based on schema and table
+function getUserIdColumn(table?: string): string {
   const schema = getSchema()
-  return schema === 'mixed' ? '"userId"' : 'user_id'
+  if (schema === 'mixed') {
+    // Mixed schema: tasks use userId, user_stats use user_id
+    return table === 'tasks' ? 'userId' : 'user_id'
+  } else {
+    return 'user_id'
+  }
 }
 
 function getCreatedAtColumn(): string {
@@ -35,7 +34,7 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
   }
   
   try {
-    const userIdCol = getUserIdColumn()
+    const userIdCol = getUserIdColumn('tasks')
     const createdAtCol = getCreatedAtColumn()
     
     console.log('🔍 Using schema:', getSchema(), 'with columns:', { userIdCol, createdAtCol })
@@ -108,14 +107,9 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
   try {
     let query = supabase.from('tasks').insert([taskData])
     
-    // Add userId with correct column name using a different approach
-    if (schema === 'mixed') {
-      // For mixed schema, use userId directly
-      query = supabase.from('tasks').insert([{ ...taskData, userId }])
-    } else {
-      // For snake_case schema
-      query = supabase.from('tasks').insert([{ ...taskData, user_id: userId }])
-    }
+    // Add userId with correct column name
+    const userIdCol = getUserIdColumn('tasks')
+    query = supabase.from('tasks').insert([{ ...taskData, [userIdCol]: userId }])
     
     const { data, error } = await query.select().single()
 
@@ -188,13 +182,10 @@ export async function updateTask(supabase: SupabaseClient, taskId: string, updat
     if (updates.completed !== undefined) dbUpdates.completed = updates.completed
     if (updates.hasBeenSplit !== undefined) dbUpdates.has_been_split = updates.hasBeenSplit
     
-    // Add userId with correct column name using a different approach
+    // Add userId with correct column name
     if (updates.userId !== undefined) {
-      if (schema === 'mixed') {
-        dbUpdates.userId = updates.userId // Use userId directly
-      } else {
-        dbUpdates.user_id = updates.userId
-      }
+      const userIdCol = getUserIdColumn('tasks')
+      dbUpdates[userIdCol] = updates.userId
     }
     
     console.log('🔄 Converted updates for database:', dbUpdates)
@@ -249,7 +240,7 @@ export async function deleteTask(supabase: SupabaseClient, taskId: string): Prom
   }
   
   const schema = getSchema()
-  const userIdCol = getUserIdColumn()
+  const userIdCol = getUserIdColumn('tasks')
   
   const { error } = await supabase
     .from('tasks')
@@ -276,7 +267,7 @@ export async function deleteTaskByTitle(supabase: SupabaseClient, userId: string
   console.log('🗄️ deleteTaskByTitle called with:', { userId, title })
   
   const schema = getSchema()
-  const userIdCol = getUserIdColumn()
+  const userIdCol = getUserIdColumn('tasks')
   
   const { error } = await supabase
     .from('tasks')
@@ -309,7 +300,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
   }
   
   const schema = getSchema()
-  const userIdCol = getUserIdColumn()
+  const userIdCol = getUserIdColumn('tasks')
   
   try {
     // Convert field names to match database schema
@@ -320,11 +311,8 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     
     // Add userId with correct column name
     if (updates.userId !== undefined) {
-      if (schema === 'mixed') {
-        dbUpdates['"userId"'] = updates.userId
-      } else {
-        dbUpdates.user_id = updates.userId
-      }
+      const userIdColForUpdate = getUserIdColumn('tasks')
+      dbUpdates[userIdColForUpdate] = updates.userId
     }
     
     console.log('🔄 Converted updates for database:', dbUpdates)
@@ -377,7 +365,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
 export async function deleteAllTasks(supabase: SupabaseClient, userId: string): Promise<void> {
   if (!userId) return
   const schema = getSchema()
-  const userIdCol = getUserIdColumn()
+  const userIdCol = getUserIdColumn('tasks')
   await supabase.from('tasks').delete().eq(userIdCol, userId)
 }
 
@@ -392,7 +380,7 @@ export async function getUserStats(supabase: SupabaseClient, userId: string): Pr
   
   try {
     const schema = getSchema()
-    const userIdCol = getUserIdColumn()
+    const userIdCol = getUserIdColumn('user_stats')
     
     const { data, error } = await supabase
       .from('user_stats')
@@ -459,15 +447,9 @@ export async function createUserStats(supabase: SupabaseClient, userId: string, 
   try {
     let query = supabase.from('user_stats').insert([userStatsData])
     
-    // Add userId with correct column name using a different approach
-    if (schema === 'mixed') {
-      // For mixed schema, we need to use the actual column name without quotes
-      // Let's try using userId directly since that's what the database actually uses
-      query = supabase.from('user_stats').insert([{ ...userStatsData, userId }])
-    } else {
-      // For snake_case schema
-      query = supabase.from('user_stats').insert([{ ...userStatsData, user_id: userId }])
-    }
+    // Add userId with correct column name
+    const userIdCol = getUserIdColumn('user_stats')
+    query = supabase.from('user_stats').insert([{ ...userStatsData, [userIdCol]: userId }])
     
     const { data, error } = await query.select().single()
 
@@ -506,7 +488,7 @@ export async function updateUserStats(supabase: SupabaseClient, userId: string, 
   
   try {
     const schema = getSchema()
-    const userIdCol = getUserIdColumn()
+    const userIdCol = getUserIdColumn('user_stats')
     
     const { data, error } = await supabase
       .from('user_stats')
@@ -606,7 +588,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
   try {
     // Get all completed tasks for the user
     const schema = getSchema()
-    const userIdCol = getUserIdColumn()
+    const userIdCol = getUserIdColumn('tasks')
     const completedAtCol = getCreatedAtColumn()
 
     const { data: completedTasks, error: tasksError } = await supabase
@@ -624,10 +606,11 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
     console.log('📊 Actual completed tasks count:', actualCompletedCount)
 
     // Get current user stats
+    const userStatsUserIdCol = getUserIdColumn('user_stats')
     const { data: userStats, error: statsError } = await supabase
       .from('user_stats')
       .select('all_time_completed')
-      .eq(userIdCol, userId)
+      .eq(userStatsUserIdCol, userId)
       .single()
 
     if (statsError) {
@@ -648,7 +631,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
           all_time_completed: actualCompletedCount,
           updated_at: new Date().toISOString()
         })
-        .eq(userIdCol, userId)
+        .eq(userStatsUserIdCol, userId)
 
       if (updateError) {
         console.error('❌ Error updating completed tasks count:', updateError)
