@@ -19,9 +19,14 @@ function getUserIdColumn(table?: string): string {
   }
 }
 
-function getCreatedAtColumn(): string {
+function getCreatedAtColumn(table?: string): string {
   const schema = getSchema()
-  return schema === 'mixed' ? 'created_at' : 'created_at' // Both use snake_case
+  if (schema === 'mixed') {
+    // Mixed schema: tasks use createdAt, user_stats use created_at
+    return table === 'tasks' ? 'createdAt' : 'created_at'
+  } else {
+    return 'created_at'
+  }
 }
 
 // Task operations
@@ -35,7 +40,7 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
   
   try {
     const userIdCol = getUserIdColumn('tasks')
-    const createdAtCol = getCreatedAtColumn()
+    const createdAtCol = getCreatedAtColumn('tasks')
     
     console.log('🔍 Using schema:', getSchema(), 'with columns:', { userIdCol, createdAtCol })
     

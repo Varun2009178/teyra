@@ -23,9 +23,14 @@ function getUserIdColumn(table?: string): string {
   }
 }
 
-function getCreatedAtColumn(): string {
+function getCreatedAtColumn(table?: string): string {
   const schema = getSchema()
-  return schema === 'mixed' ? 'created_at' : 'created_at' // Both use snake_case
+  if (schema === 'mixed') {
+    // Mixed schema: tasks use createdAt, user_stats use created_at
+    return table === 'tasks' ? 'createdAt' : 'created_at'
+  } else {
+    return 'created_at'
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
         // Get schema for this request
         const schema = getSchema()
         const userIdCol = getUserIdColumn('tasks')
-        const createdAtCol = getCreatedAtColumn()
+        const createdAtCol = getCreatedAtColumn('tasks')
         
         console.log('🔍 Using schema:', schema, 'with columns:', { userIdCol, createdAtCol })
         
