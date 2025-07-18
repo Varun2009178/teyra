@@ -328,6 +328,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
       .eq(userIdCol, userId)
       .eq('title', title)
       .select()
+      .order('id', { ascending: false })
       .limit(1)
       .single()
 
