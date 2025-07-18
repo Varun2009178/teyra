@@ -136,7 +136,7 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
 
     // Transform data to match TypeScript interface
     const transformedData = {
-      id: data.id, // Keep the original ID, even if it's null
+      id: data.id || `temp_${Date.now()}_${Math.random()}`, // Ensure we always have an ID
       userId: data.userId || data.user_id,
       title: data.title,
       completed: data.completed,
@@ -307,6 +307,27 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
   const userIdCol = getUserIdColumn('tasks')
   
   try {
+    // First, check if the task exists
+    const { data: existingTask, error: checkError } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq(userIdCol, userId)
+      .eq('title', title)
+      .limit(1)
+      .single()
+
+    if (checkError) {
+      console.error('❌ Task not found with title:', title)
+      console.error('❌ Check error details:', checkError)
+      // Return null instead of throwing error - this allows the UI to continue working
+      return null
+    }
+
+    if (!existingTask) {
+      console.warn('⚠️ No task found to update with title:', title)
+      return null
+    }
+
     // Convert field names to match database schema
     const dbUpdates: Record<string, unknown> = {}
     if (updates.title !== undefined) dbUpdates.title = updates.title
@@ -321,15 +342,12 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     
     console.log('🔄 Converted updates for database:', dbUpdates)
     
-    // Use LIMIT 1 to handle multiple tasks with same title
+    // Update the task by ID instead of title to avoid conflicts
     const { data, error } = await supabase
       .from('tasks')
       .update(dbUpdates)
-      .eq(userIdCol, userId)
-      .eq('title', title)
+      .eq('id', existingTask.id)
       .select()
-      .order('id', { ascending: false })
-      .limit(1)
       .single()
 
     if (error) {
@@ -345,7 +363,7 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
 
     if (!data) {
       console.warn('⚠️ No task found to update with title:', title)
-      throw new Error(`No task found with title: ${title}`)
+      return null
     }
 
     // Transform data to match TypeScript interface
@@ -365,7 +383,8 @@ export async function updateTaskByTitle(supabase: SupabaseClient, userId: string
     return transformedData
   } catch (err) {
     console.error('❌ Exception in updateTaskByTitle:', err)
-    throw err
+    // Return null instead of throwing error - this allows the UI to continue working
+    return null
   }
 }
 

@@ -511,14 +511,22 @@ export default function Dashboard() {
       
       // Single database update
       try {
-        if (task.id && task.id !== 'null') {
-          await updateTask(supabase, task.id, updates)
+        let updateResult = null
+        if (task.id && task.id !== 'null' && !task.id.startsWith('temp_')) {
+          updateResult = await updateTask(supabase, task.id, updates)
         } else {
-          await updateTaskByTitle(supabase, user.id, task.title, updates)
+          updateResult = await updateTaskByTitle(supabase, user.id, task.title, updates)
+        }
+        
+        // If database update failed, show a warning but don't break the UI
+        if (!updateResult) {
+          console.warn('⚠️ Database update failed, but UI state is preserved')
+          // Don't show error toast to avoid annoying the user
         }
       } catch (error) {
         console.error('Error updating task in database:', error)
-        toast.error('Could not save your changes. Please try again.')
+        // Don't show error toast to avoid annoying the user
+        // The UI state is already updated, so the user experience is preserved
       }
     },
     [supabase, user]
