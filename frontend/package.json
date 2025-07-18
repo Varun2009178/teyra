@@ -28,6 +28,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.51.0",
     "@types/pg": "^8.15.4",
+    "@vercel/analytics": "^1.5.0",
     "autoprefixer": "^10.4.21",
     "card": "^2.5.4",
     "cards": "^2.0.3",
