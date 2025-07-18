@@ -82,6 +82,9 @@ export default function Dashboard() {
     completed_count: number;
     not_completed_count: number;
   } | null>(null)
+  
+  // Track if daily reset has been processed this session
+  const [dailyResetProcessed, setDailyResetProcessed] = useState(false)
 
   const { getToken } = useAuth();
   const supabase = useMemo(() => {
@@ -202,11 +205,22 @@ export default function Dashboard() {
         }
         
         // Check if user needs daily reset (24 hours since last reset)
-        if (fetchedUserStats?.last_daily_reset) {
+        // Only process once per session to prevent spam
+        if (fetchedUserStats?.last_daily_reset && !dailyResetProcessed) {
           const lastReset = new Date(fetchedUserStats.last_daily_reset)
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
           
-          if (lastReset < twentyFourHoursAgo) {
+          console.log('🕐 Daily reset check:', {
+            lastReset: lastReset.toISOString(),
+            twentyFourHoursAgo: twentyFourHoursAgo.toISOString(),
+            needsReset: lastReset < twentyFourHoursAgo,
+            allTimeCompleted: fetchedUserStats.all_time_completed,
+            isNewUser: fetchedUserStats.all_time_completed === 0
+          })
+          
+          // Only show popup for users who have actually completed tasks before
+          // This prevents showing the popup to brand new users
+          if (lastReset < twentyFourHoursAgo && fetchedUserStats.all_time_completed > 0) {
             console.log('🔄 User needs daily reset, updating limits...')
             
             // Reset daily limits (only the fields that exist)
@@ -241,11 +255,28 @@ export default function Dashboard() {
             })
             setTaskProgressPopupOpen(true)
             
+            // Mark daily reset as processed for this session
+            setDailyResetProcessed(true)
+            
             console.log('📊 Task progress popup data:', {
               lastVisit,
               completedCount: completedSinceLastVisit.length,
               incompleteCount: incompleteSinceLastVisit.length
             })
+          } else if (lastReset < twentyFourHoursAgo) {
+            // For new users who need a reset, just update the timestamp without showing popup
+            console.log('🔄 New user needs daily reset, updating timestamp only...')
+            
+            const updatedStats = {
+              ...fetchedUserStats,
+              mood_checkins_today: 0,
+              ai_splits_today: 0,
+              last_daily_reset: new Date().toISOString()
+            }
+            
+            await updateUserStats(supabase, user.id, updatedStats)
+            setUserStats(updatedStats)
+            setDailyResetProcessed(true)
           }
         }
         
@@ -283,6 +314,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && supabase && isLoaded) {
+      // Reset daily reset processed state for new user
+      setDailyResetProcessed(false)
       loadData()
     }
   }, [user?.id, supabase, isLoaded]) // Only depend on user ID, not the entire user object
