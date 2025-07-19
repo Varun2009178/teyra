@@ -18,4 +18,26 @@ export function createClient(getToken: GetToken) {
       }
     }
   )
+}
+
+// Function to get an authenticated Supabase client
+export async function getAuthenticatedClient(getToken: GetToken) {
+  const token = await getToken({ template: 'supabase' })
+  
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    }
+  )
 } 
