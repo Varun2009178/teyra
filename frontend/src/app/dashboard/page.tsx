@@ -35,7 +35,7 @@ export default function Dashboard() {
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
   const [userProfileOpen, setUserProfileOpen] = useState(false)
   const [firstTaskCelebrationOpen, setFirstTaskCelebrationOpen] = useState(false)
-  const [submittedTask, setSubmittedTask] = useState<string | null>(null)
+
 
   
   // Global undo system
@@ -577,8 +577,7 @@ export default function Dashboard() {
           
           // Add task to state with smooth animation
           setTasks(prevTasks => [newTask, ...prevTasks])
-          // setSubmittedTask(text) // Removed as per edit hint
-          // setTimeout(() => setSubmittedTask(null), 5000) // Removed as per edit hint
+
           console.log('🎉 Task added successfully to UI')
           
           // Remove from animating after animation completes
