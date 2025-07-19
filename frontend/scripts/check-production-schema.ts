@@ -38,7 +38,7 @@ async function checkProductionSchema() {
     console.log('❌ Exception checking tasks schema:', err)
   }
   console.log('')
-
+    
   // Check user_stats table schema
   console.log('🧪 Checking user_stats table schema...')
   try {

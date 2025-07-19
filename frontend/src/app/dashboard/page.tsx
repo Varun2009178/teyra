@@ -169,11 +169,23 @@ export default function Dashboard() {
         })
         
         console.log('📊 Loaded tasks from database:', fetchedTasks.length)
-        console.log('📊 Tasks:', fetchedTasks.filter((t: Task | null) => t).map((t: Task) => ({ id: t.id, title: t.title, completed: t.completed })))
+        console.log('📊 All fetched tasks:', fetchedTasks.map((t: Task) => ({ 
+          id: t?.id, 
+          title: t?.title, 
+          completed: t?.completed,
+          userId: t?.userId 
+        })))
         
         // Filter out null tasks and tasks with null IDs
-        const validTasks = fetchedTasks.filter((task: Task) => task && task.id && task.id !== 'null')
-        console.log('📊 Valid tasks (including null IDs):', validTasks.length)
+        const validTasks = fetchedTasks.filter((task: Task) => {
+          const isValid = task && task.id && task.id !== 'null' && task.id !== null
+          if (!isValid) {
+            console.warn('⚠️ Filtering out invalid task:', task)
+          }
+          return isValid
+        })
+        console.log('📊 Valid tasks:', validTasks.length)
+        console.log('📊 Invalid tasks filtered out:', fetchedTasks.length - validTasks.length)
         
         // Separate active and completed tasks
         const activeTasks = validTasks.filter((task: Task) => !task.completed)
