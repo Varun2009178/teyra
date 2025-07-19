@@ -61,7 +61,7 @@ export async function getTasks(supabase: SupabaseClient, userId: string): Promis
       }
       
       return {
-        id: task.id || `temp_${Date.now()}_${Math.random()}`, // Ensure we always have an ID
+        id: task.id, // Use the actual database ID
         userId: task.userId,
         title: task.title,
         completed: task.completed || false,
@@ -127,7 +127,7 @@ export async function createTask(supabase: SupabaseClient, userId: string, text:
 
     // Transform data to match TypeScript interface
     const transformedData = {
-      id: data.id || `temp_${Date.now()}_${Math.random()}`, // Ensure we always have an ID
+      id: data.id, // Use the actual database ID, don't generate temp IDs
       userId: data.userId,
       title: data.title,
       completed: data.completed,

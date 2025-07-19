@@ -1,110 +1,118 @@
 import { createClient } from '@supabase/supabase-js'
 import dotenv from 'dotenv'
 
+// Load environment variables
 dotenv.config({ path: '.env.local' })
 
-// Production Supabase client
-const productionSupabase = createClient(
-  'https://qaixpzbbqocssdznztev.supabase.co',
-  process.env.NEW_SUPABASE_SERVICE_KEY!
-)
-
 async function checkProductionSchema() {
-  console.log('🔍 Checking production database schema...')
-  
+  console.log('🔍 Checking Production Database Schema...\n')
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const serviceKey = process.env.NEW_SUPABASE_SERVICE_KEY!
+
+  console.log('📋 Environment Check:')
+  console.log('URL:', supabaseUrl)
+  console.log('Service Key (first 20 chars):', serviceKey.substring(0, 20) + '...')
+  console.log('')
+
+  const serviceClient = createClient(supabaseUrl, serviceKey)
+
+  // Check tasks table schema
+  console.log('🧪 Checking tasks table schema...')
   try {
-    // Check tasks table structure
-    console.log('\n📋 Checking tasks table...')
-    const { data: tasksData, error: tasksError } = await productionSupabase
-      .from('tasks')
-      .select('*')
-      .limit(1)
+    const { data: tasksColumns, error: tasksError } = await serviceClient
+      .from('information_schema.columns')
+      .select('column_name, data_type, is_nullable')
+      .eq('table_name', 'tasks')
+      .order('ordinal_position')
     
     if (tasksError) {
-      console.error('❌ Error checking tasks table:', tasksError)
+      console.log('❌ Error checking tasks schema:', tasksError.message)
     } else {
-      console.log('✅ Tasks table accessible')
-      if (tasksData && tasksData.length > 0) {
-        const sampleTask = tasksData[0]
-        console.log('📊 Sample task columns:', Object.keys(sampleTask))
-        console.log('📊 Sample task data:', sampleTask)
+      console.log('📋 Tasks table columns:')
+      tasksColumns?.forEach(col => {
+        console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`)
+      })
+    }
+  } catch (err) {
+    console.log('❌ Exception checking tasks schema:', err)
+  }
+  console.log('')
+
+  // Check user_stats table schema
+  console.log('🧪 Checking user_stats table schema...')
+  try {
+    const { data: userStatsColumns, error: userStatsError } = await serviceClient
+      .from('information_schema.columns')
+      .select('column_name, data_type, is_nullable')
+      .eq('table_name', 'user_stats')
+      .order('ordinal_position')
+    
+    if (userStatsError) {
+      console.log('❌ Error checking user_stats schema:', userStatsError.message)
+    } else {
+      console.log('📋 User_stats table columns:')
+      userStatsColumns?.forEach(col => {
+        console.log(`  - ${col.column_name} (${col.data_type}, nullable: ${col.is_nullable})`)
+      })
+    }
+  } catch (err) {
+    console.log('❌ Exception checking user_stats schema:', err)
+  }
+  console.log('')
+
+  // Try to get a sample row from each table
+  console.log('🧪 Checking sample data...')
+  try {
+    const { data: sampleTasks, error: sampleTasksError } = await serviceClient
+      .from('tasks')
+      .select('*')
+      .limit(1)
+    
+    if (sampleTasksError) {
+      console.log('❌ Error getting sample tasks:', sampleTasksError.message)
+    } else {
+      console.log('📋 Sample task columns (from data):')
+      if (sampleTasks && sampleTasks.length > 0) {
+        Object.keys(sampleTasks[0]).forEach(key => {
+          console.log(`  - ${key}: ${typeof sampleTasks[0][key]}`)
+        })
       } else {
-        console.log('📊 Tasks table is empty')
+        console.log('  No tasks found')
       }
     }
-    
-    // Check user_stats table structure
-    console.log('\n📋 Checking user_stats table...')
-    const { data: userStatsData, error: userStatsError } = await productionSupabase
+  } catch (err) {
+    console.log('❌ Exception getting sample tasks:', err)
+  }
+
+  try {
+    const { data: sampleUserStats, error: sampleUserStatsError } = await serviceClient
       .from('user_stats')
       .select('*')
       .limit(1)
     
-    if (userStatsError) {
-      console.error('❌ Error checking user_stats table:', userStatsError)
+    if (sampleUserStatsError) {
+      console.log('❌ Error getting sample user_stats:', sampleUserStatsError.message)
     } else {
-      console.log('✅ User_stats table accessible')
-      if (userStatsData && userStatsData.length > 0) {
-        const sampleUserStats = userStatsData[0]
-        console.log('📊 Sample user_stats columns:', Object.keys(sampleUserStats))
-        console.log('📊 Sample user_stats data:', sampleUserStats)
+      console.log('📋 Sample user_stats columns (from data):')
+      if (sampleUserStats && sampleUserStats.length > 0) {
+        Object.keys(sampleUserStats[0]).forEach(key => {
+          console.log(`  - ${key}: ${typeof sampleUserStats[0][key]}`)
+        })
       } else {
-        console.log('📊 User_stats table is empty')
+        console.log('  No user_stats found')
       }
     }
-    
-    // Try to get a specific user's data
-    console.log('\n🔍 Testing with a specific user...')
-    const testUserId = 'user_3044N6Q19VGXkKrmHZ788Kq4ZiI' // From the error
-    
-    // Test tasks query
-    console.log('📋 Testing tasks query...')
-    const { data: userTasks, error: userTasksError } = await productionSupabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', testUserId)
-    
-    if (userTasksError) {
-      console.error('❌ Error querying tasks for user:', userTasksError)
-    } else {
-      console.log(`✅ Found ${userTasks?.length || 0} tasks for user`)
-    }
-    
-    // Test user_stats query
-    console.log('📋 Testing user_stats query...')
-    const { data: userStats, error: userStatsQueryError } = await productionSupabase
-      .from('user_stats')
-      .select('*')
-      .eq('user_id', testUserId)
-    
-    if (userStatsQueryError) {
-      console.error('❌ Error querying user_stats for user:', userStatsQueryError)
-    } else {
-      console.log(`✅ Found ${userStats?.length || 0} user_stats for user`)
-      if (userStats && userStats.length > 0) {
-        console.log('📊 User stats data:', userStats[0])
-      }
-    }
-    
-    // Check if the user exists in user_stats
-    console.log('\n🔍 Checking if user exists in user_stats...')
-    const { data: allUserStats, error: allUserStatsError } = await productionSupabase
-      .from('user_stats')
-      .select('user_id, email')
-      .limit(5)
-    
-    if (allUserStatsError) {
-      console.error('❌ Error getting all user_stats:', allUserStatsError)
-    } else {
-      console.log('📊 Sample user_stats entries:')
-      allUserStats?.forEach((stat, index) => {
-        console.log(`   ${index + 1}. user_id: ${stat.user_id}, email: ${stat.email}`)
-      })
-    }
-    
-  } catch (error) {
-    console.error('❌ Schema check failed:', error)
+  } catch (err) {
+    console.log('❌ Exception getting sample user_stats:', err)
   }
+  console.log('')
+
+  console.log('🔍 Analysis:')
+  console.log('1. Check if the user ID column is named differently (user_id vs userId)')
+  console.log('2. Check if any required columns are missing')
+  console.log('3. Compare with local schema to identify differences')
 }
 
+checkProductionSchema().catch(console.error) 
 checkProductionSchema() 
