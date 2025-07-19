@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
 
-const supabaseUrl = 'https://qaixpzbbqocssdznztev.supabase.co'
+// Load environment variables
+dotenv.config({ path: '.env.local' })
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEW_SUPABASE_SERVICE_KEY!
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -110,7 +114,7 @@ async function testNewUserFlow() {
     const { error: deleteError } = await supabase
       .from('user_stats')
       .delete()
-      .eq('user_id', testUserId)
+      .eq('userId', testUserId)
 
     if (deleteError) {
       console.log('⚠️  Failed to clean up test data:', deleteError.message)

@@ -292,8 +292,8 @@ export default function Dashboard() {
           userId: user?.id
         })
         
-        // Show onboarding for new users (no tasks and no completed tasks in stats)
-        const isNewUserCheck = (fetchedUserStats?.all_time_completed === 0 || !fetchedUserStats?.all_time_completed) && fetchedTasks.length === 0
+        // Show onboarding for new users (no user stats or no completed tasks)
+        const isNewUserCheck = !fetchedUserStats || fetchedUserStats.all_time_completed === 0
         setIsNewUser(isNewUserCheck)
         
         console.log('🔍 Onboarding check:', {
@@ -306,7 +306,7 @@ export default function Dashboard() {
         })
         
         if (isNewUserCheck) {
-          console.log('🚨 Triggering onboarding modal - new user with no completed tasks')
+          console.log('🚨 Triggering onboarding modal - new user detected')
           setOnboardingModalOpen(true)
         } else if (fetchedUserStats?.all_time_completed === 0 && fetchedTasks.length > 0) {
           console.log('🔧 User has tasks but no completed tasks - setting last_completed_date')
@@ -1180,7 +1180,7 @@ export default function Dashboard() {
       />
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Welcome Message */}
         <AnimatePresence>
           {onboardingModalOpen && (
@@ -1198,22 +1198,22 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
         
-        {/* Mood Check-in Area - Dedicated space above main content */}
+        {/* Mood Check-in Area - Mobile Optimized */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-12"
+          className="mb-8 sm:mb-12"
         >
-          <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-3xl p-8 border border-pink-200/50 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xl">🎭</span>
+          <div className="bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-pink-200/50 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg sm:text-xl">🎭</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">How are you feeling today?</h3>
-                  <p className="text-gray-600">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">How are you feeling today?</h3>
+                  <p className="text-sm sm:text-base text-gray-600">
                     {userStats?.subscription_level === 'pro' 
                       ? 'Pro: Change mood anytime for personalized suggestions' 
                       : 'Free: Check in once per day for mood-based tasks'
@@ -1221,10 +1221,10 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="text-left sm:text-right">
                   <p className="text-sm text-gray-500">Current mood</p>
-                  <p className="text-lg font-semibold text-gray-900 capitalize">{currentMood}</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-900 capitalize">{currentMood}</p>
                   {hasCheckedInToday() && userStats?.subscription_level !== 'pro' && (
                     <p className="text-xs text-gray-400">Checked in today</p>
                   )}
@@ -1238,7 +1238,7 @@ export default function Dashboard() {
                     }
                   }}
                   disabled={!canChangeMood()}
-                  className={`px-8 py-3 rounded-full font-medium transition-all duration-200 shadow-lg ${
+                  className={`px-6 sm:px-8 py-2 sm:py-3 rounded-full font-medium transition-all duration-200 shadow-lg text-sm sm:text-base ${
                     canChangeMood()
                       ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -1263,17 +1263,17 @@ export default function Dashboard() {
                     ease: "easeOut",
                     height: { duration: 0.4 }
                   }}
-                  className="mt-6 pt-6 border-t border-pink-200/50 overflow-hidden"
+                  className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-pink-200/50 overflow-hidden"
                 >
                   <motion.p 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-sm text-gray-700 font-medium mb-4"
+                    className="text-sm text-gray-700 font-medium mb-3 sm:mb-4"
                   >
                     {moodBasedSuggestions.message}
                   </motion.p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                     {moodBasedSuggestions.suggestions.map((suggestion, index) => (
                       <motion.button
                         key={index}
@@ -1285,7 +1285,7 @@ export default function Dashboard() {
                           ease: "easeOut"
                         }}
                         onClick={() => handleAddMoodSuggestion(suggestion)}
-                        className="p-4 bg-white/60 rounded-xl border border-pink-200/50 hover:bg-white/80 transition-all duration-200 text-left group"
+                        className="p-3 sm:p-4 bg-white/60 rounded-xl border border-pink-200/50 hover:bg-white/80 transition-all duration-200 text-left group"
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                       >
@@ -1296,7 +1296,7 @@ export default function Dashboard() {
                           >
                             +
                           </motion.span>
-                          <span className="text-sm text-gray-800">{suggestion}</span>
+                          <span className="text-xs sm:text-sm text-gray-800">{suggestion}</span>
                         </div>
                       </motion.button>
                     ))}
@@ -1307,11 +1307,11 @@ export default function Dashboard() {
           </div>
         </motion.div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-12">
           
-          {/* Mike - The Main Star */}
-          <div className="lg:col-span-5 lg:col-start-1">
-            <div className="sticky top-24">
+          {/* Mike - The Main Star - Mobile Optimized */}
+          <div className="lg:col-span-5 lg:col-start-1 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-24">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1319,11 +1319,11 @@ export default function Dashboard() {
                 className="relative"
               >
                 {/* Enhanced blob background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-[3rem] blur-2xl opacity-70"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl sm:rounded-[3rem] blur-2xl opacity-70"></div>
                 
-                <div className="relative bg-white/90 backdrop-blur-xl rounded-[3rem] p-16 border border-white/30 shadow-2xl">
+                <div className="relative bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-[3rem] p-6 sm:p-12 lg:p-16 border border-white/30 shadow-2xl">
                   {/* Header Section */}
-                  <div className="text-center mb-20">
+                  <div className="text-center mb-12 sm:mb-20">
                     <motion.div
                       animate={{ 
                         scale: [1, 1.05, 1],
@@ -1334,12 +1334,12 @@ export default function Dashboard() {
                         repeat: Infinity, 
                         ease: "easeInOut" 
                       }}
-                      className="text-5xl mb-6"
+                      className="text-4xl sm:text-5xl mb-4 sm:mb-6"
                     >
                       🌵
                     </motion.div>
-                    <h2 className="text-4xl font-bold text-gray-900 mb-6">Mike</h2>
-                    <p className="text-gray-600 text-xl font-medium">Your productivity companion</p>
+                    <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">Mike</h2>
+                    <p className="text-lg sm:text-xl text-gray-600 font-medium">Your productivity companion</p>
                   </div>
             
                   {/* Cactus Display */}
@@ -1353,67 +1353,67 @@ export default function Dashboard() {
                       repeat: Infinity, 
                       ease: "easeInOut" 
                     }}
-                    className="mb-20 flex justify-center"
+                    className="mb-12 sm:mb-20 flex justify-center"
                   >
-                                      <div className="scale-200 transform">
-                    <Cactus 
-                      mood={cactusMood} 
-                      todayCompletedTasks={completedTasks.map(task => ({
-                        title: task.title,
-                        completedAt: task.completedAt
-                      }))}
-                    />
-                  </div>
+                    <div className="scale-150 sm:scale-200 transform">
+                      <Cactus 
+                        mood={cactusMood} 
+                        todayCompletedTasks={completedTasks.map(task => ({
+                          title: task.title,
+                          completedAt: task.completedAt
+                        }))}
+                      />
+                    </div>
                   </motion.div>
 
                   {/* Progress Section */}
-                  <div className="space-y-16">
+                  <div className="space-y-8 sm:space-y-16">
                     <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-10">Your Progress</h3>
-                      <div className="flex justify-center mb-12">
-              <AnimatedCircularProgressBar 
-                progress={progress}
-                maxProgress={maxProgress}
-                          size={140}
-                          strokeWidth={10}
-              />
-            </div>
-          </div>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-10">Your Progress</h3>
+                      <div className="flex justify-center mb-8 sm:mb-12">
+                        <AnimatedCircularProgressBar 
+                          progress={progress}
+                          maxProgress={maxProgress}
+                          size={120}
+                          strokeWidth={8}
+                        />
+                      </div>
+                    </div>
           
-                    {/* Stats Cards */}
-                    <div className="space-y-8">
+                    {/* Stats Cards - Mobile Optimized */}
+                    <div className="space-y-4 sm:space-y-8">
                       <motion.div 
                         whileHover={{ scale: 1.02, y: -2 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-200/50 shadow-lg"
+                        className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-blue-200/50 shadow-lg"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-base font-medium text-blue-600 mb-2">Current Progress</p>
-                            <p className="text-3xl font-bold text-blue-900">
+                            <p className="text-sm sm:text-base font-medium text-blue-600 mb-1 sm:mb-2">Current Progress</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-blue-900">
                               {progress}/{maxProgress}
                             </p>
                           </div>
-                          <div className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">📈</span>
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-lg sm:text-xl">📈</span>
                           </div>
                         </div>
                       </motion.div>
                       
-            <motion.div
+                      <motion.div
                         whileHover={{ scale: 1.02, y: -2 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border border-green-200/50 shadow-lg"
+                        className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-green-200/50 shadow-lg"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-base font-medium text-green-600 mb-2">Next Milestone</p>
-                            <p className="text-3xl font-bold text-green-900">
+                            <p className="text-sm sm:text-base font-medium text-green-600 mb-1 sm:mb-2">Next Milestone</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-green-900">
                               {getNextMilestone()} tasks
                             </p>
                           </div>
-                          <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">🎯</span>
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-lg sm:text-xl">🎯</span>
                           </div>
                         </div>
                       </motion.div>
@@ -1421,17 +1421,17 @@ export default function Dashboard() {
                       <motion.div 
                         whileHover={{ scale: 1.02, y: -2 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-2xl p-8 border border-purple-200/50 shadow-lg"
+                        className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-purple-200/50 shadow-lg"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-base font-medium text-purple-600 mb-2">Total Completed</p>
-                            <p className="text-3xl font-bold text-purple-900">
+                            <p className="text-sm sm:text-base font-medium text-purple-600 mb-1 sm:mb-2">Total Completed</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-purple-900">
                               {userStats?.all_time_completed || 0}
                             </p>
                           </div>
-                          <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-xl">🏆</span>
+                          <div className="w-10 h-10 sm:w-14 sm:h-14 bg-purple-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-lg sm:text-xl">🏆</span>
                           </div>
                         </div>
                       </motion.div>
@@ -1465,36 +1465,36 @@ export default function Dashboard() {
                     {userStats?.subscription_level === 'pro' && motivationalMessage && (
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.5 }}
-                        className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 border border-yellow-200/50"
+                        className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-yellow-200/50"
                       >
-                        <div className="flex items-start space-x-4">
-                          <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-base">💬</span>
-              </div>
+                        <div className="flex items-start space-x-3 sm:space-x-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm sm:text-base">💬</span>
+                          </div>
                           <div>
-                            <p className="text-base font-medium text-yellow-800 mb-2">Mike says:</p>
-                            <p className="text-gray-700 text-base leading-relaxed">{motivationalMessage}</p>
+                            <p className="text-sm sm:text-base font-medium text-yellow-800 mb-1 sm:mb-2">Mike says:</p>
+                            <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{motivationalMessage}</p>
                           </div>
                         </div>
-            </motion.div>
-          )}
+                      </motion.div>
+                    )}
                     
                     {/* Help Section for New Users */}
                     {(!userStats?.last_completed_date || userStats.all_time_completed === 0) && (
-            <motion.div
+                      <motion.div
                         initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                        animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
-                        className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200/50"
+                        className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-green-200/50"
                       >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-white text-sm">💡</span>
-              </div>
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-green-800">Quick Tips:</p>
+                        <div className="flex items-start space-x-2 sm:space-x-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs sm:text-sm">💡</span>
+                          </div>
+                          <div className="space-y-1 sm:space-y-2">
+                            <p className="text-xs sm:text-sm font-medium text-green-800">Quick Tips:</p>
                             <ul className="text-xs text-green-700 space-y-1">
                               <li>• Add tasks in the input box to the right</li>
                               <li>• Click the checkbox to complete tasks</li>
@@ -1502,16 +1502,16 @@ export default function Dashboard() {
                             </ul>
                           </div>
                         </div>
-            </motion.div>
-          )}
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               </motion.div>
             </div>
-        </div>
+          </div>
 
-          {/* Task Section */}
-          <div className="lg:col-span-7 lg:col-start-6 space-y-8">
+          {/* Task Section - Mobile Optimized */}
+          <div className="lg:col-span-7 lg:col-start-6 space-y-6 sm:space-y-8 order-1 lg:order-2">
             {/* Task Input */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -1520,9 +1520,9 @@ export default function Dashboard() {
               className="relative"
             >
               {/* Blob background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 rounded-[2rem] blur-xl opacity-60"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl sm:rounded-[2rem] blur-xl opacity-60"></div>
               
-              <div className="relative bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white/20 shadow-xl">
+              <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 border border-white/20 shadow-xl">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">Tasks</h2>
                   <div className="flex items-center space-x-2">
@@ -1581,9 +1581,9 @@ export default function Dashboard() {
               className="relative"
             >
               {/* Blob background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-[2rem] blur-xl opacity-60"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl sm:rounded-[2rem] blur-xl opacity-60"></div>
               
-              <div className="relative bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white/20 shadow-xl">
+              <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 border border-white/20 shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Active Tasks</h3>
                   <motion.span 
@@ -1685,9 +1685,9 @@ export default function Dashboard() {
                 className="relative"
               >
                 {/* Blob background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 rounded-[2rem] blur-xl opacity-60"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl sm:rounded-[2rem] blur-xl opacity-60"></div>
                 
-                <div className="relative bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white/20 shadow-xl">
+                <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 border border-white/20 shadow-xl">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Completed Today</h3>
                     <motion.span 
