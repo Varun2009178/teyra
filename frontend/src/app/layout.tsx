@@ -5,7 +5,7 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import TransitionProvider from '@/components/TransitionProvider'
 import { Analytics } from '@vercel/analytics/react'
-import AnalyticsDebug from '@/components/AnalyticsDebug'
+
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -35,7 +35,6 @@ export default function RootLayout({
           <TransitionProvider>{children}</TransitionProvider>
           <Toaster />
           <Analytics />
-          <AnalyticsDebug />
         </body>
       </html>
     </ClerkProvider>
