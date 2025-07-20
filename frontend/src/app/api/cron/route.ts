@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (usersForReset && usersForReset.length > 0) {
       console.log(`🔄 Found ${usersForReset.length} users who need daily reset`)
-
+      
       for (const user of usersForReset) {
         try {
           // Reset daily limits for this user
@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
             }
           } catch (error) {
             console.error(`❌ Error sending inactivity email to ${user.email}:`, error)
-          }
         }
+      }
       }
     } else {
       console.log('✅ No users need email notifications')

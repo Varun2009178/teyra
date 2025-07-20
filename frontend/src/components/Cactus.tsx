@@ -61,6 +61,7 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
           width={192}
           height={192}
           priority={mood === 'sad'}
+          unoptimized
           className="w-full h-full object-contain"
         />
         

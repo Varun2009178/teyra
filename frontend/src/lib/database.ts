@@ -589,7 +589,7 @@ export async function incrementAISplit(supabase: SupabaseClient, userId: string)
     await updateUserStats(supabase, userId, {
       ai_splits_today: currentCount + 1
     })
-    
+
     console.log('✅ AI split count incremented successfully')
   } catch (err) {
     console.error('❌ Error incrementing AI split count:', err)
@@ -603,7 +603,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
   
   try {
     const userIdCol = getUserIdColumn('tasks')
-    
+
     // Get all completed tasks for this user
     const { data: completedTasks, error } = await supabase
       .from('tasks')
@@ -617,7 +617,7 @@ export async function fixCompletedTasksCount(supabase: SupabaseClient, userId: s
     }
 
     const actualCompletedCount = completedTasks?.length || 0
-    
+
     // Get current user stats
     const userStats = await getUserStats(supabase, userId)
     if (!userStats) {

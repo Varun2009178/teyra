@@ -392,3 +392,115 @@ export async function suggestMoodBasedTasks(userMood: string, completedToday: nu
     };
   }
 }
+
+// AI Life Autopilot - Turn messy thoughts into smart calendar + tasks
+export async function createLifeAutopilot(
+  userThoughts: string, 
+  userMood: string, 
+  currentTime?: string,
+  existingTasks?: string[]
+): Promise<{
+  tasks: string[];
+  calendarBlocks: Array<{
+    time: string;
+    title: string;
+    type: 'focus' | 'social' | 'break' | 'buffer';
+    duration: number; // in minutes
+    description?: string;
+  }>;
+  message: string;
+}> {
+  const prompt = `You are Mike, a caring AI life planner. The user has dumped their messy thoughts. Create a smart, personalized plan.
+
+User's thoughts: "${userThoughts}"
+User's mood: ${userMood}
+Current time: ${currentTime || 'morning'}
+Existing tasks: ${existingTasks ? existingTasks.join(', ') : 'none'}
+
+Create a JSON response with:
+1. 3-5 specific, actionable tasks (5-15 min each)
+2. Smart calendar blocks with buffer time between focus/social
+3. A caring message from Mike
+
+Rules:
+- Tasks should match user's energy level and mood
+- Include buffer time between different activity types
+- Don't schedule big tasks right after therapy/school/stressful events
+- Make it feel human and caring
+- Each calendar block should be 15-60 minutes
+- Include breaks and breathing room
+- Use ONLY valid JSON syntax with double quotes
+- Do NOT include any markdown formatting or code blocks
+
+Return ONLY a valid JSON object like this (no markdown, no code blocks):
+{
+  "tasks": ["Task 1", "Task 2", "Task 3"],
+  "calendarBlocks": [
+    {
+      "time": "9:00 AM",
+      "title": "Morning Planning",
+      "type": "focus",
+      "duration": 30,
+      "description": "Review today's priorities"
+    }
+  ],
+  "message": "I left 30 mins to breathe. You'll thank me 🌵"
+}
+
+IMPORTANT: Return ONLY the JSON object, no other text, no markdown, no code blocks.`;
+
+  try {
+    const response = await callGroqAPI(prompt);
+    console.log("AI Life Autopilot response:", response);
+    
+    // Clean the response to remove any markdown or extra text
+    let cleanResponse = response.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Remove any text before the first { and after the last }
+    const firstBrace = cleanResponse.indexOf('{');
+    const lastBrace = cleanResponse.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanResponse = cleanResponse.substring(firstBrace, lastBrace + 1);
+    }
+    
+    try {
+      const result = JSON.parse(cleanResponse);
+      return {
+        tasks: Array.isArray(result.tasks) ? result.tasks : [],
+        calendarBlocks: Array.isArray(result.calendarBlocks) ? result.calendarBlocks : [],
+        message: result.message || "I've organized your day with care 🌵"
+      };
+    } catch (jsonError) {
+      console.error("JSON parse error for Life Autopilot:", jsonError, "Response:", cleanResponse);
+      
+      // Fallback: create basic tasks from thoughts
+      const fallbackTasks = userThoughts
+        .split(/[.!?]/)
+        .filter(sentence => sentence.trim().length > 10)
+        .slice(0, 3)
+        .map(sentence => sentence.trim());
+      
+      return {
+        tasks: fallbackTasks,
+        calendarBlocks: [],
+        message: "I've created some tasks from your thoughts. Let me know if you need more structure! 🌵"
+      };
+    }
+  } catch (error) {
+    console.error("Error in Life Autopilot:", error);
+    
+    // Fallback response
+    return {
+      tasks: ["Review your thoughts", "Pick the most important item", "Start with one small step"],
+      calendarBlocks: [],
+      message: "I'm here to help organize your thoughts. Let's start simple! 🌵"
+    };
+  }
+}

@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useUser, SignOutButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { TextAnimate } from '@/components/magicui/text-animate';
+import { Cactus } from '@/components/Cactus';
 
 export default function HomePage() {
   const { user, isLoaded } = useUser();
@@ -62,6 +64,9 @@ export default function HomePage() {
               </>
             ) : (
               <>
+                <Button variant="ghost" asChild>
+                  <Link href="/features">Features</Link>
+                </Button>
                 <Button variant="ghost" asChild>
                   <Link href="/sign-in">Sign In</Link>
                 </Button>
@@ -120,12 +125,15 @@ export default function HomePage() {
             <Button 
               size="lg" 
               variant="outline" 
-              asChild
+              onClick={() => {
+                document.getElementById('demo-section')?.scrollIntoView({ 
+                  behavior: 'smooth',
+                  block: 'start'
+                });
+              }}
               className="border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white text-lg px-8 py-6 hover:scale-105 transition-all duration-300"
             >
-              <Link href="/demo">
                 Try Demo
-              </Link>
             </Button>
           </motion.div>
 
@@ -165,201 +173,405 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+            {/* Story Section */}
+      <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+              className="text-5xl md:text-6xl font-bold text-black mb-8 tracking-tight"
             >
-              Why Teyra Works
+              Your journey starts here
             </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="text-xl text-gray-600 max-w-3xl mx-auto"
-            >
-              Built for humans, powered by AI, designed for results
-            </motion.p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: "🧠",
-                title: "AI-Powered Insights",
-                description: "Get intelligent suggestions based on your mood, energy levels, and productivity patterns."
-              },
-              {
-                icon: "⏰",
-                title: "24-Hour Reset",
-                description: "Fresh start every day with automatic task clearing and progress tracking."
-              },
-              {
-                icon: "📧",
-                title: "Smart Reminders",
-                description: "Gentle nudges when you need them most, never overwhelming."
-              }
-            ].map((feature, index) => (
+          <div className="space-y-32">
+            {/* Morning Scene */}
+            <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
+                className="absolute inset-0 bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 1 }}
                 viewport={{ once: true }}
-                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300"
-              >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </motion.div>
-            ))}
+              />
+              
+              <div className="text-center max-w-5xl relative z-10">
+          <motion.div
+                  className="mb-16"
+                  initial={{ scale: 0, rotate: -180 }}
+                  whileInView={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+                  <Cactus mood="sad" />
+                </motion.div>
+                
+                <div className="text-6xl md:text-8xl font-bold text-black mb-8 tracking-tight">
+                  <TextAnimate 
+                    animation="slideLeft" 
+                    by="character"
+                  >
+                    Morning blues?
+                  </TextAnimate>
+                </div>
+
+                <motion.p 
+                  className="text-2xl md:text-3xl text-gray-600 font-light max-w-3xl mx-auto leading-relaxed mb-8"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
+                  Your cactus feels it too. But together, you'll turn this day around.
+                </motion.p>
+
+                <motion.div
+                  className="bg-white rounded-2xl p-6 shadow-xl max-w-md mx-auto"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  viewport={{ once: true }}
+                >
+                  <p className="text-lg text-gray-700 italic">
+                    "Hey, I know mornings are tough. Let's start with just one small thing today."
+                  </p>
+                </motion.div>
+                  </div>
+                </div>
+
+            {/* Progress Scene */}
+            <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-green-50 via-blue-50 to-purple-50"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 1 }}
+                viewport={{ once: true }}
+              />
+              
+              <div className="text-center max-w-5xl relative z-10">
+                <motion.div 
+                  className="mb-16"
+                  initial={{ scale: 0, rotate: -180 }}
+                  whileInView={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
+                  <Cactus mood="neutral" />
+                </motion.div>
+                
+                <div className="text-6xl md:text-8xl font-bold text-black mb-8 tracking-tight">
+                  <TextAnimate 
+                    animation="slideLeft" 
+                    by="character"
+                  >
+                    Finding your rhythm
+                  </TextAnimate>
+                </div>
+                
+                <motion.p 
+                  className="text-2xl md:text-3xl text-gray-600 font-light max-w-3xl mx-auto leading-relaxed mb-8"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
+                  As you check off tasks, your companion grows stronger. Every step matters.
+                </motion.p>
+
+                <motion.div
+                  className="bg-white rounded-2xl p-6 shadow-xl max-w-md mx-auto"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  viewport={{ once: true }}
+                >
+                  <p className="text-lg text-gray-700 italic">
+                    "Look at you go! Three tasks done already. You're building momentum!"
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Success Scene */}
+            <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-pink-50 via-red-50 to-orange-50"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 1 }}
+                viewport={{ once: true }}
+              />
+              
+              <div className="text-center max-w-5xl relative z-10">
+                <motion.div 
+                  className="mb-16"
+                  initial={{ scale: 0, rotate: -180 }}
+                  whileInView={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  viewport={{ once: true }}
+                >
+                  <Cactus mood="happy" />
+                </motion.div>
+                
+                <div className="text-6xl md:text-8xl font-bold text-black mb-8 tracking-tight">
+                  <TextAnimate 
+                    animation="slideLeft" 
+                    by="character"
+                  >
+                    You did it!
+                  </TextAnimate>
+                </div>
+                
+                <motion.p 
+                  className="text-2xl md:text-3xl text-gray-600 font-light max-w-3xl mx-auto leading-relaxed mb-8"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.4 }}
+                  viewport={{ once: true }}
+                >
+                  Tomorrow is a fresh start. Your cactus will be here, ready to grow with you again.
+                </motion.p>
+
+            <motion.div
+                  className="bg-white rounded-2xl p-6 shadow-xl max-w-md mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+              viewport={{ once: true }}
+            >
+                  <p className="text-lg text-gray-700 italic">
+                    "We crushed it today! Can't wait to see what tomorrow brings. 🌟"
+                  </p>
+            </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Demo Section */}
-      <section className="py-20 bg-white">
+      <section id="demo-section" className="py-24 bg-gradient-to-br from-slate-50 via-white to-slate-100">
         <div className="max-w-6xl mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
-              className="text-4xl md:text-5xl font-bold text-gray-900 mb-6"
+              className="text-5xl md:text-6xl font-bold text-black mb-8 tracking-tight"
             >
-              See It in Action
+              See it in action
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
-              className="text-xl text-gray-600 max-w-3xl mx-auto"
+              className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto"
             >
-              Experience the magic of AI-powered task management with our interactive demo
+              Watch tasks appear as your cactus companion provides motivating advice
             </motion.p>
           </motion.div>
 
-          {/* Demo Mockup */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            viewport={{ once: true }}
-            className="relative max-w-4xl mx-auto"
-          >
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl p-8 shadow-2xl border border-gray-200">
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">🌵</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Teyra Dashboard</h3>
-                      <p className="text-sm text-gray-500">Your productivity companion</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  </div>
-                </div>
-
-                {/* Mock Tasks */}
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-800 line-through">Complete project presentation</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-800 line-through">Review code changes</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-800">Schedule team meeting</span>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <span className="text-gray-800">Plan weekend activities</span>
-                  </div>
-                </div>
-
-                {/* AI Suggestion */}
-                <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm">🤖</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 mb-1">AI Suggestion</p>
-                      <p className="text-sm text-gray-600">Based on your mood, try breaking down "Schedule team meeting" into smaller tasks for better focus.</p>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Interactive Demo */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-2xl shadow-xl p-8"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Your Tasks</h3>
+                <div className="text-sm text-gray-500">
+                  <span className="text-red-600 font-medium">3</span>/5 completed
                 </div>
               </div>
-            </div>
 
-            {/* Try Demo Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              viewport={{ once: true }}
-              className="text-center mt-8"
-            >
-              <Button 
-                size="lg" 
-                asChild
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-4 shadow-xl hover:shadow-2xl transition-all duration-300"
-              >
-                <Link href="/demo">
-                  <span className="flex items-center space-x-2">
-                    <span>Try Interactive Demo</span>
-                    <ArrowRight className="w-5 h-5" />
-                  </span>
-                </Link>
-              </Button>
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <motion.div
+                    className="bg-gradient-to-r from-red-500 to-pink-500 h-3 rounded-full relative"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: "60%" }}
+                    transition={{ duration: 2, delay: 1.5, ease: "easeOut" }}
+                    viewport={{ once: true }}
+                  >
+                    <motion.div
+                      className="absolute inset-0 bg-white opacity-30"
+                      initial={{ x: "-100%" }}
+                      whileInView={{ x: "100%" }}
+                      transition={{ duration: 1, delay: 2, ease: "easeInOut" }}
+                      viewport={{ once: true }}
+                    />
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Task List */}
+              <div className="space-y-3">
+                {[
+                  { text: "Complete morning routine", completed: true, delay: 0.5, checkDelay: 1.5 },
+                  { text: "Review project goals", completed: true, delay: 0.7, checkDelay: 2.0 },
+                  { text: "Schedule team meeting", completed: true, delay: 0.9, checkDelay: 2.5 },
+                  { text: "Update documentation", completed: false, delay: 1.1, checkDelay: 3.0 },
+                  { text: "Plan tomorrow's tasks", completed: false, delay: 1.3, checkDelay: 3.5 }
+                ].map((task, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: task.delay }}
+                    viewport={{ once: true }}
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-6 h-6">
+                      {task.completed ? (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          whileInView={{ scale: 1, rotate: 0 }}
+                          transition={{ duration: 0.5, delay: task.checkDelay }}
+                          viewport={{ once: true }}
+                          className="w-6 h-6 text-green-500 flex items-center justify-center text-lg font-bold"
+                        >
+                          ✓
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          initial={{ scale: 1 }}
+                          whileInView={{ scale: 0.8, opacity: 0.5 }}
+                          transition={{ duration: 0.3, delay: task.checkDelay }}
+                          viewport={{ once: true }}
+                          className="w-6 h-6 border-2 border-gray-300 rounded-full"
+                        />
+                      )}
+                    </div>
+                    <motion.span 
+                      className={`flex-1 ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}
+                      initial={{ opacity: 1 }}
+                      whileInView={{ opacity: task.completed ? 0.6 : 1 }}
+                      transition={{ duration: 0.3, delay: task.checkDelay }}
+                      viewport={{ once: true }}
+                    >
+                      {task.text}
+                    </motion.span>
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
-          </motion.div>
+
+            {/* Cactus Companion Journey */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              viewport={{ once: true }}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Your Cactus Companion</h3>
+                
+                {/* Helpful Tips */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.8 }}
+                  viewport={{ once: true }}
+                  className="text-lg text-gray-600 bg-white rounded-lg p-4 shadow-lg mb-4"
+                >
+                  "Try breaking down big tasks into smaller ones"
+                </motion.p>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 2.0 }}
+                  viewport={{ once: true }}
+                  className="text-lg text-gray-600 bg-white rounded-lg p-4 shadow-lg mb-4"
+                >
+                  "Take breaks between tasks to stay focused"
+                </motion.p>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 3.2 }}
+                  viewport={{ once: true }}
+                  className="text-lg text-gray-600 bg-white rounded-lg p-4 shadow-lg"
+                >
+                  "Great progress! Keep up the momentum"
+                </motion.p>
+              </div>
+
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.7 }}
+                viewport={{ once: true }}
+                className="flex justify-center"
+              >
+                <motion.div
+                  key="cactus-morph"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="relative"
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key="sad"
+                      initial={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Cactus mood="sad" />
+                    </motion.div>
+                    
+                    <motion.div
+                      key="neutral"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.5, delay: 1.5 }}
+                    >
+                      <Cactus mood="neutral" />
+                    </motion.div>
+                    
+                    <motion.div
+                      key="happy"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 3.0 }}
+                    >
+                      <Cactus mood="happy" />
+                    </motion.div>
+                  </AnimatePresence>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </div>
+
+
         </div>
       </section>
 
@@ -414,7 +626,7 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-sm text-gray-500 mt-4"
           >
-            No credit card required • Free forever
+            Sign up and start today
           </motion.p>
         </motion.div>
       </section>

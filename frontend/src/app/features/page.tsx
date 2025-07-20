@@ -1,22 +1,123 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Brain, TrendingUp, Sparkles, Zap, Target, Users, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Plus, CheckCircle, Circle, Sparkles, Brain, Target } from 'lucide-react';
+import { Cactus } from '@/components/Cactus';
+
+interface Task {
+  id: number;
+  text: string;
+  completed: boolean;
+  mood?: string;
+}
 
 export default function FeaturesPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"]
-  });
+  const [currentMood, setCurrentMood] = useState<'energized' | 'focused' | 'neutral' | 'tired' | 'stressed'>('neutral');
+  const [moodTasks, setMoodTasks] = useState<Task[]>([]);
+  const [splitResult, setSplitResult] = useState<string[]>([]);
+  const [isSplitting, setIsSplitting] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  // Auto-demo for mood-based tasks
+  useEffect(() => {
+    const moodSequence = ['tired', 'stressed', 'neutral', 'focused', 'energized'] as const;
+    const tasksByMood = {
+      energized: [
+        { id: 1, text: "Start a creative project you've been thinking about", completed: false, mood: "energized" },
+        { id: 2, text: "Tackle a challenging task that requires high energy", completed: false, mood: "energized" },
+        { id: 3, text: "Plan something exciting for the future", completed: false, mood: "energized" }
+      ],
+      focused: [
+        { id: 1, text: "Deep work session on your most important project", completed: false, mood: "focused" },
+        { id: 2, text: "Review and organize your long-term goals", completed: false, mood: "focused" },
+        { id: 3, text: "Make important decisions that require concentration", completed: false, mood: "focused" }
+      ],
+      neutral: [
+        { id: 1, text: "Check off a few quick wins to build momentum", completed: false, mood: "neutral" },
+        { id: 2, text: "Make steady progress on ongoing projects", completed: false, mood: "neutral" },
+        { id: 3, text: "Build good habits with simple daily tasks", completed: false, mood: "neutral" }
+      ],
+      tired: [
+        { id: 1, text: "Simple organization tasks that won't drain you", completed: false, mood: "tired" },
+        { id: 2, text: "Gentle self-care activities to recharge", completed: false, mood: "tired" },
+        { id: 3, text: "Light planning for tomorrow when you have more energy", completed: false, mood: "tired" }
+      ],
+      stressed: [
+        { id: 1, text: "Declutter your physical and digital space", completed: false, mood: "stressed" },
+        { id: 2, text: "Write down your thoughts and concerns", completed: false, mood: "stressed" },
+        { id: 3, text: "Take a mindful break to reduce anxiety", completed: false, mood: "stressed" }
+      ]
+    };
+
+    const runMoodDemo = () => {
+      let step = 0;
+      const interval = setInterval(() => {
+        if (step >= moodSequence.length) {
+          clearInterval(interval);
+          // Restart the demo after a pause
+          setTimeout(() => {
+            setCurrentMood('neutral');
+            setMoodTasks([]);
+            setTimeout(runMoodDemo, 1000);
+          }, 2000);
+          return;
+        }
+        
+        const mood = moodSequence[step];
+        setCurrentMood(mood);
+        setMoodTasks(tasksByMood[mood]);
+        
+        // Auto-complete tasks with staggered timing
+        setTimeout(() => {
+          setMoodTasks(tasks => tasks.map((task, index) => ({ 
+            ...task, 
+            completed: true 
+          })));
+        }, 1500);
+        
+        step++;
+      }, 4000);
+    };
+
+    runMoodDemo();
+  }, []);
+
+  // Auto-demo for task splitting
+  useEffect(() => {
+    const runSplitDemo = () => {
+      setIsSplitting(true);
+      
+      // Longer, more realistic task
+      setTimeout(() => {
+        const splits = [
+          "Research and compare different project management methodologies",
+          "Create a detailed project timeline with milestones and deadlines",
+          "Set up the development environment and required tools",
+          "Establish communication channels and team collaboration protocols",
+          "Define success metrics and key performance indicators"
+        ];
+        setSplitResult(splits);
+        setIsSplitting(false);
+        
+        // Restart the demo after showing results
+        setTimeout(() => {
+          setSplitResult([]);
+          setIsSplitting(false);
+          setTimeout(runSplitDemo, 2000);
+        }, 8000);
+      }, 3000);
+    };
+
+    const timer = setTimeout(runSplitDemo, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       {/* Header */}
       <header className="px-6 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -30,201 +131,269 @@ export default function FeaturesPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Main Content */}
+      <main className="px-6 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-5xl md:text-6xl font-bold text-gray-900 mb-6"
+              transition={{ duration: 0.6 }}
+              className="text-4xl md:text-5xl font-bold text-gray-900 mb-4"
           >
-            Built for the way you actually work
+              Powerful Features
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-xl text-gray-600 mb-16"
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl text-gray-600"
           >
-            No more fighting with your tools. Teyra adapts to you, not the other way around.
+              See how Teyra adapts to your needs with intelligent features
           </motion.p>
         </div>
-      </section>
 
-      {/* Interactive Features Grid */}
-      <section className="px-6 py-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            
-            {/* AI-Powered Intelligence */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Mood-Based Task Generation */}
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="group relative"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="bg-white rounded-2xl shadow-xl p-8"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Brain className="w-8 h-8 text-white" />
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                  <Brain className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">AI-Powered Intelligence</h3>
-                <p className="text-gray-600 mb-6">Learns your patterns and suggests the perfect next task, not just random recommendations.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Adapts to your workflow</span>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Mood-Based Tasks</h2>
+                  <p className="text-gray-600">AI generates tasks based on your current mood</p>
                 </div>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-4">Watch how Teyra adapts to your mood:</p>
+                <div className="flex flex-wrap gap-2">
+                  {(['tired', 'stressed', 'neutral', 'focused', 'energized'] as const).map((mood) => (
+                    <div
+                      key={mood}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium capitalize transition-all duration-300 ${
+                        currentMood === mood 
+                          ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg' 
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {mood}
+                </div>
+                  ))}
+                </div>
+              </div>
+
+              {moodTasks.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Suggested Tasks:</h3>
+                                     {moodTasks.map((task, index) => (
+                     <motion.div
+                       key={task.id}
+                       initial={{ opacity: 0, x: -30, y: 10 }}
+                       animate={{ opacity: 1, x: 0, y: 0 }}
+                       transition={{ 
+                         delay: index * 0.3,
+                         duration: 0.6,
+                         ease: "easeOut"
+                       }}
+                       className="flex items-center space-x-3 p-3 rounded-lg transition-all duration-300 hover:bg-gray-50"
+                     >
+            <motion.div
+                         className="w-5 h-5"
+                         initial={{ scale: 0, rotate: -180 }}
+                         animate={{ 
+                           scale: task.completed ? 1 : 0.8,
+                           rotate: task.completed ? 0 : -180
+                         }}
+                         transition={{ 
+                           delay: index * 0.3 + 1.5,
+                           duration: 0.5,
+                           ease: "backOut"
+                         }}
+                       >
+                         {task.completed ? (
+                           <CheckCircle className="w-5 h-5 text-green-500" />
+                         ) : (
+                           <Circle className="w-5 h-5 text-gray-400" />
+                         )}
+                       </motion.div>
+                       <motion.span 
+                         className={`flex-1 transition-all duration-500 ${task.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}
+                         animate={{ 
+                           opacity: task.completed ? 0.6 : 1,
+                           x: task.completed ? 5 : 0
+                         }}
+                         transition={{ 
+                           delay: index * 0.3 + 1.5,
+                           duration: 0.4
+                         }}
+                       >
+                         {task.text}
+                       </motion.span>
+                     </motion.div>
+                   ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-center">
+                <motion.div
+                  key={currentMood}
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                  transition={{ 
+                    duration: 0.8, 
+                    ease: "easeInOut",
+                    scale: { duration: 0.6, ease: "backOut" }
+                  }}
+                  className="flex justify-center"
+                >
+                  <Cactus mood={
+                    currentMood === 'energized' ? 'happy' :
+                    currentMood === 'focused' ? 'happy' :
+                    currentMood === 'neutral' ? 'neutral' :
+                    currentMood === 'tired' ? 'sad' :
+                    currentMood === 'stressed' ? 'sad' : 'neutral'
+                  } />
+                </motion.div>
               </div>
             </motion.div>
 
-            {/* Visual Progress */}
+            {/* AI Task Splitting */}
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="group relative"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="bg-white rounded-2xl shadow-xl p-8"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="w-8 h-8 text-white" />
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Visual Progress</h3>
-                <p className="text-gray-600 mb-6">See your productivity grow with beautiful, meaningful visualizations that actually matter.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Real-time insights</span>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">AI Task Splitting</h2>
+                  <p className="text-gray-600">Break down complex tasks into manageable steps</p>
                 </div>
               </div>
-            </motion.div>
 
-            {/* Smart Automation */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Zap className="w-8 h-8 text-white" />
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-4">AI automatically breaks down complex tasks:</p>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-gray-700 font-medium">"Launch a new software product from concept to market"</p>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Smart Automation</h3>
-                <p className="text-gray-600 mb-6">Automatically organizes, prioritizes, and even reschedules tasks based on your actual behavior.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Zero manual setup</span>
+                {isSplitting && (
+                  <div className="mt-3 flex items-center justify-center space-x-2 text-blue-600">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm">AI is analyzing the complex task...</span>
                 </div>
+                )}
               </div>
-            </motion.div>
 
-            {/* Collaborative Focus */}
+              {splitResult.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Split into steps:</h3>
+                                     {splitResult.map((step, index) => (
+                     <motion.div
+                       key={index}
+                       initial={{ opacity: 0, y: 20, x: -10 }}
+                       animate={{ opacity: 1, y: 0, x: 0 }}
+                       transition={{ 
+                         duration: 0.6, 
+                         delay: index * 0.2,
+                         ease: "easeOut"
+                       }}
+                       className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors duration-300"
+                     >
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Users className="w-8 h-8 text-white" />
+                         className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold"
+                         initial={{ scale: 0, rotate: -180 }}
+                         animate={{ scale: 1, rotate: 0 }}
+                         transition={{ 
+                           duration: 0.5, 
+                           delay: index * 0.2 + 0.3,
+                           ease: "backOut"
+                         }}
+                       >
+                         {index + 1}
+                       </motion.div>
+                       <motion.span 
+                         className="text-gray-900"
+                         initial={{ opacity: 0 }}
+                         animate={{ opacity: 1 }}
+                         transition={{ 
+                           duration: 0.4, 
+                           delay: index * 0.2 + 0.5
+                         }}
+                       >
+                         {step}
+                       </motion.span>
+                     </motion.div>
+                   ))}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Collaborative Focus</h3>
-                <p className="text-gray-600 mb-6">Work together without the chaos. Shared goals, individual focus, collective success.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Team alignment</span>
-                </div>
-              </div>
+              )}
             </motion.div>
-
-            {/* Time Intelligence */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              viewport={{ once: true }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Clock className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Time Intelligence</h3>
-                <p className="text-gray-600 mb-6">Know exactly when you're most productive and schedule tasks accordingly. No more fighting your natural rhythm.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Peak performance timing</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Goal Achievement */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              viewport={{ once: true }}
-              className="group relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Target className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Goal Achievement</h3>
-                <p className="text-gray-600 mb-6">Break down big dreams into daily wins. Every task moves you closer to what really matters.</p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  <span>Progress tracking</span>
-                </div>
-              </div>
-            </motion.div>
-
           </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center">
+          {/* Additional Features */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-r from-red-500 to-pink-500 rounded-3xl p-12 text-white"
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+            className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to fix productivity?</h2>
-            <p className="text-xl mb-8 opacity-90">Join thousands who've already broken free from broken productivity tools.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" asChild className="text-lg px-8 py-6">
-                <Link href="/sign-up">Start Building Better Habits</Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-red-500">
-                <Link href="/demo">See It In Action</Link>
-              </Button>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Daily Reset</h3>
+              <p className="text-gray-600">Fresh start every 24 hours to keep you focused</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Reminders</h3>
+              <p className="text-gray-600">Gentle nudges that actually help, not nag</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">AI Life Autopilot</h3>
+              <p className="text-gray-600">Dump your thoughts, get a smart calendar</p>
             </div>
           </motion.div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-500">
-            © 2024 Teyra. Made with 🌵 and ❤️
-          </p>
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.9 }}
+            className="text-center mt-16"
+          >
+            <Button 
+              size="lg" 
+              asChild
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-lg px-10 py-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+            >
+                             <Link href="/sign-up">
+                 <span className="flex items-center space-x-2">
+                   <span>Get Started Free</span>
+                   <ArrowLeft className="w-5 h-5 rotate-180" />
+                 </span>
+               </Link>
+            </Button>
+          </motion.div>
         </div>
-      </footer>
+      </main>
     </div>
   );
 } 

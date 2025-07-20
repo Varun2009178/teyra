@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     console.log('📧 Daily emails cron job triggered')
-    
+
     // Get all users who have been inactive for 48+ hours
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     

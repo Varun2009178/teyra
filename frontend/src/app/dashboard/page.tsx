@@ -22,8 +22,9 @@ import { DailyCountdownTimer } from '@/components/DailyCountdownTimer'
 import { DailyResetNotification } from '@/components/DailyResetNotification'
 import { DailyResetPopup } from '@/components/DailyResetPopup'
 import { prioritizeTasks, getMotivationalMessage, suggestQuickWin, suggestMoodBasedTasks } from "@/lib/groq";
-import { createClient } from '@/lib/supabase-client'
+import { createAuthenticatedClient } from '@/lib/supabase-client'
 import { Button } from "@/components/ui/button";
+import AILifeAutopilot from '@/components/AILifeAutopilot';
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser()
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
   const [userProfileOpen, setUserProfileOpen] = useState(false)
   const [firstTaskCelebrationOpen, setFirstTaskCelebrationOpen] = useState(false)
+  const [aiAutopilotOpen, setAiAutopilotOpen] = useState(false)
 
 
   
@@ -89,11 +91,22 @@ export default function Dashboard() {
   const [isLoadingData, setIsLoadingData] = useState(false)
 
   const { getToken } = useAuth();
-  const supabase = useMemo(() => {
-    if (isLoaded) {
-      return createClient(getToken);
-    }
-    return null;
+  const [supabase, setSupabase] = useState<any>(null);
+
+  // Create authenticated Supabase client
+  useEffect(() => {
+    const createSupabaseClient = async () => {
+      if (isLoaded && getToken) {
+        try {
+          const client = await createAuthenticatedClient(getToken);
+          setSupabase(client);
+        } catch (error) {
+          console.error('Error creating Supabase client:', error);
+        }
+      }
+    };
+    
+    createSupabaseClient();
   }, [isLoaded, getToken]);
 
   // Update user's last activity time, timezone, and email
@@ -1103,6 +1116,17 @@ export default function Dashboard() {
             </motion.div>
             
             <div className="flex items-center space-x-3">
+              {/* AI Life Autopilot Button */}
+              <motion.button
+                onClick={() => setAiAutopilotOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full text-sm font-medium flex items-center space-x-2 shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>AI Life Autopilot</span>
+              </motion.button>
+              
               {/* Caged Pro Button */}
               <div className="relative cursor-not-allowed">
                 {/* Cage overlay */}
@@ -1926,6 +1950,15 @@ export default function Dashboard() {
           setCompletedTasks([])
           setTaskProgressPopupOpen(false)
         }}
+      />
+
+      {/* AI Life Autopilot Modal */}
+      <AILifeAutopilot
+        isOpen={aiAutopilotOpen}
+        onClose={() => setAiAutopilotOpen(false)}
+        onAddTasks={handleAddMultipleTasks}
+        userMood={currentMood}
+        existingTasks={tasks.map(t => t.title)}
       />
     </div>
   )
