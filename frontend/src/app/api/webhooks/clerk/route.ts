@@ -4,6 +4,9 @@ import { WebhookEvent } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { deleteUserData } from '@/lib/db-service';
 
+// Force dynamic rendering to prevent build-time database calls
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   // Get the headers
   const headerPayload = headers();
