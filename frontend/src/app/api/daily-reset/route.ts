@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { tasks, userProgress } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
+import { getUserProgress } from '@/lib/db-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 Starting daily reset for user: ${userId}`);
 
     // Get current user progress
-    const [currentProgress] = await db
+    const [currentProgress] = await db()
       .select()
       .from(userProgress)
       .where(eq(userProgress.userId, userId));
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all tasks for this user
-    const userTasks = await db
+    const userTasks = await db()
       .select()
       .from(tasks)
       .where(eq(tasks.userId, userId));
@@ -35,14 +37,14 @@ export async function POST(request: NextRequest) {
     console.log(`📊 Found ${userTasks.length} tasks for user ${userId}`);
 
     // Delete all tasks for this user (this resets daily tasks)
-    await db
+    await db()
       .delete(tasks)
       .where(eq(tasks.userId, userId));
 
     console.log(`🗑️ Deleted ${userTasks.length} tasks for user ${userId}`);
 
     // Reset daily progress but preserve all-time progress
-    const [updatedProgress] = await db
+    const [updatedProgress] = await db()
       .update(userProgress)
       .set({
         completedTasks: 0, // Reset daily completed

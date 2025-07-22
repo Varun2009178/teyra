@@ -12,7 +12,7 @@ const MILESTONES = [
 
 export async function getUserTasks(userId: string) {
   try {
-    const userTasks = await db
+    const userTasks = await db()
       .select()
       .from(tasks)
       .where(eq(tasks.userId, userId))
@@ -27,7 +27,7 @@ export async function getUserTasks(userId: string) {
 
 export async function createTask(userId: string, title: string, hasBeenSplit: boolean = false) {
   try {
-    const [newTask] = await db
+    const [newTask] = await db()
       .insert(tasks)
       .values({
         userId,
@@ -49,7 +49,7 @@ export async function createTask(userId: string, title: string, hasBeenSplit: bo
 export async function updateTask(userId: string, taskId: number, data: { completed?: boolean }) {
   try {
     // Get the task first to check if it was completed before
-    const [existingTask] = await db
+    const [existingTask] = await db()
       .select()
       .from(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)));
@@ -61,7 +61,7 @@ export async function updateTask(userId: string, taskId: number, data: { complet
     const wasCompleted = existingTask.completed;
     
     // Update the task
-    const [updatedTask] = await db
+    const [updatedTask] = await db()
       .update(tasks)
       .set({
         ...data,
@@ -124,7 +124,7 @@ export async function updateTask(userId: string, taskId: number, data: { complet
 
 export async function deleteTask(userId: string, taskId: number) {
   try {
-    const [deletedTask] = await db
+    const [deletedTask] = await db()
       .delete(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
       .returning();
@@ -181,14 +181,14 @@ export async function deleteTask(userId: string, taskId: number) {
 
 export async function getUserProgress(userId: string) {
   try {
-    let [progress] = await db
+    let [progress] = await db()
       .select()
       .from(userProgress)
       .where(eq(userProgress.userId, userId));
     
     if (!progress) {
       // Create new progress for user
-      [progress] = await db
+      [progress] = await db()
         .insert(userProgress)
         .values({
           userId,
@@ -248,7 +248,7 @@ export async function getUserProgress(userId: string) {
 
 export async function updateUserProgress(userId: string, data: any) {
   try {
-    const [updatedProgress] = await db
+    const [updatedProgress] = await db()
       .update(userProgress)
       .set({
         ...data,
