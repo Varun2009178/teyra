@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { getUserProgress, updateUserProgress } from '@/lib/db-service';
 
+// Force dynamic rendering to prevent build-time database calls
+export const dynamic = 'force-dynamic';
+
 // Milestones configuration (copied from db-service.ts)
 const MILESTONES = [
   { threshold: 0, mood: 'overwhelmed', maxValue: 10 },
