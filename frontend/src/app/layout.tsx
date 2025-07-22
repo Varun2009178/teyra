@@ -13,6 +13,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Teyra - Productivity that understands you',
   description: 'The best damn to-do list in the world.',
+  icons: {
+    icon: '/teyra-logo-64kb.png',
+    shortcut: '/teyra-logo-64kb.png',
+    apple: '/teyra-logo-64kb.png',
+  },
 }
 
 export default function RootLayout({
