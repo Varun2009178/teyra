@@ -50,13 +50,21 @@ export async function POST(req: Request) {
   // Handle user deletion
   if (eventType === 'user.deleted') {
     try {
-      console.log(`Deleting all data for user: ${id}`);
+      console.log(`🔄 Webhook: Deleting all data for user: ${id}`);
       await deleteUserData(id);
-      console.log(`Successfully deleted all data for user: ${id}`);
+      console.log(`✅ Webhook: Successfully deleted all data for user: ${id}`);
     } catch (error) {
-      console.error(`Error deleting user data for ${id}:`, error);
-      return new Response('Error deleting user data', { status: 500 });
+      console.error(`❌ Webhook: Error deleting user data for ${id}:`, error);
+      // Return 200 to prevent webhook retries for now
+      // You can change this to 500 if you want Clerk to retry
+      return new Response('Error deleting user data', { status: 200 });
     }
+  }
+
+  // Handle user creation (optional - for logging)
+  if (eventType === 'user.created') {
+    console.log(`👤 Webhook: New user created: ${id}`);
+    // You could initialize user progress here if needed
   }
 
   return new Response('Webhook processed successfully', { status: 200 });
