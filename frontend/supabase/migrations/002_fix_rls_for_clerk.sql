@@ -8,8 +8,8 @@ DROP POLICY IF EXISTS "Users can view their own stats" ON user_stats;
 DROP POLICY IF EXISTS "Users can insert their own stats" ON user_stats;
 DROP POLICY IF EXISTS "Users can update their own stats" ON user_stats;
 
--- Create new RLS policies that work with Clerk authentication
--- These policies will allow all operations since Clerk handles authentication
+-- Create new RLS policies that work with external authentication
+-- These policies will allow all operations since external auth handles authentication
 CREATE POLICY "Allow all operations for authenticated users" ON tasks
   FOR ALL USING (true);
 

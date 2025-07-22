@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEW_SUPABASE_SERVICE_KEY!
-)
+import { db } from '@/lib/db'
+import { userProgress } from '@/lib/schema'
+import { eq, lt, or, isNull } from 'drizzle-orm'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,21 +9,21 @@ export async function POST(request: NextRequest) {
     
     // Step 1: 24-hour daily reset (regardless of activity)
     console.log('🔄 Processing 24-hour daily resets...')
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
     
-    const { data: usersForReset, error: resetError } = await supabase
-      .from('user_stats')
-      .select('userId, email, last_daily_reset, mood_checkins_today, ai_splits_today')
-      .or(`last_daily_reset.is.null,last_daily_reset.lt.${twentyFourHoursAgo}`)
-
-    if (resetError) {
-      console.error('Error fetching users for daily reset:', resetError)
-      return NextResponse.json({ error: 'Database error during reset', details: resetError }, { status: 500 })
-    }
+    // Get users who need daily reset
+    const usersForReset = await db
+      .select()
+      .from(userProgress)
+      .where(
+        or(
+          isNull(userProgress.lastResetDate),
+          lt(userProgress.lastResetDate, twentyFourHoursAgo)
+        )
+      )
 
     let resetsCompleted = 0
     let emailsSent = 0
-    let tasksCleared = 0
 
     if (usersForReset && usersForReset.length > 0) {
       console.log(`🔄 Found ${usersForReset.length} users who need daily reset`)
@@ -34,19 +31,14 @@ export async function POST(request: NextRequest) {
       for (const user of usersForReset) {
         try {
           // Reset daily limits for this user
-          const { error: updateError } = await supabase
-            .from('user_stats')
-            .update({ 
-              mood_checkins_today: 0,
-              ai_splits_today: 0,
-              last_daily_reset: new Date().toISOString()
+          await db
+            .update(userProgress)
+            .set({ 
+              dailyMoodChecks: 0,
+              dailyAISplits: 0,
+              lastResetDate: new Date()
             })
-            .eq('userId', user.userId)
-
-          if (updateError) {
-            console.error(`❌ Error resetting user ${user.userId}:`, updateError)
-            continue
-          }
+            .where(eq(userProgress.userId, user.userId))
 
           resetsCompleted++
           console.log(`✅ Reset completed for user ${user.userId}`)
@@ -61,61 +53,21 @@ export async function POST(request: NextRequest) {
 
     // Step 2: 48-hour email notifications for inactive users
     console.log('📧 Processing 48-hour email notifications...')
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
     
-    const { data: usersForEmail, error: emailError } = await supabase
-      .from('user_stats')
-      .select('userId, email, last_activity_at, notifications_enabled')
-      .eq('notifications_enabled', true)
-      .lt('last_activity_at', fortyEightHoursAgo)
-
-    if (emailError) {
-      console.error('Error fetching users for email notifications:', emailError)
-    } else if (usersForEmail && usersForEmail.length > 0) {
-      console.log(`📧 Found ${usersForEmail.length} users who need email notifications`)
-
-      for (const user of usersForEmail) {
-        if (user.email) {
-          try {
-            // Send email notification
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                email: user.email,
-                name: 'there',
-                type: 'inactivity_reminder'
-              }),
-            })
-
-            if (response.ok) {
-              console.log(`✅ Sent inactivity email to ${user.email}`)
-              emailsSent++
-            } else {
-              console.error(`❌ Failed to send inactivity email to ${user.email}`)
-            }
-          } catch (error) {
-            console.error(`❌ Error sending inactivity email to ${user.email}:`, error)
-        }
-      }
-      }
-    } else {
-      console.log('✅ No users need email notifications')
-    }
+    // For now, we'll skip email notifications since we don't have email field in userProgress
+    // You can add this later if needed
+    console.log('📧 Email notifications skipped (not implemented with current schema)')
 
     return NextResponse.json({
       success: true,
       message: 'Cron job completed successfully',
       resetsCompleted,
       emailsSent,
-      tasksCleared,
-      totalUsers: (usersForReset?.length || 0) + (usersForEmail?.length || 0)
+      totalUsers: usersForReset?.length || 0
     })
 
   } catch (error) {
-    console.error('❌ Cron job failed:', error)
+    console.error('❌ Cron job error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 

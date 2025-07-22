@@ -35,8 +35,8 @@ async function cleanupOrphanedUsers() {
     })
     
     console.log('\n⚠️  MANUAL VERIFICATION REQUIRED:')
-    console.log('1. Go to Clerk Dashboard → Users')
-    console.log('2. Check which users from the list above still exist in Clerk')
+    console.log('1. Go to Supabase Dashboard → Authentication → Users')
+    console.log('2. Check which users from the list above still exist in Supabase')
     console.log('3. Note down the user IDs that should be deleted')
     console.log('4. Run the cleanup with those specific user IDs')
     

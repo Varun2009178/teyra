@@ -86,35 +86,78 @@ export async function POST(request: NextRequest) {
         `
         break
 
-      case 'daily_checkin':
-        subject = '🌵 Your daily reset is ready!'
+      case 'first_task_reminder':
+        subject = '🌵 Ready to start your first task?'
         htmlContent = `
           <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #059669; font-size: 28px; margin-bottom: 10px;">🌵</h1>
               <h2 style="color: #1f2937; margin-bottom: 10px;">Hey ${name}!</h2>
-              <p style="color: #6b7280; font-size: 16px;">Your daily reset is ready - mood check-in and AI features refreshed!</p>
+              <p style="color: #6b7280; font-size: 16px;">Mike the Cactus is waiting for you to complete your first task!</p>
             </div>
             
-            <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-              <h3 style="color: #1f2937; margin-bottom: 16px; text-align: center; font-size: 18px;">✨ Daily Reset Complete</h3>
-              <ul style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
-                <li>Mood check-in available</li>
-                <li>2 AI task splits refreshed</li>
-                <li>Personalized suggestions ready</li>
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #92400e; margin-bottom: 16px; text-align: center; font-size: 18px;">🎯 Your First Task Awaits</h3>
+              <p style="color: #92400e; font-size: 14px; text-align: center; margin-bottom: 16px;">
+                It's been ${timeSinceActivity} since you signed up. Time to make Mike happy with your first completed task!
+              </p>
+              <ul style="color: #92400e; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li>🌱 Add your first task</li>
+                <li>🤖 Try AI task splitting</li>
+                <li>😊 Check in with your mood</li>
+                <li>🎉 Watch Mike grow happier</li>
               </ul>
             </div>
             
-            <div style="text-align: center;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" 
-                 style="display: inline-block; background: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                Check In Now 🌵
+            <div style="text-align: center; margin-bottom: 24px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.app'}/dashboard" 
+                 style="display: inline-block; background: #059669; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);">
+                Start Your First Task 🌵
               </a>
             </div>
             
-            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
-              <p style="color: #9ca3af; font-size: 12px;">
-                Daily check-in enabled • <a href="#" style="color: #6b7280;">Unsubscribe</a>
+            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                Mike misses you! • <a href="#" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>
+              </p>
+            </div>
+          </div>
+        `
+        break
+
+      case 'daily_checkin':
+        subject = '🌵 Your 24 hours are up! Check your tasks and see how you did!'
+        htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #059669; font-size: 28px; margin-bottom: 10px;">🌵</h1>
+              <h2 style="color: #1f2937; margin-bottom: 10px;">Hey ${name}!</h2>
+              <p style="color: #6b7280; font-size: 16px;">Your 24 hours are up! Check your tasks and see how you did!</p>
+            </div>
+            
+            <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #1f2937; margin-bottom: 16px; text-align: center; font-size: 18px;">📊 Daily Summary Ready</h3>
+              <p style="color: #6b7280; font-size: 14px; text-align: center; margin-bottom: 16px;">
+                It's been ${timeSinceActivity} since your last activity. Time to see your progress and plan your next day!
+              </p>
+              <ul style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 20px;">
+                <li>✅ See which tasks you completed</li>
+                <li>❌ See which tasks you missed</li>
+                <li>🌵 Check Mike's progress growth</li>
+                <li>🎯 Set new goals for today</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 24px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.app'}/dashboard" 
+                 style="display: inline-block; background: #059669; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);">
+                Check Your Progress 🌵
+              </a>
+            </div>
+            
+            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                Mike is waiting to show you your progress! • <a href="#" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>
               </p>
             </div>
           </div>

@@ -1,12 +1,29 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export default clerkMiddleware();
+// Define public routes - no wildcards, use exact paths
+const isPublic = createRouteMatcher([
+  '/',
+  '/sign-in',
+  '/sign-up',
+  '/sso-callback',
+  '/api/webhook/clerk',
+]);
+
+export default clerkMiddleware((auth, req) => {
+  // If the route is public, allow access
+  if (isPublic(req)) {
+    return NextResponse.next();
+  }
+
+  // For all other routes, let Clerk handle authentication
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
+    '/((?!.+\\.[\\w]+$|_next).*)',
+    '/',
     '/(api|trpc)(.*)',
   ],
-}; 
+};

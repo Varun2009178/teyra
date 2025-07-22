@@ -2,13 +2,26 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 
 interface CactusProps {
-  mood?: 'happy' | 'neutral' | 'sad';
+  mood?: 'happy' | 'neutral' | 'sad' | 'overwhelmed' | 'tired' | 'stressed' | 'focused' | 'excited' | 'energized';
   todayCompletedTasks?: Array<{ title: string; completedAt?: string }>;
 }
 
 export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompletedTasks = [] }) => {
+  // Map expanded moods to cactus states
+  const getCactusMood = () => {
+    if (mood === 'energized' || mood === 'excited' || mood === 'focused') {
+      return 'happy';
+    } else if (mood === 'neutral') {
+      return 'neutral';
+    } else {
+      return 'sad'; // overwhelmed, tired, stressed
+    }
+  };
+
+  const cactusMood = getCactusMood();
+
   const getGifSrc = () => {
-    switch (mood) {
+    switch (cactusMood) {
       case 'happy':
         return '/Happy.gif';
       case 'sad':
@@ -19,7 +32,7 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
   };
 
   const getMoodAnimation = () => {
-    switch (mood) {
+    switch (cactusMood) {
       case 'happy':
         return {
           y: [-2, 2, -2],
@@ -66,7 +79,7 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
         />
         
         {/* Smooth blob-like floating elements */}
-        {mood === 'happy' && (
+        {cactusMood === 'happy' && (
           <>
             <motion.div
               animate={{
@@ -121,13 +134,13 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
           </>
         )}
         
-        {mood === 'sad' && (
+        {cactusMood === 'sad' && (
           <>
             {/* No floating emojis for sad mood - just the sad cactus animation */}
           </>
         )}
 
-        {mood === 'neutral' && (
+        {cactusMood === 'neutral' && (
           <>
             <motion.div
               animate={{

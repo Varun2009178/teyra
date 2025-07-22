@@ -1,87 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEW_SUPABASE_SERVICE_KEY!
-)
+import { db } from '@/lib/db'
+import { userProgress } from '@/lib/schema'
+import { lt, eq } from 'drizzle-orm'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📧 Daily emails cron job triggered')
 
     // Get all users who have been inactive for 48+ hours
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
     
-    const { data: users, error } = await supabase
-      .from('user_stats')
-      .select('userId, email, last_completed_date, all_time_completed, timezone, last_activity_at, createdAt')
-      .eq('notifications_enabled', true)
-      .lt('last_activity_at', fortyEightHoursAgo)
+    // Get all user progress records
+    const allUsers = await db
+      .select()
+      .from(userProgress)
+    
+    // Filter users who have been inactive for 48+ hours
+    const inactiveUsers = allUsers.filter(user => {
+      const lastActivity = user.updatedAt || user.createdAt
+      return lastActivity < fortyEightHoursAgo
+    })
 
-    if (error) {
-      console.error('Error fetching inactive users:', error)
-      return NextResponse.json({ error: 'Database error', details: error }, { status: 500 })
-    }
-
-    if (!users || users.length === 0) {
+    if (inactiveUsers.length === 0) {
       return NextResponse.json({ 
         message: 'No users need email notifications',
         testInfo: {
           fortyEightHoursAgo,
-          totalUsers: 0
+          totalUsers: allUsers.length,
+          inactiveUsers: 0
         }
       })
     }
 
-    console.log(`📧 Found ${users.length} users who need email notifications`)
-
-    // Disable notifications for users who have been inactive for too long
-    const { error: disableError } = await supabase
-      .from('user_stats')
-      .update({ notifications_enabled: false })
-      .lt('last_activity_at', fortyEightHoursAgo)
-
-    if (disableError) {
-      console.error('Error disabling notifications for inactive users:', disableError)
-    } else {
-      console.log(`🔕 Disabled notifications for users inactive for 48+ hours`)
-    }
+    console.log(`📧 Found ${inactiveUsers.length} users who need email notifications`)
 
     let emailsSent = 0
     let errors = 0
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    for (const user of users) {
+    for (const user of inactiveUsers) {
       try {
-        // Determine email type based on user's activity
-        const userCreatedDate = new Date(user.createdAt).toISOString().split('T')[0]
-        const isNewUser = userCreatedDate === yesterday || userCreatedDate === today
-        
-        let emailType = 'daily_checkin'
-        if (isNewUser) {
-          emailType = 'first_task_reminder'
-        } else if (user.last_completed_date === yesterday && user.all_time_completed === 1) {
-          emailType = 'first_task_reminder'
-        }
-
-        // Calculate time since last activity in user's timezone
-        const userTimezone = user.timezone || 'UTC'
-        const lastActivity = user.last_activity_at ? new Date(user.last_activity_at) : new Date()
+        // Calculate time since last activity
+        const lastActivity = user.updatedAt || user.createdAt
         const hoursSinceActivity = Math.floor((Date.now() - lastActivity.getTime()) / (1000 * 60 * 60))
         
-        console.log(`📧 Sending ${emailType} to ${user.email} (${hoursSinceActivity}h since last activity, timezone: ${userTimezone}) - 48h+ inactive`)
+        // Determine email type based on user's activity
+        const userCreatedDate = new Date(user.createdAt).toISOString().split('T')[0]
+        const today = new Date().toISOString().split('T')[0]
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        
+        let emailType = 'daily_checkin'
+        if (userCreatedDate === yesterday || userCreatedDate === today) {
+          emailType = 'first_task_reminder'
+        } else if (user.allTimeCompleted === 1) {
+          emailType = 'first_task_reminder'
+        }
+        
+        console.log(`📧 Sending ${emailType} to user ${user.userId} (${hoursSinceActivity}h since last activity)`)
 
         // Reset daily limits for this user
-        await supabase
-          .from('user_stats')
-          .update({ 
-            mood_checkins_today: 0,
-            ai_splits_today: 0,
-            last_daily_reset: new Date().toISOString()
+        await db
+          .update(userProgress)
+          .set({ 
+            dailyMoodChecks: 0,
+            dailyAISplits: 0,
+            lastResetDate: new Date(),
+            updatedAt: new Date()
           })
-          .eq('userId', user.userId)
+          .where(eq(userProgress.userId, user.userId))
 
         // Send email notification
         const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
@@ -90,46 +75,51 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: user.email,
+            email: user.userId, // Using userId as email for now
             name: 'there',
             type: emailType,
-            timezone: userTimezone,
-            hoursInactive: hoursSinceActivity
+            timezone: 'UTC', // Default timezone
+            hoursSinceActivity: hoursSinceActivity,
+            userData: {
+              tasks_completed: user.allTimeCompleted,
+              current_streak: 0, // No streak tracking
+              longest_streak: 0
+            }
           }),
         })
 
         if (response.ok) {
-          console.log(`✅ Sent ${emailType} email to ${user.email}`)
           emailsSent++
+          console.log(`✅ Email sent successfully to user ${user.userId}`)
         } else {
-          console.error(`❌ Failed to send ${emailType} email to ${user.email}`)
           errors++
+          console.error(`❌ Failed to send email to user ${user.userId}:`, await response.text())
         }
 
       } catch (error) {
-        console.error(`❌ Error processing user ${user.userId}:`, error)
         errors++
+        console.error(`❌ Error processing user ${user.userId}:`, error)
       }
     }
 
+    console.log(`📧 Daily emails completed: ${emailsSent} sent, ${errors} errors`)
+
     return NextResponse.json({
       success: true,
-      message: 'Daily emails completed',
-      emailsSent,
-      errors,
-      totalUsers: users.length,
-      testInfo: {
-        fortyEightHoursAgo,
-        processedUsers: users.map(u => ({
-          userId: u.userId,
-          email: u.email,
-          lastActivity: u.last_activity_at
-        }))
+      message: `Daily emails processed: ${emailsSent} sent, ${errors} errors`,
+      stats: {
+        totalUsers: allUsers.length,
+        inactiveUsers: inactiveUsers.length,
+        emailsSent,
+        errors
       }
     })
 
   } catch (error) {
-    console.error('❌ Daily emails failed:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('❌ Daily emails cron job error:', error)
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 } 
