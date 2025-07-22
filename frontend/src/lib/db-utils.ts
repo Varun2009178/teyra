@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 // Task-related database operations
 export async function getUserTasks(userId: string) {
   try {
-    const userTasks = await db.select().from(tasks)
+    const userTasks = await db().select().from(tasks)
       .where(eq(tasks.userId, userId))
       .orderBy(tasks.createdAt);
     
@@ -18,7 +18,7 @@ export async function getUserTasks(userId: string) {
 
 export async function createTask(userId: string, title: string) {
   try {
-    const newTask = await db.insert(tasks).values({
+    const newTask = await db().insert(tasks).values({
       userId,
       title,
       completed: false,
@@ -28,9 +28,9 @@ export async function createTask(userId: string, title: string) {
     }).returning();
     
     // Also update the user's total tasks count
-    await db.update(userProgress)
+    await db().update(userProgress)
       .set({ 
-        totalTasks: db.raw('total_tasks + 1'),
+        totalTasks: db().raw('total_tasks + 1'),
         updatedAt: new Date()
       })
       .where(eq(userProgress.userId, userId));
@@ -44,7 +44,7 @@ export async function createTask(userId: string, title: string) {
 
 export async function updateTask(userId: string, taskId: number, data: { completed?: boolean }) {
   try {
-    const updatedTask = await db.update(tasks)
+    const updatedTask = await db().update(tasks)
       .set({ 
         ...data,
         updatedAt: new Date()
@@ -61,9 +61,9 @@ export async function updateTask(userId: string, taskId: number, data: { complet
     if (data.completed !== undefined) {
       const completedChange = data.completed ? 1 : -1;
       
-      await db.update(userProgress)
+      await db().update(userProgress)
         .set({ 
-          completedTasks: db.raw(`GREATEST(0, completed_tasks + ${completedChange})`),
+          completedTasks: db().raw(`GREATEST(0, completed_tasks + ${completedChange})`),
           updatedAt: new Date()
         })
         .where(eq(userProgress.userId, userId));
@@ -79,7 +79,7 @@ export async function updateTask(userId: string, taskId: number, data: { complet
 export async function deleteTask(userId: string, taskId: number) {
   try {
     // First check if the task is completed
-    const taskToDelete = await db.select({ completed: tasks.completed })
+    const taskToDelete = await db().select({ completed: tasks.completed })
       .from(tasks)
       .where(
         and(
@@ -95,7 +95,7 @@ export async function deleteTask(userId: string, taskId: number) {
     const isCompleted = taskToDelete[0].completed;
     
     // Delete the task
-    const deletedTask = await db.delete(tasks)
+    const deletedTask = await db().delete(tasks)
       .where(
         and(
           eq(tasks.id, taskId),
@@ -105,10 +105,10 @@ export async function deleteTask(userId: string, taskId: number) {
       .returning();
     
     // Update user progress
-    await db.update(userProgress)
+    await db().update(userProgress)
       .set({ 
-        totalTasks: db.raw('GREATEST(0, total_tasks - 1)'),
-        completedTasks: isCompleted ? db.raw('GREATEST(0, completed_tasks - 1)') : db.raw('completed_tasks'),
+        totalTasks: db().raw('GREATEST(0, total_tasks - 1)'),
+        completedTasks: isCompleted ? db().raw('GREATEST(0, completed_tasks - 1)') : db().raw('completed_tasks'),
         updatedAt: new Date()
       })
       .where(eq(userProgress.userId, userId));
@@ -123,12 +123,12 @@ export async function deleteTask(userId: string, taskId: number) {
 // User progress related operations
 export async function getUserProgress(userId: string) {
   try {
-    let userProgressData = await db.select().from(userProgress)
+    let userProgressData = await db().select().from(userProgress)
       .where(eq(userProgress.userId, userId));
     
     if (!userProgressData || userProgressData.length === 0) {
       // Create new progress record if it doesn't exist
-      userProgressData = await db.insert(userProgress).values({
+      userProgressData = await db().insert(userProgress).values({
         userId,
         completedTasks: 0,
         totalTasks: 0,
@@ -147,7 +147,7 @@ export async function getUserProgress(userId: string) {
 
 export async function updateUserMood(userId: string, mood: string) {
   try {
-    const updatedProgress = await db.update(userProgress)
+    const updatedProgress = await db().update(userProgress)
       .set({ 
         mood,
         updatedAt: new Date()
@@ -157,7 +157,7 @@ export async function updateUserMood(userId: string, mood: string) {
     
     if (!updatedProgress || updatedProgress.length === 0) {
       // Create new progress record if it doesn't exist
-      return db.insert(userProgress).values({
+      return db().insert(userProgress).values({
         userId,
         completedTasks: 0,
         totalTasks: 0,

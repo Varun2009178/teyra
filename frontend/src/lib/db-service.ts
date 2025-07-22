@@ -328,10 +328,10 @@ export async function incrementDailyAISplits(userId: string) {
 export async function deleteUserData(userId: string) {
   try {
     // Delete all user tasks
-    await db.delete(tasks).where(eq(tasks.userId, userId));
+    await db().delete(tasks).where(eq(tasks.userId, userId));
     
     // Delete user progress
-    await db.delete(userProgress).where(eq(userProgress.userId, userId));
+    await db().delete(userProgress).where(eq(userProgress.userId, userId));
     
     console.log(`Successfully deleted all data for user: ${userId}`);
   } catch (error) {

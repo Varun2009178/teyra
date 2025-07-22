@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
     
     // Get users who need daily reset
-    const usersForReset = await db
+    const usersForReset = await db()
       .select()
       .from(userProgress)
       .where(
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       for (const user of usersForReset) {
         try {
           // Reset daily limits for this user
-          await db
+          await db()
             .update(userProgress)
             .set({ 
               dailyMoodChecks: 0,

@@ -4,11 +4,16 @@ import { drizzle } from 'drizzle-orm/neon-http';
 // Configure Neon for better performance
 // fetchConnectionCache is now always true by default
 
-// Initialize Neon client with pooled connection string from environment variable
-const sql = neon(process.env.DATABASE_URL!);
+// Lazy database connection to prevent build-time initialization
+let _db: ReturnType<typeof drizzle> | null = null;
 
-// Initialize Drizzle ORM with the Neon client
-export const db = drizzle(sql);
+export const db = () => {
+  if (!_db) {
+    const sql = neon(process.env.DATABASE_URL!);
+    _db = drizzle(sql);
+  }
+  return _db;
+};
 
 // For operations that need a direct connection (migrations, etc.)
 export const getDirectDb = () => {

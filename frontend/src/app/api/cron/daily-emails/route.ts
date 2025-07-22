@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
     
     // Get all user progress records
-    const allUsers = await db
+    const allUsers = await db()
       .select()
       .from(userProgress)
     
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         console.log(`📧 Sending ${emailType} to user ${user.userId} (${hoursSinceActivity}h since last activity)`)
 
         // Reset daily limits for this user
-        await db
+        await db()
           .update(userProgress)
           .set({ 
             dailyMoodChecks: 0,
