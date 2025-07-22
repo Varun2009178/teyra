@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { tasks, userProgress } from '@/lib/schema';
 import { eq, and } from 'drizzle-orm';
 
+// Force dynamic rendering to prevent build-time database calls
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await request.json();

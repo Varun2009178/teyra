@@ -3,6 +3,9 @@ import { db } from '@/lib/db'
 import { userProgress } from '@/lib/schema'
 import { eq, lt, or, isNull } from 'drizzle-orm'
 
+// Force dynamic rendering to prevent build-time database calls
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🕐 Cron job triggered')

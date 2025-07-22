@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userProgress, tasks } from '@/lib/schema';
 
+// Force dynamic rendering to prevent build-time database calls
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('Testing database connection...');
