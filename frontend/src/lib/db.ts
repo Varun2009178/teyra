@@ -9,8 +9,16 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 export const db = () => {
   if (!_db) {
-    const sql = neon(process.env.DATABASE_URL!);
-    _db = drizzle(sql);
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+    try {
+      const sql = neon(process.env.DATABASE_URL);
+      _db = drizzle(sql);
+    } catch (error) {
+      console.error('Failed to initialize database connection:', error);
+      throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   return _db;
 };

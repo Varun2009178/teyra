@@ -728,18 +728,35 @@ export default function Dashboard() {
                       )}
                     </div>
                     {!isNewUser && (
-                      <Button
-                        onClick={() => {
-                          const taskTitle = prompt("What's your new task?");
-                          if (taskTitle?.trim()) {
-                            handleAddTask(taskTitle.trim());
-                          }
-                        }}
-                        className="bg-black hover:bg-gray-800 text-white text-xs px-3 py-1 rounded-lg"
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add Task
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          placeholder="Add a new task..."
+                          className="px-3 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              const input = e.target as HTMLInputElement;
+                              if (input.value.trim()) {
+                                handleAddTask(input.value.trim());
+                                input.value = '';
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => {
+                            const input = document.querySelector('input[placeholder="Add a new task..."]') as HTMLInputElement;
+                            if (input?.value.trim()) {
+                              handleAddTask(input.value.trim());
+                              input.value = '';
+                            }
+                          }}
+                          className="bg-black hover:bg-gray-800 text-white text-xs px-3 py-1 rounded-lg"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -815,7 +832,7 @@ export default function Dashboard() {
                 
                 {/* Mike the Cactus */}
                 <div className="flex justify-center mb-8 py-4">
-                  {progress && (
+                  {progress ? (
                     <motion.div 
                       className="transform scale-150"
                       whileHover={{ scale: 1.6 }}
@@ -826,21 +843,29 @@ export default function Dashboard() {
                         todayCompletedTasks={[]}
                       />
                     </motion.div>
+                  ) : (
+                    <div className="text-gray-500 text-sm">
+                      Loading Mike...
+                    </div>
                   )}
                 </div>
 
                 {/* Mike's Speech Bubble */}
-                {progress && (
+                {progress ? (
                   <div className="mb-6">
                     <MikeSpeechBubble 
                       mood={progress.mood} 
                       completedTasks={progress.completedTasks} 
                     />
                   </div>
+                ) : (
+                  <div className="mb-6 text-gray-500 text-sm">
+                    Loading speech bubble...
+                  </div>
                 )}
 
                 {/* Progress Circle */}
-                {progress && (
+                {progress ? (
                   <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -854,6 +879,10 @@ export default function Dashboard() {
                       mood={progress.mood}
                     />
                   </motion.div>
+                ) : (
+                  <div className="mt-6 text-gray-500 text-sm">
+                    Loading progress...
+                  </div>
                 )}
               </motion.div>
               
