@@ -5,6 +5,7 @@ export const tasks = pgTable('tasks', {
   userId: varchar('user_id', { length: 255 }).notNull(),
   title: text('title').notNull(),
   completed: boolean('completed').default(false).notNull(),
+  hasBeenSplit: boolean('has_been_split').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
