@@ -74,23 +74,15 @@ export default function Dashboard() {
       const isNew = now - creationTime < fiveMinutesInMs;
       setIsNewUser(isNew);
       
-      // Debug logging (commented out to reduce console noise)
-      // console.log('Dashboard debug - user check:', {
-      //   userId: user.id,
-      //   createdAt: user.createdAt,
-      //   creationTime,
-      //   now,
-      //   timeDiff: now - creationTime,
-      //   isNew,
-      //   hasCompletedOnboarding: localStorage.getItem(`onboarded_${user.id}`) === 'true'
-      // });
-      
-      // If this is a new user who hasn't completed onboarding, redirect to welcome
-      if (isNew && localStorage.getItem(`onboarded_${user.id}`) !== 'true') {
-        console.log('New user detected in dashboard, redirecting to welcome');
-        // Use replace to avoid adding to history stack
-        router.replace('/welcome');
-        return;
+      // Only redirect if this is a truly new user who hasn't completed onboarding
+      // AND we're not already on the welcome page
+      if (isNew && localStorage.getItem(`onboarded_${user.id}`) !== 'true' && typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        if (currentPath !== '/welcome' && currentPath !== '/dashboard') {
+          console.log('New user detected, redirecting to welcome');
+          router.replace('/welcome');
+          return;
+        }
       }
     }
   }, [user?.createdAt, isLoaded, user?.id, router]);
@@ -236,9 +228,16 @@ export default function Dashboard() {
         console.error('Failed to fetch tasks:', response.status, response.statusText);
         const errorText = await response.text();
         console.error('Error response:', errorText);
+        
+        // Set empty tasks if database is unavailable
+        if (response.status === 500) {
+          setTasks([]);
+        }
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      // Set empty tasks on network error
+      setTasks([]);
     }
   };
 
@@ -270,9 +269,43 @@ export default function Dashboard() {
       } else {
         const errorText = await response.text();
         console.error('Progress fetch error:', response.status, errorText);
+        
+        // Set default progress if database is unavailable
+        if (response.status === 500) {
+          setProgress({
+            id: 'fallback',
+            completedTasks: 0,
+            totalTasks: 0,
+            mood: 'neutral',
+            displayCompleted: 0,
+            maxValue: 10,
+            allTimeCompleted: 0,
+            currentMilestone: 0,
+            dailyCompletedTasks: 0,
+            dailyMoodChecks: 0,
+            dailyAISplits: 0,
+            lastResetDate: new Date().toISOString()
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching progress:', error);
+      
+      // Set default progress on network error
+      setProgress({
+        id: 'fallback',
+        completedTasks: 0,
+        totalTasks: 0,
+        mood: 'neutral',
+        displayCompleted: 0,
+        maxValue: 10,
+        allTimeCompleted: 0,
+        currentMilestone: 0,
+        dailyCompletedTasks: 0,
+        dailyMoodChecks: 0,
+        dailyAISplits: 0,
+        lastResetDate: new Date().toISOString()
+      });
     }
   };
 

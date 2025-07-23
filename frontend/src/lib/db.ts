@@ -12,9 +12,18 @@ export const db = () => {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
+    
+    // Validate DATABASE_URL format
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl.startsWith('postgresql://')) {
+      throw new Error(`Invalid DATABASE_URL format. Expected postgresql:// but got: ${dbUrl.substring(0, 20)}...`);
+    }
+    
     try {
-      const sql = neon(process.env.DATABASE_URL);
+      console.log('Initializing database connection...');
+      const sql = neon(dbUrl);
       _db = drizzle(sql);
+      console.log('Database connection initialized successfully');
     } catch (error) {
       console.error('Failed to initialize database connection:', error);
       throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
