@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Navbar } from '@/components/Navbar';
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import { Navbar } from '@/components/Navbar';
 
 export default function SignInPage() {
   const { isSignedIn, userId } = useAuth();
   const router = useRouter();
   
-  // Redirect to dashboard if user is already signed in
   useEffect(() => {
     if (isSignedIn && userId) {
-      console.log('User already signed in, redirecting to dashboard');
       router.push('/dashboard');
     }
   }, [isSignedIn, userId, router]);
@@ -20,42 +18,46 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar />
-
-      {/* Main content - centered both horizontally and vertically */}
-      <div className="flex-1 flex items-center justify-center px-4 pt-16">
-        <div className="w-full max-w-md mx-auto lg:max-w-2xl xl:max-w-3xl">
+      
+      <div className="flex-1 flex items-center justify-center -mt-8">
+        <div className="w-full max-w-md mx-auto px-4">
           <SignIn 
             appearance={{
               elements: {
                 rootBox: "w-full",
-                card: "shadow-sm border border-gray-200 rounded-lg mx-auto lg:p-8",
-                headerTitle: "text-2xl font-bold text-gray-900",
-                headerSubtitle: "text-gray-500",
+                card: "shadow-sm border border-gray-200 rounded-lg bg-white",
+                headerTitle: "text-xl font-semibold text-black",
+                headerSubtitle: "text-gray-600",
                 formButtonPrimary: 
-                  "bg-black hover:bg-gray-800 text-white py-6 text-lg",
+                  "w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-lg font-medium transition-all duration-200",
                 formFieldInput: 
-                  "border-gray-200 focus:border-black focus:ring-black py-6 text-lg",
-                footerActionLink: "text-black hover:underline",
-                socialButtonsIconButton: "border-gray-200 hover:bg-gray-50 lg:p-4",
-                socialButtonsBlockButton: "border-gray-200 hover:bg-gray-50 lg:p-4",
-                main: "mx-auto lg:px-8",
-                form: "mx-auto space-y-6",
-                formFieldLabel: "text-base",
+                  "w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-black focus:ring-2 focus:ring-gray-200 transition-all duration-200 bg-white text-black",
+                socialButtonsIconButton: "w-full border-2 border-gray-300 hover:bg-gray-50 rounded-lg p-3 transition-all duration-200",
+                socialButtonsBlockButton: "w-full border-2 border-gray-300 hover:bg-gray-50 rounded-lg p-3 transition-all duration-200",
+                main: "w-full",
+                form: "w-full space-y-4",
+                formFieldLabel: "text-sm font-medium text-gray-700 mb-2 block",
                 formFieldLabelRow: "mb-2",
                 identityPreviewEditButton: "text-black hover:text-gray-700",
+                formFieldInputShowPasswordButton: "text-gray-400 hover:text-gray-600",
+                formFieldInputShowPasswordIcon: "w-4 h-4",
+                dividerLine: "bg-gray-200",
+                dividerText: "text-gray-500 text-sm font-medium",
+                footer: "hidden",
+                footerAction: "hidden",
               },
               layout: {
-                socialButtonsVariant: "iconButton",
-                socialButtonsPlacement: "top",
+                socialButtonsVariant: "blockButton",
+                socialButtonsPlacement: "bottom",
               },
               variables: {
                 colorPrimary: '#000000',
                 colorText: '#000000',
-                colorTextSecondary: '#666666',
+                colorTextSecondary: '#6b7280',
                 colorBackground: '#ffffff',
                 colorInputText: '#000000',
                 colorInputBackground: '#ffffff',
-                colorInputBorder: '#e5e7eb',
+                colorBorder: '#d1d5db',
               }
             }}
             redirectUrl="/dashboard"
@@ -64,11 +66,6 @@ export default function SignInPage() {
           />
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="py-4 text-center text-xs text-gray-500">
-        <p>&copy; {new Date().getFullYear()} Teyra. All rights reserved.</p>
-      </footer>
     </div>
   );
 }

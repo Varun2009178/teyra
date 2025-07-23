@@ -280,6 +280,87 @@ export async function POST(request: NextRequest) {
           </div>
         `
         break
+
+      case 'daily_reset_trigger':
+        const completedCount2 = taskSummary?.completed_count || 0
+        const notCompletedCount2 = taskSummary?.not_completed_count || 0
+        const totalCount2 = taskSummary?.total || 0
+        const userId = userData?.user_id || 'unknown'
+        
+        subject = '🌵 Your Daily Reset is Ready - Task Summary'
+        htmlContent = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #ffffff;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🌵</div>
+              <h1 style="color: #111827; font-size: 24px; font-weight: 600; margin: 0 0 8px 0;">Your Daily Reset is Ready!</h1>
+              <p style="color: #6b7280; font-size: 16px; margin: 0;">Click below to see your summary and start fresh</p>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div style="background: #f9fafb; border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; text-align: center;">
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #059669; line-height: 1;">${completedCount2}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Completed</div>
+                </div>
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #dc2626; line-height: 1;">${notCompletedCount2}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Not Completed</div>
+                </div>
+                <div>
+                  <div style="font-size: 32px; font-weight: 700; color: #2563eb; line-height: 1;">${totalCount2}</div>
+                  <div style="font-size: 14px; color: #6b7280; font-weight: 500; margin-top: 4px;">Total</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Task Lists -->
+            ${completedCount2 > 0 ? `
+              <div style="margin-bottom: 24px;">
+                <h3 style="color: #059669; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">✅ Completed Tasks</h3>
+                <div style="background: #f0fdf4; border-radius: 12px; padding: 16px;">
+                  ${taskSummary?.completed?.map(task => `
+                    <div style="color: #166534; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #dcfce7; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">✓</span>
+                      <span>${task}</span>
+                    </div>
+                  `).join('') || ''}
+                </div>
+              </div>
+            ` : ''}
+            
+            ${notCompletedCount2 > 0 ? `
+              <div style="margin-bottom: 24px;">
+                <h3 style="color: #dc2626; font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">❌ Not Completed</h3>
+                <div style="background: #fef2f2; border-radius: 12px; padding: 16px;">
+                  ${taskSummary?.not_completed?.map(task => `
+                    <div style="color: #991b1b; font-size: 14px; padding: 8px 0; border-bottom: 1px solid #fecaca; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">×</span>
+                      <span>${task}</span>
+                    </div>
+                  `).join('') || ''}
+                </div>
+              </div>
+            ` : ''}
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin-bottom: 32px;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/api/daily-reset?userId=${userId}&trigger=true" 
+                 style="display: inline-block; background: #059669; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);">
+                Complete Reset & Start Fresh 🌵
+              </a>
+            </div>
+            
+            <!-- Footer -->
+            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+              <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                Click to reset your daily tasks and limits • <a href="#" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>
+              </p>
+            </div>
+          </div>
+        `
+        break
       
       default:
         return NextResponse.json(

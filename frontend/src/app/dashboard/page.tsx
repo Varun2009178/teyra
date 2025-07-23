@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { MilestoneCelebration } from '@/components/MilestoneCelebration';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 import { DailySummaryPopup } from '@/components/DailySummaryPopup';
+import { DailyCountdownTimer } from '@/components/DailyCountdownTimer';
 import { usePendingTasks } from '@/hooks/usePendingTasks';
 
 interface Task {
@@ -30,18 +31,19 @@ interface Task {
 }
 
 interface UserProgress {
-  id: string;
+  id: string | number;
   completedTasks: number;
   totalTasks: number;
   mood: string;
-  displayCompleted?: number;
-  maxValue?: number;
-  allTimeCompleted?: number;
-  currentMilestone?: number;
-  dailyCompletedTasks?: number;
-  dailyMoodChecks?: number;
-  dailyAISplits?: number;
-  lastResetDate?: string;
+  displayCompleted: number;
+  maxValue: number;
+  allTimeCompleted: number;
+  currentMilestone: number;
+  dailyCompletedTasks: number;
+  dailyMoodChecks: number;
+  dailyAISplits: number;
+  lastResetDate: string;
+  updatedAt?: string;
 }
 
 export default function Dashboard() {
@@ -289,7 +291,8 @@ export default function Dashboard() {
           dailyCompletedTasks: data.dailyCompletedTasks,
           dailyMoodChecks: data.dailyMoodChecks,
           dailyAISplits: data.dailyAISplits,
-          lastResetDate: data.lastResetDate
+          lastResetDate: data.lastResetDate,
+          updatedAt: data.updatedAt
         });
       } else {
         const errorText = await response.text();
@@ -991,6 +994,31 @@ export default function Dashboard() {
                     <DeleteAccountButton />
                   </div>
                 </div>
+              </motion.div>
+              
+              {/* Daily Countdown Timer */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <DailyCountdownTimer
+                  lastDailyReset={progress?.lastResetDate || null}
+                  lastActivityAt={progress?.updatedAt || null}
+                  timezone="UTC"
+                  onResetDue={(isDue) => {
+                    if (isDue) {
+                      console.log('Reset is due!');
+                    }
+                  }}
+                  onEmailDue={(isDue) => {
+                    if (isDue) {
+                      console.log('Email is due!');
+                    }
+                  }}
+                  isNewUser={isNewUser}
+                  userId={user?.id}
+                />
               </motion.div>
             </div>
           </div>

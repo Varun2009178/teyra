@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { userProgress } from '@/lib/schema'
 import { lt, eq } from 'drizzle-orm'
+import { tasks } from '@/lib/schema'
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic'
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📧 Daily emails cron job triggered')
 
-    // Get all users who have been inactive for 48+ hours
+    // Get all users who have been inactive for 48+ hours (motivational emails)
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
     
     // Get all user progress records
@@ -18,28 +19,26 @@ export async function POST(request: NextRequest) {
       .select()
       .from(userProgress)
     
-    // Filter users who have been inactive for 48+ hours
+    // Filter users who have been inactive for 48+ hours (motivational emails)
     const inactiveUsers = allUsers.filter(user => {
       const lastActivity = user.updatedAt || user.createdAt
       return lastActivity < fortyEightHoursAgo
     })
 
-    if (inactiveUsers.length === 0) {
-      return NextResponse.json({ 
-        message: 'No users need email notifications',
-        testInfo: {
-          fortyEightHoursAgo,
-          totalUsers: allUsers.length,
-          inactiveUsers: 0
-        }
-      })
-    }
+    // Filter users who need 24-hour reset emails
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const usersNeedingReset = allUsers.filter(user => {
+      const lastReset = user.lastResetDate || user.createdAt
+      return lastReset < twentyFourHoursAgo
+    })
 
-    console.log(`📧 Found ${inactiveUsers.length} users who need email notifications`)
+    console.log(`📧 Found ${inactiveUsers.length} users needing motivational emails`)
+    console.log(`🔄 Found ${usersNeedingReset.length} users needing 24-hour reset emails`)
 
     let emailsSent = 0
     let errors = 0
 
+    // Send motivational emails to inactive users
     for (const user of inactiveUsers) {
       try {
         // Calculate time since last activity
@@ -60,13 +59,10 @@ export async function POST(request: NextRequest) {
         
         console.log(`📧 Sending ${emailType} to user ${user.userId} (${hoursSinceActivity}h since last activity)`)
 
-        // Reset daily limits for this user
+        // Update last activity timestamp for this user
         await db()
           .update(userProgress)
           .set({ 
-            dailyMoodChecks: 0,
-            dailyAISplits: 0,
-            lastResetDate: new Date(),
             updatedAt: new Date()
           })
           .where(eq(userProgress.userId, user.userId))
@@ -93,15 +89,70 @@ export async function POST(request: NextRequest) {
 
         if (response.ok) {
           emailsSent++
-          console.log(`✅ Email sent successfully to user ${user.userId}`)
+          console.log(`✅ Motivational email sent successfully to user ${user.userId}`)
         } else {
           errors++
-          console.error(`❌ Failed to send email to user ${user.userId}:`, await response.text())
+          console.error(`❌ Failed to send motivational email to user ${user.userId}:`, await response.text())
         }
 
       } catch (error) {
         errors++
-        console.error(`❌ Error processing user ${user.userId}:`, error)
+        console.error(`❌ Error processing motivational email for user ${user.userId}:`, error)
+      }
+    }
+
+    // Send 24-hour reset emails
+    for (const user of usersNeedingReset) {
+      try {
+        console.log(`🔄 Sending 24-hour reset email to user ${user.userId}`)
+
+        // Get user's current tasks for the summary
+        const userTasks = await db()
+          .select()
+          .from(tasks)
+          .where(eq(tasks.userId, user.userId))
+
+        const completedTasks = userTasks.filter(task => task.completed)
+        const incompleteTasks = userTasks.filter(task => !task.completed)
+
+        // Send reset email
+        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.userId,
+            name: 'there',
+            type: 'daily_reset_trigger',
+            timezone: 'UTC',
+            userData: {
+              user_id: user.userId,
+              tasks_completed: user.allTimeCompleted,
+              current_streak: 0,
+              longest_streak: 0
+            },
+            taskSummary: {
+              total: userTasks.length,
+              completed_count: completedTasks.length,
+              not_completed_count: incompleteTasks.length,
+              completed: completedTasks.map(t => t.title),
+              not_completed: incompleteTasks.map(t => t.title)
+            }
+          }),
+        })
+
+        if (response.ok) {
+          emailsSent++
+          console.log(`✅ Reset email sent successfully to user ${user.userId}`)
+        } else {
+          errors++
+          console.error(`❌ Failed to send reset email to user ${user.userId}:`, await response.text())
+        }
+
+      } catch (error) {
+        errors++
+        console.error(`❌ Error processing reset email for user ${user.userId}:`, error)
       }
     }
 
@@ -109,11 +160,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Daily emails processed: ${emailsSent} sent, ${errors} errors`,
+      message: 'Daily emails completed successfully',
       stats: {
-        totalUsers: allUsers.length,
-        inactiveUsers: inactiveUsers.length,
-        emailsSent,
+        motivationalEmailsSent: inactiveUsers.length,
+        resetEmailsSent: usersNeedingReset.length,
+        totalEmailsSent: emailsSent,
         errors
       }
     })
@@ -121,7 +172,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Daily emails cron job error:', error)
     return NextResponse.json({ 
-      error: 'Internal server error', 
+      error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }

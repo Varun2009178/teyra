@@ -51,9 +51,24 @@ export function Navbar() {
           className="flex space-x-4"
         >
           {isSignedIn ? (
-            <Button className="bg-black hover:bg-gray-800 text-white" asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
+            <>
+              <Button className="bg-black hover:bg-gray-800 text-white" asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              {pathname !== '/sign-in' && (
+                <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
+                  <Link href="/sign-in">Sign In</Link>
+                </Button>
+              )}
+              {pathname !== '/sign-up' && (
+                <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
+                  <Link href="/sign-up">Sign Up</Link>
+                </Button>
+              )}
+              <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
+                <Link href="/contact">Contact</Link>
+              </Button>
+            </>
           ) : (
             <>
               {pathname !== '/sign-in' && (
@@ -66,6 +81,9 @@ export function Navbar() {
                   <Link href="/sign-up">Sign Up</Link>
                 </Button>
               )}
+              <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
+                <Link href="/contact">Contact</Link>
+              </Button>
             </>
           )}
         </motion.div>

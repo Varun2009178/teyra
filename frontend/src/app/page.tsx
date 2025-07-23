@@ -9,6 +9,7 @@ import { TextAnimate } from '@/components/magicui/text-animate';
 import { Cactus } from '@/components/Cactus';
 import AnimatedTodolist from '@/components/AnimatedTodolist';
 import { useUser, UserButton } from '@clerk/nextjs';
+import { Navbar } from '@/components/Navbar';
 
 export default function HomePage() {
   const { user, isLoaded } = useUser();
@@ -27,67 +28,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white transition-colors duration-150">
-      {/* Header */}
-      <header className="px-6 py-4 fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-colors duration-150">
-        <div className="max-w-7xl mx-auto flex justify-between items-center relative">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center space-x-3"
-          >
-            <motion.div
-              whileHover={{ rotate: [0, -5, 5, -5, 0], transition: { duration: 0.5 } }}
-            >
-              <Image
-                src="/teyra-logo-64kb.png"
-                alt="Teyra Logo"
-                width={40}
-                height={40}
-                className="rounded-lg shadow-sm"
-              />
-            </motion.div>
-            <span className="text-2xl font-bold text-black">
-              Teyra
-            </span>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="flex space-x-4 items-center"
-          >
-            {isLoaded && user ? (
-              <>
-                <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
-                  <Link href="/dashboard" className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Dashboard
-                  </Link>
-                </Button>
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-8 h-8"
-                    }
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
-                  <Link href="/sign-in">Sign In</Link>
-                </Button>
-                <Button className="bg-black hover:bg-gray-800 text-white" asChild>
-                  <Link href="/sign-up">Sign Up</Link>
-                </Button>
-              </>
-            )}
-          </motion.div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Hero Section */}
       <main className="flex items-center justify-center min-h-screen px-4 sm:px-6 pt-24">
@@ -446,34 +387,14 @@ export default function HomePage() {
             <Button 
               size="lg"
               className="bg-black hover:bg-gray-800 text-white text-lg px-8 py-6 transform hover:scale-105 transition-all duration-300 ease-out"
-              onClick={() => {
-                if (isLoaded && user) {
-                  // User is signed in, go to dashboard
-                  window.location.href = '/dashboard';
-                } else {
-                  // First clear any existing auth session from localStorage/sessionStorage
-                  if (typeof window !== 'undefined') {
-                    // Clear any session markers we've set
-                    sessionStorage.removeItem('lastSignUpTime');
-                    
-                    // Clear any onboarded user flags
-                    const keys = Object.keys(localStorage);
-                    keys.forEach(key => {
-                      if (key.startsWith('onboarded_')) {
-                        localStorage.removeItem(key);
-                      }
-                    });
-                    
-                    // Force a hard navigation to the sign-up page with force parameter
-                    window.location.href = '/sign-up?force=true';
-                  }
-                }
-              }}
+              asChild
             >
-              <span className="flex items-center gap-2">
-                {isLoaded && user ? 'Go to Dashboard' : 'Get Started Free'}
-                <ArrowRight className="w-5 h-5" />
-              </span>
+              <Link href={isLoaded && user ? '/dashboard' : '/sign-up'}>
+                <span className="flex items-center gap-2">
+                  {isLoaded && user ? 'Go to Dashboard' : 'Get Started Free'}
+                  <ArrowRight className="w-5 h-5" />
+                </span>
+              </Link>
             </Button>
             <p className="text-sm text-gray-500 mt-4">
               {isLoaded && user ? 'Continue your productivity journey' : 'Sign up and start today'}
