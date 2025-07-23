@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { getUserProgress, updateUserMood } from '@/lib/db-service';
+import { ensureUserExists } from '@/lib/ensure-user';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,10 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = user.id;
+    
+    // Ensure user exists in the database
+    await ensureUserExists(userId);
+    
     const progress = await getUserProgress(userId);
     
     // Add cache-busting headers
@@ -47,6 +52,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const userId = user.id;
+    
+    // Ensure user exists in the database
+    await ensureUserExists(userId);
+    
     const result = await updateUserMood(userId, mood);
     
     return NextResponse.json(result);

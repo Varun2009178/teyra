@@ -656,8 +656,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="px-6 py-4 fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <header className="px-4 sm:px-6 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -667,7 +667,7 @@ export default function Dashboard() {
             <motion.div
               whileHover={{ rotate: [0, -5, 5, -5, 0], transition: { duration: 0.5 } }}
             >
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-sm">
                 <Image
                   src="/teyra-logo-64kb.png"
                   alt="Teyra"
@@ -677,7 +677,7 @@ export default function Dashboard() {
                 />
               </div>
             </motion.div>
-            <span className="text-2xl font-bold text-black">
+            <span className="text-xl sm:text-2xl font-bold text-black">
               Teyra
             </span>
           </motion.div>
@@ -686,40 +686,40 @@ export default function Dashboard() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex items-center space-x-4"
+            className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-0"
           >
-            <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
+            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
               <User className="w-4 h-4" />
-              <span>{user.emailAddresses[0]?.emailAddress}</span>
+              <span className="truncate max-w-[150px] md:max-w-none">{user.emailAddresses[0]?.emailAddress}</span>
             </div>
 
             {moodCheckDismissed && (progress?.dailyMoodChecks || 0) < 1 && (
               <button
                 onClick={showMoodCheckAgain}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm rounded-full hover:from-pink-600 hover:to-purple-700"
+                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs sm:text-sm rounded-full hover:from-pink-600 hover:to-purple-700"
               >
-                😊 New Mood Check
+                😊 Mood
               </button>
             )}
             {moodCheckDismissed && (progress?.dailyMoodChecks || 0) >= 1 && progress?.mood && (
-              <div className="px-3 py-1.5 bg-gradient-to-r from-green-50 to-blue-50 text-green-700 text-sm rounded-full border border-green-200">
-                😊 {progress.mood} (set)
+              <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-green-50 to-blue-50 text-green-700 text-xs sm:text-sm rounded-full border border-green-200">
+                😊 {progress.mood}
               </div>
             )}
             <button
               onClick={() => { fetchTasks(); fetchProgress(); }}
-              className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-full hover:bg-blue-600"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-500 text-white text-xs sm:text-sm rounded-full hover:bg-blue-600"
             >
-              🔄 Refresh
+              🔄
             </button>
-            <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium">
+            <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium hidden sm:flex">
               <Link href="/">Home</Link>
             </Button>
             <UserButton 
               afterSignOutUrl="/"
               appearance={{
                 elements: {
-                  avatarBox: "w-8 h-8"
+                  avatarBox: "w-7 h-7 sm:w-8 sm:h-8"
                 }
               }}
             />
@@ -728,11 +728,11 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-12 px-4 md:px-6">
+      <main className="pt-20 sm:pt-24 pb-12 px-3 sm:px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
           {/* Mood Check-in (conditionally shown) */}
           {showMoodCheck && (
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <MoodCheckIn 
                 onMoodSelect={handleMoodSelect} 
                 onTaskSuggestion={handleAddTask}
@@ -743,9 +743,9 @@ export default function Dashboard() {
           )}
           
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Column - Tasks */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               {/* Add Task Card - For all users */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

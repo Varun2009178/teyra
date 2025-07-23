@@ -23,23 +23,26 @@ export default function SignInPage() {
 
       {/* Main content - centered both horizontally and vertically */}
       <div className="flex-1 flex items-center justify-center px-4 pt-16">
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full max-w-md mx-auto lg:max-w-2xl xl:max-w-3xl">
           <SignIn 
             appearance={{
               elements: {
                 rootBox: "w-full",
-                card: "shadow-sm border border-gray-200 rounded-lg mx-auto",
+                card: "shadow-sm border border-gray-200 rounded-lg mx-auto lg:p-8",
                 headerTitle: "text-2xl font-bold text-gray-900",
                 headerSubtitle: "text-gray-500",
                 formButtonPrimary: 
-                  "bg-black hover:bg-gray-800 text-white",
+                  "bg-black hover:bg-gray-800 text-white py-6 text-lg",
                 formFieldInput: 
-                  "border-gray-200 focus:border-black focus:ring-black",
+                  "border-gray-200 focus:border-black focus:ring-black py-6 text-lg",
                 footerActionLink: "text-black hover:underline",
-                socialButtonsIconButton: "border-gray-200 hover:bg-gray-50",
-                socialButtonsBlockButton: "border-gray-200 hover:bg-gray-50",
-                main: "mx-auto",
-                form: "mx-auto",
+                socialButtonsIconButton: "border-gray-200 hover:bg-gray-50 lg:p-4",
+                socialButtonsBlockButton: "border-gray-200 hover:bg-gray-50 lg:p-4",
+                main: "mx-auto lg:px-8",
+                form: "mx-auto space-y-6",
+                formFieldLabel: "text-base",
+                formFieldLabelRow: "mb-2",
+                identityPreviewEditButton: "text-black hover:text-gray-700",
               },
               layout: {
                 socialButtonsVariant: "iconButton",

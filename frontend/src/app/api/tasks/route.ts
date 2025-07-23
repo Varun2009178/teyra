@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { getUserTasks, createTask } from '@/lib/db-service';
+import { ensureUserExists } from '@/lib/ensure-user';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,10 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = user.id;
+    
+    // Ensure user exists in the database
+    await ensureUserExists(userId);
+    
     const tasks = await getUserTasks(userId);
     
     return NextResponse.json(tasks);
@@ -47,6 +52,9 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id;
     console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit})`);
+    
+    // Ensure user exists in the database
+    await ensureUserExists(userId);
     
     const newTask = await createTask(userId, title, Boolean(hasBeenSplit));
     

@@ -53,16 +53,13 @@ export default function OnboardingProvider({ children }: { children: React.React
     if (isNewUser && !hasCompletedOnboarding) {
       console.log('[OnboardingProvider] Redirecting new user to welcome page');
       
-      // Use both router.replace and direct window.location for maximum reliability
-      router.replace('/welcome');
-      
-      // Also use direct navigation as a backup
-      setTimeout(() => {
-        if (typeof window !== 'undefined' && window.location.pathname !== '/welcome') {
-          console.log('Forcing redirect to welcome page via window.location');
-          window.location.href = '/welcome';
-        }
-      }, 100);
+      // Only redirect if we're not already on the welcome page or in the process of signing in
+      if (currentPath !== '/welcome' && 
+          !currentPath.includes('sign-in') && 
+          !currentPath.includes('sign-up') && 
+          !currentPath.includes('sso-callback')) {
+        router.replace('/welcome');
+      }
     }
   }, [isAuthLoaded, isUserLoaded, userId, user, router]);
 

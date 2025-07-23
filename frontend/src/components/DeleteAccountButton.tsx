@@ -30,6 +30,24 @@ export function DeleteAccountButton() {
       // Clean up client-side data first
       cleanupUserDataClient(user.id);
       
+      // Delete user data from the database
+      try {
+        const response = await fetch('/api/user/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          console.log('User data deleted from database successfully');
+        } else {
+          console.error('Failed to delete user data from database:', await response.text());
+        }
+      } catch (dbError) {
+        console.error('Error deleting user data from database:', dbError);
+      }
+      
       // Delete the user account through Clerk
       await user.delete();
       

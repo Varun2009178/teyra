@@ -16,15 +16,26 @@ export default function WelcomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const { getToken, userId, user } = useAuth();
+  const { getToken, userId, user, isLoaded } = useAuth();
   const { completeOnboarding } = useOnboarding();
+  
+  // State to track if we've checked auth status
+  const [authChecked, setAuthChecked] = useState(false);
   
   // Use useEffect for redirects to avoid hydration issues
   React.useEffect(() => {
-    if (!userId) {
+    // Wait for auth to be loaded
+    if (!isLoaded) return;
+    
+    // If user is not authenticated, redirect to sign-in
+    if (!userId && isLoaded) {
+      console.log('User not authenticated, redirecting to sign-in');
       router.push('/sign-in');
       return;
     }
+    
+    // Mark auth as checked to prevent flickering
+    setAuthChecked(true);
     
     // IMPORTANT: Force clear any onboarding completion flag to ensure users stay on this page
     try {
@@ -52,20 +63,20 @@ export default function WelcomePage() {
       if (!isNewUser) {
         console.log('Existing user trying to access welcome, redirecting to dashboard');
         router.replace('/dashboard');
-          return;
-        }
-        
-        // For new users, check if they've already completed onboarding
-        const hasCompletedOnboarding = localStorage.getItem(`onboarded_${userId}`) === 'true';
-        if (hasCompletedOnboarding) {
-          console.log('New user already completed onboarding, redirecting to dashboard');
-          router.replace('/dashboard');
-          return;
-        }
-        
-        // If new user and hasn't completed onboarding, stay on welcome page
-        console.log('New user, showing welcome page');
+        return;
       }
+      
+      // For new users, check if they've already completed onboarding
+      const hasCompletedOnboarding = localStorage.getItem(`onboarded_${userId}`) === 'true';
+      if (hasCompletedOnboarding) {
+        console.log('New user already completed onboarding, redirecting to dashboard');
+        router.replace('/dashboard');
+        return;
+      }
+      
+      // If new user and hasn't completed onboarding, stay on welcome page
+      console.log('New user, showing welcome page');
+    }
     
     // Pre-fetch the dashboard route to reduce flicker when navigating
     router.prefetch('/dashboard');
@@ -208,24 +219,36 @@ export default function WelcomePage() {
     }
   };
 
+  // Show loading state while checking auth
+  if (!authChecked || !isLoaded) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <main className="flex-1 flex items-center justify-center p-8 md:p-12">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12">
         <AnimatePresence mode="wait" initial={false}>
           {step === 1 ? (
             <motion.div 
               key="step1"
-              className="w-full max-w-2xl"
+              className="w-full max-w-xl sm:max-w-2xl"
               initial="hidden"
               animate="visible"
               exit="exit"
               variants={containerVariants}
             >
               <motion.div 
-                className="text-center mb-16"
+                className="text-center mb-8 sm:mb-12 md:mb-16"
                 variants={itemVariants}
               >
-                <h1 className="text-4xl md:text-5xl font-medium text-black mb-6">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium text-black mb-4 sm:mb-6">
                   What's one thing you want to complete today?
                 </h1>
               </motion.div>
@@ -251,12 +274,12 @@ export default function WelcomePage() {
 
                 <Button
                   type="submit"
-                  className="w-full py-7 bg-black hover:bg-gray-800 text-white text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
+                  className="w-full py-5 sm:py-7 bg-black hover:bg-gray-800 text-white text-base sm:text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -264,7 +287,7 @@ export default function WelcomePage() {
                     </span>
                   ) : (
                     <span className="flex items-center">
-                      Continue <ArrowRight className="ml-2 h-5 w-5" />
+                      Continue <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </span>
                   )}
                 </Button>
@@ -323,10 +346,10 @@ export default function WelcomePage() {
               <motion.div variants={itemVariants}>
                 <Button
                   onClick={goToDashboard}
-                  className="w-full py-7 bg-black hover:bg-gray-800 text-white text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
+                  className="w-full py-5 sm:py-7 bg-black hover:bg-gray-800 text-white text-base sm:text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
                 >
                   <span className="flex items-center">
-                    Go to Dashboard <ArrowRight className="ml-2 h-5 w-5" />
+                    Go to Dashboard <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </span>
                 </Button>
               </motion.div>
