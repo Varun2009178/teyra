@@ -78,13 +78,13 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
       setIsResetDue(newIsResetDue);
       onResetDue?.(newIsResetDue);
       
-      // Calculate time until next email (48 hours from last activity)
+      // Calculate time until next email (24 hours from last reset - same as reset timer)
       let nextEmailTime: Date;
-      if (lastActivityAt) {
-        const lastActivity = new Date(lastActivityAt);
-        nextEmailTime = new Date(lastActivity.getTime() + 48 * 60 * 60 * 1000);
+      if (lastDailyReset) {
+        const lastReset = new Date(lastDailyReset);
+        nextEmailTime = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
       } else {
-        // If no last activity, assume it's due now
+        // If no last reset, assume it's due now
         nextEmailTime = now;
       }
       
@@ -102,13 +102,8 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
         totalSeconds: emailSeconds
       });
       
-      // Only show email as due if timer has reached zero AND user is not new
-      // AND the last activity was actually more than 48 hours ago
-      const lastActivityTime = lastActivityAt ? new Date(lastActivityAt) : null;
-      const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-      const actuallyNeedsEmail = lastActivityTime && lastActivityTime < fortyEightHoursAgo;
-      
-      const newIsEmailDue = emailSeconds === 0 && !isNewUser && actuallyNeedsEmail;
+      // Email is due when reset is due (24-hour cycle)
+      const newIsEmailDue = resetSeconds === 0 && !isNewUser && actuallyNeedsReset;
       setIsEmailDue(newIsEmailDue);
       onEmailDue?.(newIsEmailDue);
     };
@@ -199,7 +194,7 @@ export const DailyCountdownTimer: React.FC<DailyCountdownTimerProps> = ({
                 isEmailDue ? 'bg-orange-500' : 'bg-purple-500'
               }`}
               initial={{ width: 0 }}
-              animate={{ width: `${getProgressPercentage(timeUntilEmail.totalSeconds, 48 * 60 * 60)}%` }}
+              animate={{ width: `${getProgressPercentage(timeUntilEmail.totalSeconds, 24 * 60 * 60)}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
