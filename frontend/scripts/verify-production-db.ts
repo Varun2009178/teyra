@@ -4,8 +4,13 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
-// Hard-coded database URL for production
-const DB_URL = "postgresql://neondb_owner:npg_ps5BtDme1Yfk@ep-empty-rice-aeos99ao-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+// Get database URL from environment variables
+const DB_URL = process.env.DATABASE_URL;
+
+if (!DB_URL) {
+  console.error('DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
 
 async function verifyProductionDb() {
   try {

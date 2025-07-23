@@ -1,10 +1,24 @@
-// Hard-coded database connection strings for production
-// These will be used if the environment variables are not properly loaded
+// Database configuration helper
+// This safely gets database URLs from environment variables
+
+// Helper function to get environment variables safely
+const getEnvVar = (name: string): string => {
+  const value = process.env[name];
+  if (!value) {
+    console.warn(`Environment variable ${name} is not set`);
+    return '';
+  }
+  return value;
+};
 
 export const DATABASE_CONFIG = {
   // Main pooled connection URL
-  DATABASE_URL: "postgresql://neondb_owner:npg_ps5BtDme1Yfk@ep-empty-rice-aeos99ao-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
+  get DATABASE_URL(): string {
+    return getEnvVar('DATABASE_URL');
+  },
   
   // Direct connection URL (for migrations, etc.)
-  DIRECT_URL: "postgresql://neondb_owner:npg_ps5BtDme1Yfk@ep-empty-rice-aeos99ao.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  get DIRECT_URL(): string {
+    return getEnvVar('DIRECT_URL');
+  }
 };

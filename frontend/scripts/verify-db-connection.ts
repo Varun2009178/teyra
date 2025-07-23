@@ -1,7 +1,16 @@
 import { neon } from '@neondatabase/serverless';
+import dotenv from 'dotenv';
 
-// Hard-coded database URL for testing
-const DB_URL = "postgresql://neondb_owner:npg_ps5BtDme1Yfk@ep-empty-rice-aeos99ao-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+// Load environment variables
+dotenv.config({ path: '.env.local' });
+
+// Get database URL from environment variables
+const DB_URL = process.env.DATABASE_URL;
+
+if (!DB_URL) {
+  console.error('DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
 
 async function verifyConnection() {
   try {

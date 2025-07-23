@@ -6,8 +6,13 @@ import path from 'path';
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
-// Hard-coded database URL for production
-const DB_URL = "postgresql://neondb_owner:npg_ps5BtDme1Yfk@ep-empty-rice-aeos99ao-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+// Get database URL from environment variables
+const DB_URL = process.env.DATABASE_URL;
+
+if (!DB_URL) {
+  console.error('DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
 
 async function checkProductionReadiness() {
   console.log('🚀 Running production readiness check...');
@@ -44,17 +49,17 @@ async function checkProductionReadiness() {
     return;
   }
   
-  // 2. Check for hard-coded database URLs
-  console.log('\n🔍 Checking for hard-coded database URLs...');
+  // 2. Check for environment-based database connection
+  console.log('\n🔍 Checking for environment-based database connection...');
   
   const dbFilePath = path.join(process.cwd(), 'src', 'lib', 'db.ts');
   const dbFileContent = fs.readFileSync(dbFilePath, 'utf8');
   
-  if (dbFileContent.includes('const DB_URL =') && 
-      dbFileContent.includes('postgresql://neondb_owner:npg_ps5BtDme1Yfk')) {
-    console.log('✅ Hard-coded database URLs found in db.ts');
+  if (dbFileContent.includes('DATABASE_CONFIG.DATABASE_URL') && 
+      !dbFileContent.includes('postgresql://neondb_owner:')) {
+    console.log('✅ Environment-based database connection found in db.ts');
   } else {
-    console.error('❌ Hard-coded database URLs not found in db.ts');
+    console.error('❌ Hard-coded database URLs may still be present in db.ts');
   }
   
   // 3. Check for ensureUserExists function
