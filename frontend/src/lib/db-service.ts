@@ -27,6 +27,8 @@ export async function getUserTasks(userId: string) {
 
 export async function createTask(userId: string, title: string, hasBeenSplit: boolean = false) {
   try {
+    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit})`);
+    
     const [newTask] = await db()
       .insert(tasks)
       .values({
@@ -38,6 +40,18 @@ export async function createTask(userId: string, title: string, hasBeenSplit: bo
         updatedAt: new Date()
       })
       .returning();
+    
+    console.log('Task created successfully:', newTask);
+    
+    // Also update user progress to increment total tasks
+    try {
+      const progress = await getUserProgress(userId);
+      progress.totalTasks += 1;
+      await updateUserProgress(userId, progress);
+    } catch (progressError) {
+      console.error('Error updating user progress after task creation:', progressError);
+      // Continue even if progress update fails
+    }
     
     return newTask;
   } catch (error) {

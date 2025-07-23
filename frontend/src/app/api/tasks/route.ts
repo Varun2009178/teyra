@@ -34,14 +34,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { title, hasBeenSplit } = await request.json();
+    const body = await request.json().catch(e => {
+      console.error('Error parsing request body:', e);
+      return {};
+    });
+    
+    const { title, hasBeenSplit = false } = body;
     
     if (!title || typeof title !== 'string') {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
     const userId = user.id;
-    const newTask = await createTask(userId, title, hasBeenSplit);
+    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit})`);
+    
+    const newTask = await createTask(userId, title, Boolean(hasBeenSplit));
     
     return NextResponse.json(newTask);
   } catch (error) {

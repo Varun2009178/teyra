@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 
 // Lazy database connection to prevent build-time initialization
 let _db: ReturnType<typeof drizzle> | null = null;
+let _sql: ReturnType<typeof neon> | null = null;
 
 export const db = () => {
   if (!_db) {
@@ -21,8 +22,8 @@ export const db = () => {
     
     try {
       console.log('Initializing database connection...');
-      const sql = neon(dbUrl);
-      _db = drizzle(sql);
+      _sql = neon(dbUrl);
+      _db = drizzle(_sql);
       console.log('Database connection initialized successfully');
     } catch (error) {
       console.error('Failed to initialize database connection:', error);
