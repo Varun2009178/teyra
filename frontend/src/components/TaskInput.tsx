@@ -38,6 +38,10 @@ export function TaskInput({ onAddTask, isLoading = false }: TaskInputProps) {
             placeholder="Add a new task..."
             className="flex-1 border-none outline-none text-gray-700 placeholder-gray-400 font-medium text-sm"
             disabled={isLoading}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
           />
           <button
             type="submit"

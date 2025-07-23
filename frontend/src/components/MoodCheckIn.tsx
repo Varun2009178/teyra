@@ -271,6 +271,10 @@ export function MoodCheckIn({ onMoodSelect, onTaskSuggestion, onDismiss, existin
                   value={moodExplanation}
                   onChange={(e) => setMoodExplanation(e.target.value)}
                   className="w-full"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !isGeneratingTasks) {
                       handleExplainMood();

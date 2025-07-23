@@ -258,6 +258,10 @@ export default function AILifeAutopilot({
                       className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent resize-none bg-white"
                       rows={2}
                       disabled={isProcessing}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
                     />
                   </div>
                   <motion.button
