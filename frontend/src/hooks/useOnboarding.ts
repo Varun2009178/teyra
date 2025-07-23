@@ -15,26 +15,39 @@ export function useOnboarding() {
       return;
     }
 
-    // Check if this is a new user (created in the last 5 minutes)
+    // Check if this is a new user (created in the last 15 minutes - increased from 5 minutes)
     const creationTime = new Date(user.createdAt).getTime();
     const now = new Date().getTime();
-    const fiveMinutesInMs = 5 * 60 * 1000;
-    const isNewUser = now - creationTime < fiveMinutesInMs;
+    const fifteenMinutesInMs = 15 * 60 * 1000; // Increased to 15 minutes
+    const isNewUser = now - creationTime < fifteenMinutesInMs;
 
     // Check if user has completed onboarding
-    const hasCompletedOnboarding = localStorage.getItem(`onboarded_${userId}`) === 'true';
+    let hasCompletedOnboarding = false;
+    try {
+      hasCompletedOnboarding = localStorage.getItem(`onboarded_${userId}`) === 'true';
+    } catch (e) {
+      console.error('Error accessing localStorage:', e);
+    }
 
     console.log('User status:', {
       isNewUser,
       hasCompletedOnboarding,
       createdAt: user.createdAt,
-      timeSinceCreation: (now - creationTime) / 1000 / 60 + ' minutes'
+      timeSinceCreation: (now - creationTime) / 1000 / 60 + ' minutes',
+      currentPath: typeof window !== 'undefined' ? window.location.pathname : 'unknown'
     });
 
     // Only redirect if user is new AND hasn't completed onboarding
-    if (isNewUser && !hasCompletedOnboarding && window.location.pathname !== '/welcome') {
-      console.log('Redirecting new user to welcome page');
-      router.push('/welcome');
+    // And we're not already on the welcome page
+    if (isNewUser && !hasCompletedOnboarding) {
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      
+      if (currentPath !== '/welcome') {
+        console.log('Redirecting new user to welcome page');
+        
+        // Use replace instead of push to avoid back button issues
+        router.replace('/welcome');
+      }
     }
   }, [isAuthLoaded, isUserLoaded, userId, user, router]);
 

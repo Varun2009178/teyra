@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { MilestoneCelebration } from '@/components/MilestoneCelebration';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 import { DailySummaryPopup } from '@/components/DailySummaryPopup';
+import { usePendingTasks } from '@/hooks/usePendingTasks';
 
 interface Task {
   id: number | string;
@@ -46,6 +47,8 @@ interface UserProgress {
 export default function Dashboard() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
+  // Process any pending tasks from localStorage
+  usePendingTasks();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -65,24 +68,46 @@ export default function Dashboard() {
   const [showDailySummary, setShowDailySummary] = useState(false);
   const [dailySummaryData, setDailySummaryData] = useState<any>(null);
 
-  // Check if user is new (created in the last 5 minutes) - for UI display only
+  // Check if user is new (created in the last 30 minutes) - for UI display and onboarding
   useEffect(() => {
     if (user?.createdAt && isLoaded) {
       const creationTime = new Date(user.createdAt).getTime();
       const now = new Date().getTime();
-      const fiveMinutesInMs = 5 * 60 * 1000;
-      const isNew = now - creationTime < fiveMinutesInMs;
+      const thirtyMinutesInMs = 30 * 60 * 1000; // Increased to 30 minutes
+      const isNew = now - creationTime < thirtyMinutesInMs;
       setIsNewUser(isNew);
       
-      // Only redirect if this is a truly new user who hasn't completed onboarding
-      // AND we're not already on the welcome page
-      if (isNew && localStorage.getItem(`onboarded_${user.id}`) !== 'true' && typeof window !== 'undefined') {
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/welcome' && currentPath !== '/dashboard') {
-          console.log('New user detected, redirecting to welcome');
-          router.replace('/welcome');
-          return;
-        }
+      // Check if user has completed onboarding
+      let hasCompletedOnboarding = false;
+      try {
+        hasCompletedOnboarding = localStorage.getItem(`onboarded_${user.id}`) === 'true';
+      } catch (e) {
+        console.error('Error accessing localStorage:', e);
+      }
+      
+      console.log('Dashboard user status:', {
+        isNew,
+        hasCompletedOnboarding,
+        createdAt: user.createdAt,
+        timeSinceCreation: (now - creationTime) / 1000 / 60 + ' minutes'
+      });
+      
+      // If this is a new user who hasn't completed onboarding, redirect to welcome page
+      if (isNew && !hasCompletedOnboarding) {
+        console.log('New user detected in dashboard, redirecting to welcome');
+        
+        // Use both router.replace and direct window.location for maximum reliability
+        router.replace('/welcome');
+        
+        // Also use direct navigation as a backup
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            console.log('Forcing redirect to welcome page via window.location');
+            window.location.href = '/welcome';
+          }
+        }, 100);
+        
+        return;
       }
     }
   }, [user?.createdAt, isLoaded, user?.id, router]);

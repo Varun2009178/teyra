@@ -6,6 +6,7 @@ import TransitionProvider from '@/components/TransitionProvider'
 import { Analytics } from '@vercel/analytics/react'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import AuthProvider from '@/components/auth/AuthProvider'
+import OnboardingProvider from '@/components/auth/OnboardingProvider'
 
 
 const inter = Inter({ subsets: ['latin'] })
@@ -30,7 +31,9 @@ export default function RootLayout({
       <body className={`${inter.className} h-full`}>
         <ThemeProvider>
           <AuthProvider>
-            <TransitionProvider>{children}</TransitionProvider>
+            <OnboardingProvider>
+              <TransitionProvider>{children}</TransitionProvider>
+            </OnboardingProvider>
           </AuthProvider>
         </ThemeProvider>
         <Toaster />
