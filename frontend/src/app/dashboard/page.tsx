@@ -203,6 +203,29 @@ export default function Dashboard() {
     }
   }, [isLoaded, user, router]);
 
+  // Check for expired timer and send email if needed
+  const checkExpiredTimer = async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/check-timer-expired', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.expired) {
+          console.log('Timer expired, email sent and reset completed');
+          // Refresh progress data after reset
+          fetchProgress();
+        }
+      }
+    } catch (error) {
+      console.error('Error checking expired timer:', error);
+    }
+  };
+
   useEffect(() => {
     if (isLoaded && user) {
       console.log("User authenticated:", user.emailAddresses[0]?.emailAddress);
@@ -210,6 +233,9 @@ export default function Dashboard() {
       // Initial data fetch
       fetchTasks();
       fetchProgress();
+      
+      // Check for expired timer
+      checkExpiredTimer();
       
       // Set up periodic refresh to handle server restarts
       const refreshInterval = setInterval(() => {
@@ -222,6 +248,8 @@ export default function Dashboard() {
         console.log("Window focused, refreshing data");
         fetchTasks();
         fetchProgress();
+        // Check for expired timer when user returns to the tab
+        checkExpiredTimer();
       };
       
       window.addEventListener('focus', handleFocus);
