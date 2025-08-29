@@ -1,1076 +1,1383 @@
-"use client";
-import React, { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, User, Star, Plus, Calendar } from 'lucide-react'
-import { Button } from "@/components/ui/button";
-import Link from 'next/link';
-import { useUser, useClerk, useAuth, UserButton } from '@clerk/nextjs';
+'use client';
+
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle } from 'lucide-react'
+import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
-import { CartoonTaskCard } from '@/components/CartoonTaskCard';
-import { TaskInput } from '@/components/TaskInput';
-import { ProgressCircle } from '@/components/ProgressCircle';
 import { Cactus } from '@/components/Cactus';
-import { MoodCheckIn } from '@/components/MoodCheckIn';
-import { MikeSpeechBubble } from '@/components/MikeSpeechBubble';
-import Image from 'next/image';
-import { MilestoneCelebration } from '@/components/MilestoneCelebration';
-import { DeleteAccountButton } from '@/components/DeleteAccountButton';
-import { DailySummaryPopup } from '@/components/DailySummaryPopup';
-import { DailyCountdownTimer } from '@/components/DailyCountdownTimer';
-import { usePendingTasks } from '@/hooks/usePendingTasks';
+import { AnimatedCircularProgressBar } from "@/components/magicui/animated-circular-progress-bar";
+import { motion, AnimatePresence } from 'framer-motion';
+import DailyResetChecker from '@/components/DailyResetChecker';
+import MoodTaskGenerator from '@/components/MoodTaskGenerator';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
+import { useSmartNotifications } from '@/hooks/useSmartNotifications';
+import { OnboardingTour } from '@/components/OnboardingTour';
+import { SmartNotificationSetup } from '@/components/SmartNotificationSetup';
+import { NotificationSettings } from '@/components/NotificationSettings';
+import * as gtag from '@/lib/gtag';
 
 interface Task {
-  id: number | string;
+  id: number;
   title: string;
   completed: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  userId: string;
-  hasBeenSplit?: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-interface UserProgress {
-  id: string | number;
-  completedTasks: number;
-  totalTasks: number;
-  mood: string;
-  displayCompleted: number;
-  maxValue: number;
-  allTimeCompleted: number;
-  currentMilestone: number;
-  dailyCompletedTasks: number;
-  dailyMoodChecks: number;
-  dailyAISplits: number;
-  lastResetDate: string;
-  updatedAt?: string;
-}
+// Zero-flicker task card - instant appearance
+const TaskCard = React.memo(({ 
+  task, 
+  onToggle, 
+  onDelete,
+  isSustainable = false
+}: { 
+  task: Task;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  isSustainable?: boolean;
+}) => {
+  const [justCompleted, setJustCompleted] = useState(false);
+  
+  // Track when task is completed to prevent immediate hover state
+  React.useEffect(() => {
+    if (task.completed) {
+      setJustCompleted(true);
+      const timer = setTimeout(() => setJustCompleted(false), 2000); // 2 second delay
+      return () => clearTimeout(timer);
+    }
+  }, [task.completed]);
+  
+  return (
+    <div className={`group relative backdrop-blur-sm border rounded-2xl p-4 hover:shadow-md transition-all duration-200 ${
+      isSustainable 
+        ? 'bg-green-500/10 border-green-400/30 hover:border-green-400/50 hover:bg-green-500/20' 
+        : 'bg-white/5 border-white/20 hover:border-white/30 hover:bg-white/10'
+    }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4 flex-1">
+          <button
+            onClick={() => onToggle(task.id)}
+            className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
+              task.completed 
+                ? `bg-green-500 border-green-500 text-white ${!justCompleted ? 'hover:bg-gray-500 hover:border-gray-500' : ''}` 
+                : 'border-white/30 hover:border-green-400 bg-white/5 hover:bg-green-500/20'
+            }`}
+          >
+            <motion.div
+              initial={false}
+              animate={{
+                scale: task.completed ? 1 : 0,
+              }}
+              transition={{
+                duration: 0.2,
+                ease: "easeOut"
+              }}
+            >
+              <Check className="w-2.5 h-2.5" />
+            </motion.div>
+          </button>
+          
+          <span 
+            className={`flex-1 transition-all duration-200 font-medium ${
+              task.completed 
+                ? 'text-white/40 line-through' 
+                : 'text-white'
+            }`}
+          >
+            {task.title}
+            {isSustainable && (
+              <span className="ml-2 text-xs bg-green-500/20 text-green-400 border border-green-400/30 px-2 py-0.5 rounded-full">
+                20 pts
+              </span>
+            )}
+          </span>
+        </div>
+        
+        <button
+          onClick={() => onDelete(task.id)}
+          className="flex items-center justify-center w-8 h-8 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-full transition-all duration-200 opacity-0 group-hover:opacity-100"
+          title="Delete Task"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+      
+    </div>
+  );
+});
 
-export default function Dashboard() {
-  const { user, isLoaded } = useUser();
+TaskCard.displayName = 'TaskCard';
+
+export default function MVPDashboard() {
+  const { user } = useUser();
   const { getToken } = useAuth();
-  // Process any pending tasks from localStorage
-  usePendingTasks();
-  const router = useRouter();
+  const { 
+    permission, 
+    sendTaskCompletionNotification, 
+    sendAchievementNotification,
+    sendFirstTaskNotification 
+  } = useNotifications();
+  const {
+    trackTaskCreated,
+    trackTaskCompleted,
+    trackTaskDeleted,
+    trackMoodSelected,
+    trackSessionStart,
+    trackMilestoneAchieved
+  } = useBehaviorTracking();
+  
+  // Initialize smart notifications
+  useSmartNotifications();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [newTask, setNewTask] = useState('');
+  const [userProgress, setUserProgress] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddingTask, setIsAddingTask] = useState(false);
-  const [showProgressPopup, setShowProgressPopup] = useState(false);
-  const [showMilestoneCelebration, setShowMilestoneCelebration] = useState(false);
-  const [currentMilestone, setCurrentMilestone] = useState<number | null>(null);
-  const [newMood, setNewMood] = useState<string>('');
-  const [lastVisitDate, setLastVisitDate] = useState('');
-  const [currentDate, setCurrentDate] = useState('');
-  const [showMoodCheck, setShowMoodCheck] = useState(true);
-  const [moodCheckDismissed, setMoodCheckDismissed] = useState(false);
-  const [lastMoodCheckDate, setLastMoodCheckDate] = useState<string>('');
-  const [timeUntilReset, setTimeUntilReset] = useState<string>('');
-  const [isNewUser, setIsNewUser] = useState(false);
-  const [showDailySummary, setShowDailySummary] = useState(false);
-  const [dailySummaryData, setDailySummaryData] = useState<any>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [currentMood, setCurrentMood] = useState<{id: string, emoji: string, label: string, color: string} | null>(null);
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+  const [pendingTaskId, setPendingTaskId] = useState<number | null>(null);
+  const [confirmationsDismissed, setConfirmationsDismissed] = useState(false);
+  const [showMilestonePopup, setShowMilestonePopup] = useState(false);
+  const [milestoneMessage, setMilestoneMessage] = useState('');
+  const [showDailyLimitPopup, setShowDailyLimitPopup] = useState(false);
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
+  const [showSmartNotificationSetup, setShowSmartNotificationSetup] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [hasCompletedFirstTask, setHasCompletedFirstTask] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
-  // Check if user is new (created in the last 30 minutes) - for UI display and onboarding
-  useEffect(() => {
-    if (user?.createdAt && isLoaded) {
-      const creationTime = new Date(user.createdAt).getTime();
-      const now = new Date().getTime();
-      const thirtyMinutesInMs = 30 * 60 * 1000; // Increased to 30 minutes
-      const isNew = now - creationTime < thirtyMinutesInMs;
-      setIsNewUser(isNew);
+  // Sustainable tasks state - very easy to complete
+  const sustainableTasks = [
+    "🌱 Use a reusable water bottle",
+    "♻️ Put one item in recycling",
+    "🚶 Take stairs instead of elevator",
+    "💡 Turn off one light you're not using",
+    "🌿 Save food scraps for composting",
+    "📱 Choose digital receipt at store",
+    "🚿 Reduce shower time by 1 minute",
+    "🌍 Buy one local product if shopping",
+    "🔌 Unplug one device when done",
+    "🥬 Add vegetables to one meal"
+  ];
+
+  // Memoized values for performance
+  const completedTasksCount = useMemo(() => tasks.filter(t => t?.completed).length, [tasks]);
+  const totalTasksCount = useMemo(() => tasks.length, [tasks]);
+  const completedSustainableTasksCount = useMemo(() => 
+    tasks.filter(t => t?.completed && sustainableTasks.includes(t.title)).length, 
+    [tasks]
+  );
+  
+  // Optimized progress calculation - only recalculate when tasks actually change
+  const rawTotalPoints = useMemo(() => {
+    if (tasks.length === 0) return 0;
+    
+    // Calculate stored points by parsing archived tasks from ALL tasks (more accurate)
+    const archivedTasks = tasks.filter(task => task.title.includes('[ARCHIVED'));
+    let storedPoints = 0;
+    
+    if (archivedTasks.length > 0) {
+      const archivedRegularTasks = archivedTasks.filter(task => 
+        !sustainableTasks.some(sustainableTask => 
+          task.title.includes(sustainableTask.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
+        )
+      );
+      const archivedSustainableTasks = archivedTasks.filter(task => 
+        sustainableTasks.some(sustainableTask => 
+          task.title.includes(sustainableTask.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
+        )
+      );
+      storedPoints = (archivedRegularTasks.length * 10) + (archivedSustainableTasks.length * 20);
       
-      // Check if user has completed onboarding
-      let hasCompletedOnboarding = false;
-      try {
-        hasCompletedOnboarding = localStorage.getItem(`onboarded_${user.id}`) === 'true';
-      } catch (e) {
-        console.error('Error accessing localStorage:', e);
-      }
-      
-      console.log('Dashboard user status:', {
-        isNew,
-        hasCompletedOnboarding,
-        createdAt: user.createdAt,
-        timeSinceCreation: (now - creationTime) / 1000 / 60 + ' minutes'
+      console.log('📊 Archived tasks analysis:', {
+        totalArchived: archivedTasks.length,
+        archivedRegular: archivedRegularTasks.length,
+        archivedSustainable: archivedSustainableTasks.length,
+        storedPoints
       });
-      
-      // If this is a new user who hasn't completed onboarding, redirect to welcome page
-      if (isNew && !hasCompletedOnboarding) {
-        console.log('New user detected in dashboard, redirecting to welcome');
-        
-        // Use both router.replace and direct window.location for maximum reliability
-        router.replace('/welcome');
-        
-        // Also use direct navigation as a backup
-        setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            console.log('Forcing redirect to welcome page via window.location');
-            window.location.href = '/welcome';
-          }
-        }, 100);
-        
-        return;
-      }
     }
-  }, [user?.createdAt, isLoaded, user?.id, router]);
+    
+    // Calculate current session points (regular = 10, sustainable = 20)
+    // Exclude archived tasks from current session calculations
+    const currentCompletedTasks = tasks.filter(t => t?.completed && !t.title.includes('[ARCHIVED'));
+    const regularCompleted = currentCompletedTasks.filter(t => !sustainableTasks.includes(t.title)).length;
+    const sustainableCompleted = currentCompletedTasks.filter(t => sustainableTasks.includes(t.title)).length;
+    const currentPoints = (regularCompleted * 10) + (sustainableCompleted * 20);
+    
+    // Total = stored + current (this updates in real-time as tasks are toggled)
+    const totalPoints = storedPoints + currentPoints;
+    
+    console.log('🔍 Real-time points calculation:', {
+      archivedTasksCount: archivedTasks.length,
+      storedPoints,
+      regularCompleted,
+      sustainableCompleted,
+      currentPoints,
+      totalPoints,
+      tasksLength: tasks.length
+    });
+    
+    return totalPoints;
+  }, [tasks]);
 
-  // Calculate time until next reset
-  useEffect(() => {
-    const calculateTimeUntilReset = () => {
-      if (progress?.lastResetDate) {
-        const lastReset = new Date(progress.lastResetDate);
-        const nextReset = new Date(lastReset.getTime() + 24 * 60 * 60 * 1000);
-        const now = new Date();
-        const timeLeft = nextReset.getTime() - now.getTime();
-        
-        if (timeLeft > 0) {
-          const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-          const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-          setTimeUntilReset(`${hours}h ${minutes}m`);
-        } else {
-          setTimeUntilReset('Reset now!');
-        }
-      }
+  // Calculate current milestone and progress within that milestone
+  const milestoneData = useMemo(() => {
+    let currentMilestone = 0;
+    let displayPoints = rawTotalPoints;
+    let cactusState = 'sad';
+    let maxPoints = 100;
+
+    // Determine which milestone we're in
+    if (rawTotalPoints >= 250) { // 100 + 150 = 250 total to reach happy
+      currentMilestone = 2;
+      displayPoints = rawTotalPoints - 250; // Start from 0 for final stage  
+      if (displayPoints > 200) displayPoints = 200; // Cap at 200
+      cactusState = 'happy';
+      maxPoints = 200;
+    } else if (rawTotalPoints >= 100) {
+      currentMilestone = 1;
+      displayPoints = rawTotalPoints - 100; // Start from 0 for this stage
+      cactusState = 'neutral';
+      maxPoints = 150;
+    }
+
+    console.log('🎯 Milestone calculation:', {
+      rawTotalPoints,
+      currentMilestone,
+      displayPoints,
+      maxPoints,
+      cactusState
+    });
+
+    return {
+      milestone: currentMilestone,
+      currentPoints: displayPoints,
+      maxPoints: maxPoints,
+      cactusState: cactusState,
+      totalPointsEarned: rawTotalPoints
     };
-
-    calculateTimeUntilReset();
-    const interval = setInterval(calculateTimeUntilReset, 60000); // Update every minute
+  }, [rawTotalPoints]);
+  
+  // Calculate daily task count for limit tracking
+  const dailyTasksCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    return () => clearInterval(interval);
-  }, [progress?.lastResetDate]);
+    return tasks.filter(task => {
+      const taskDate = new Date(task.created_at);
+      taskDate.setHours(0, 0, 0, 0);
+      return taskDate.getTime() === today.getTime();
+    }).length;
+  }, [tasks]);
 
-  // Clean up duplicate tasks on mount
+  // Check if confirmations have been dismissed
   useEffect(() => {
-    if (tasks.length > 0) {
-      const taskMap = new Map();
-      tasks.forEach(task => {
-        taskMap.set(task.id, task);
-      });
-      const uniqueTasks = Array.from(taskMap.values());
-      if (uniqueTasks.length !== tasks.length) {
-        console.log(`Cleaned up ${tasks.length - uniqueTasks.length} duplicate tasks`);
-        setTasks(uniqueTasks);
-      }
+    const dismissed = localStorage.getItem('task_confirmations_dismissed');
+    if (dismissed === 'true') {
+      setConfirmationsDismissed(true);
     }
-  }, []); // Only run on mount
+  }, []);
 
-  // Debug progress data
-  useEffect(() => {
-    if (progress) {
-      console.log('[Dashboard] Progress data:', progress);
-    }
-  }, [progress]);
-
-  // Debug progress changes
-  useEffect(() => {
-    if (progress) {
-      console.log('[Dashboard] Progress updated:', {
-        displayCompleted: progress.displayCompleted,
-        completedTasks: progress.completedTasks,
-        allTimeCompleted: progress.allTimeCompleted,
-        maxValue: progress.maxValue,
-        mood: progress.mood,
-        currentMilestone: progress.currentMilestone,
-        dailyCompletedTasks: progress.dailyCompletedTasks,
-      });
-    }
-  }, [progress]);
-
-
-
-  // Check if we need to reset mood check-in daily
-  useEffect(() => {
-    if (user?.id) {
-      const today = new Date().toDateString();
-      const lastCheck = localStorage.getItem(`lastMoodCheck_${user.id}`);
-      
-      if (lastCheck !== today) {
-        // New day - reset mood check-in
-        setShowMoodCheck(true);
-        setMoodCheckDismissed(false);
-        localStorage.setItem(`lastMoodCheck_${user.id}`, today);
-        console.log('[Dashboard] Daily mood check-in reset');
-      }
-    }
-  }, [user?.id]);
-
-
-
-  useEffect(() => {
-    // Only redirect if we're sure the user is not authenticated and auth is loaded
-    if (isLoaded && !user) {
-      router.replace("/sign-in");
-    }
-  }, [isLoaded, user, router]);
-
-  // Check for expired timer and send email if needed
-  const checkExpiredTimer = async () => {
+  // Fetch user data - optimized for faster loading
+  const fetchUserData = useCallback(async () => {
+    if (!user || !isHydrated) return;
+    
     try {
+      setIsLoading(true);
       const token = await getToken();
-      const response = await fetch('/api/check-timer-expired', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      
+      // Fetch tasks first (most important for UI)
+      const tasksRes = await fetch('/api/tasks', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.expired) {
-          console.log('Timer expired, email sent and reset completed');
-          // Refresh progress data after reset
-          fetchProgress();
-        }
-      }
-    } catch (error) {
-      console.error('Error checking expired timer:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      console.log("User authenticated:", user.emailAddresses[0]?.emailAddress);
+      const tasksData = await tasksRes.json();
+      const tasksList = Array.isArray(tasksData) ? tasksData : tasksData.tasks || [];
+      setTasks(tasksList);
       
-      // Initial data fetch
-      fetchTasks();
-      fetchProgress();
+      // Immediately show UI with tasks, load progress in background
+      setIsLoading(false);
       
-      // Check for expired timer
-      checkExpiredTimer();
-      
-      // Set up periodic refresh to handle server restarts
-      const refreshInterval = setInterval(() => {
-        fetchTasks();
-        fetchProgress();
-      }, 10000); // Refresh every 10 seconds
-      
-      // Handle window focus events to refresh data when user returns to the tab
-      const handleFocus = () => {
-        console.log("Window focused, refreshing data");
-        fetchTasks();
-        fetchProgress();
-        // Check for expired timer when user returns to the tab
-        checkExpiredTimer();
-      };
-      
-      window.addEventListener('focus', handleFocus);
-      
-      return () => {
-        clearInterval(refreshInterval);
-        window.removeEventListener('focus', handleFocus);
-      };
-    }
-  }, [isLoaded, user]);
-
-  const fetchTasks = async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/tasks', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Ensure no duplicates by using a Map to deduplicate by ID
-        const taskMap = new Map();
-        data.forEach((task: Task) => {
-          taskMap.set(task.id, task);
+      // Load progress data in background (less critical for immediate UI)
+      try {
+        const progressRes = await fetch('/api/progress', {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-        const uniqueTasks = Array.from(taskMap.values());
-        setTasks(uniqueTasks);
-      } else {
-        console.error('Failed to fetch tasks:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
         
-        // Set empty tasks if database is unavailable
-        if (response.status === 500) {
-          setTasks([]);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      // Set empty tasks on network error
-      setTasks([]);
-    }
-  };
-
-  const fetchProgress = async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch(`/api/progress?t=${Date.now()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setProgress({
-          id: data.id,
-          completedTasks: data.completedTasks,
-          totalTasks: data.totalTasks,
-          mood: data.mood,
-          displayCompleted: data.displayCompleted,
-          maxValue: data.maxValue,
-          allTimeCompleted: data.allTimeCompleted,
-          currentMilestone: data.currentMilestone,
-          dailyCompletedTasks: data.dailyCompletedTasks,
-          dailyMoodChecks: data.dailyMoodChecks,
-          dailyAISplits: data.dailyAISplits,
-          lastResetDate: data.lastResetDate,
-          updatedAt: data.updatedAt
-        });
-      } else {
-        const errorText = await response.text();
-        console.error('Progress fetch error:', response.status, errorText);
-        
-        // Set default progress if database is unavailable
-        if (response.status === 500) {
-          setProgress({
-            id: 'fallback',
-            completedTasks: 0,
-            totalTasks: 0,
-            mood: 'neutral',
-            displayCompleted: 0,
-            maxValue: 10,
-            allTimeCompleted: 0,
-            currentMilestone: 0,
-            dailyCompletedTasks: 0,
-            dailyMoodChecks: 0,
-            dailyAISplits: 0,
-            lastResetDate: new Date().toISOString()
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          setUserProgress(progressData);
+        } else if (progressRes.status === 404) {
+          // User progress doesn't exist, create it
+          console.log('Creating user progress for new user');
+          const createRes = await fetch('/api/progress', {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           });
+          if (createRes.ok) {
+            const newProgressData = await createRes.json();
+            setUserProgress(newProgressData);
+          }
         }
+      } catch (progressError) {
+        console.error('Error fetching/creating progress:', progressError);
+        // Don't show error for background progress load
       }
-    } catch (error) {
-      console.error('Error fetching progress:', error);
       
-      // Set default progress on network error
-      setProgress({
-        id: 'fallback',
-        completedTasks: 0,
-        totalTasks: 0,
-        mood: 'neutral',
-        displayCompleted: 0,
-        maxValue: 10,
-        allTimeCompleted: 0,
-        currentMilestone: 0,
-        dailyCompletedTasks: 0,
-        dailyMoodChecks: 0,
-        dailyAISplits: 0,
-        lastResetDate: new Date().toISOString()
-      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load data');
+      setIsLoading(false);
     }
-  };
+  }, [user, getToken, isHydrated]);
 
-  const handleAddTask = async (title: string) => {
-    setIsAddingTask(true);
+  // Hydration effect - ensures client-side hydration is complete
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id || !isHydrated) return;
     
-    // Check if task with same title already exists
-    const existingTask = tasks.find(task => task.title.toLowerCase() === title.toLowerCase());
-    if (existingTask) {
-      toast.error('A task with this title already exists!');
-      setIsAddingTask(false);
+    fetchUserData();
+    // Track session start
+    try {
+      trackSessionStart();
+    } catch (error) {
+      console.warn('Session tracking failed:', error);
+    }
+
+    // Check if user should see onboarding tour
+    const hasSeenTour = localStorage.getItem(`dashboard_tour_${user.id}`) === 'true';
+    if (!hasSeenTour) {
+      // Show tour after a short delay to let dashboard load
+      setTimeout(() => {
+        setShowOnboardingTour(true);
+      }, 1000);
+    }
+  }, [fetchUserData, trackSessionStart, user?.id, isHydrated]);
+
+  // Force loading to complete if user is available but still loading
+  useEffect(() => {
+    if (user?.id && isLoading) {
+      const timeout = setTimeout(() => {
+        console.log('Forcing loading completion for user:', user.id);
+        setIsLoading(false);
+      }, 3000); // Max 3 seconds loading
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [user?.id, isLoading]);
+
+  // Add task - Optimistic updates for instant responsiveness
+  const handleAddTask = async () => {
+    if (!newTask.trim() || !user) return;
+
+    // Check daily limit before adding
+    if (dailyTasksCount >= 10) {
+      setShowDailyLimitPopup(true);
       return;
     }
+
+    const taskTitle = newTask.trim();
+    setNewTask(''); // Clear input immediately
     
+    // Create optimistic task immediately
+    const optimisticTask: Task = {
+      id: Date.now(), // Temporary ID
+      title: taskTitle,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add to UI instantly
+    setTasks(prev => [optimisticTask, ...prev]);
+    toast.success('Task added!');
+    
+    // Send notification for first task
+    if (tasks.length === 0 && permission.granted) {
+      sendFirstTaskNotification(taskTitle);
+    }
+
     try {
       const token = await getToken();
       const response = await fetch('/api/tasks', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title, hasBeenSplit: false })
+        body: JSON.stringify({ title: taskTitle })
       });
 
       if (response.ok) {
-        const newTask = await response.json();
-        // Add the new task smoothly without flickering
-        setTasks(prev => [newTask, ...prev]);
+        const data = await response.json();
+        // Replace optimistic task with real data
+        setTasks(prev => prev.map(task => 
+          task.id === optimisticTask.id ? data : task
+        ));
         
-        // Fetch progress in the background
-        fetchProgress().catch(console.error);
-        toast.success('Task added successfully!');
+        // Track successful task creation (non-blocking)
+        try {
+          trackTaskCreated(taskTitle, data.id);
+          gtag.trackTaskCreated(taskTitle);
+        } catch (error) {
+          console.warn('Behavior tracking failed:', error);
+        }
       } else {
-        toast.error('Failed to add task');
+        // Remove optimistic task on failure
+        setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+        const error = await response.json();
+        toast.error(error.error || 'Failed to add task');
       }
     } catch (error) {
-      console.error('Error adding task:', error);
+      // Remove optimistic task on failure
+      setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
       toast.error('Failed to add task');
-    } finally {
-      setIsAddingTask(false);
     }
   };
 
-  const handleToggleComplete = async (id: number | string, completed: boolean) => {
-    const previousTask = tasks.find(task => task.id === id);
-    const previousCompleted = previousTask?.completed;
-    if (!previousTask) {
-      console.error('Task not found for toggle:', id);
+  // Toggle task completion - with confirmation popup
+  const handleToggleTask = async (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newCompletedState = !task.completed;
+
+    // If marking as complete and confirmations not dismissed, show popup
+    if (newCompletedState && !confirmationsDismissed) {
+      setPendingTaskId(taskId);
+      setShowConfirmationPopup(true);
       return;
     }
-    console.log(`Toggling task ${id} to ${completed ? 'completed' : 'not completed'}`);
-    setTasks(prev => prev.map(task =>
-      String(task.id) === String(id) ? { ...task, completed } : task
-    ));
+
+    // Otherwise proceed with normal completion logic
+    await completeTask(taskId, newCompletedState);
+  };
+
+  // Check for milestone achievement
+  const checkMilestoneAchievement = useCallback((oldPoints: number, newPoints: number) => {
+    if (newPoints <= oldPoints) return; // Only check when points increase
+    
+    // Check if we crossed the 100 point threshold (sad -> neutral)
+    if (oldPoints < 100 && newPoints >= 100) {
+      const message = "Mike is not sad anymore, but he can be happier! 🌱";
+      setMilestoneMessage(message);
+      setShowMilestonePopup(true);
+      
+      // Send achievement notification
+      if (permission.granted) {
+        sendAchievementNotification(message);
+      }
+      trackMilestoneAchieved('Milestone 1: Neutral Cactus', newPoints);
+      gtag.trackMilestoneReached('Neutral Cactus', newPoints);
+    }
+    // Check if we crossed the 250 point threshold (neutral -> happy)  
+    else if (oldPoints < 250 && newPoints >= 250) {
+      const message = "Mike is happy now! You're doing amazing! 🌟";
+      setMilestoneMessage(message);
+      setShowMilestonePopup(true);
+      
+      // Send achievement notification
+      if (permission.granted) {
+        sendAchievementNotification(message);
+      }
+      trackMilestoneAchieved('Milestone 2: Happy Cactus', newPoints);
+      gtag.trackMilestoneReached('Happy Cactus', newPoints);
+    }
+  }, [permission.granted, sendAchievementNotification, trackMilestoneAchieved]);
+
+  // Actual task completion logic
+  const completeTask = async (taskId: number, newCompletedState: boolean) => {
+    const oldTotalPoints = rawTotalPoints;
+    
+    // Update UI immediately with boost effect
+    setTasks(prev => 
+      prev.map(t => 
+        t.id === taskId ? { ...t, completed: newCompletedState } : t
+      )
+    );
+    
+    // Check for milestone achievement after state would update
+    if (newCompletedState) {
+      const task = tasks.find(t => t.id === taskId);
+      const pointsToAdd = sustainableTasks.includes(task?.title || '') ? 20 : 10;
+      checkMilestoneAchievement(oldTotalPoints, oldTotalPoints + pointsToAdd);
+    }
+    
+    // Immediate feedback
+    toast.success(newCompletedState ? 'Great job! 🎉' : 'Task unmarked');
+    
+    // Show smart notification setup only after first task completion (one-time)
+    if (newCompletedState && !hasCompletedFirstTask && user?.id) {
+      const hasSeenSetup = localStorage.getItem(`smart_setup_${user.id}`) === 'true';
+      const hasShownSetup = sessionStorage.getItem(`shown_setup_${user.id}`) === 'true';
+      
+      if (!hasSeenSetup && !hasShownSetup) {
+        setHasCompletedFirstTask(true);
+        sessionStorage.setItem(`shown_setup_${user.id}`, 'true'); // Prevent multiple shows in same session
+        
+        // Show setup after a short delay
+        setTimeout(() => {
+          setShowSmartNotificationSetup(true);
+        }, 2000);
+      }
+    }
+    
+    // Send task completion notification and track behavior
+    if (newCompletedState && permission.granted) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        sendTaskCompletionNotification(task.title);
+        try {
+          trackTaskCompleted(task.title, taskId);
+          gtag.trackTaskCompleted(task.title);
+        } catch (error) {
+          console.warn('Task completion tracking failed:', error);
+        }
+      }
+    }
+
+    // Background API call
     try {
       const token = await getToken();
-      console.log(`Sending PATCH request to /api/tasks/${id}`);
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, },
-        body: JSON.stringify({ completed })
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ completed: newCompletedState })
       });
-      if (response.ok) {
-        const data = await response.json();
-        if (data) {
-          const previousCompletedTasks = progress?.completedTasks || 0;
-          const newCompletedTasks = data.completedTasks;
-          
-          // Check for milestone achievements
-          if (data.reachedNewMilestone) {
-            setCurrentMilestone(data.currentMilestone);
-            setNewMood(data.newMood);
-            setShowMilestoneCelebration(true);
-            toast.success(`🎉 Milestone reached! You're now ${data.newMood}!`);
-          }
-          
-          // Update progress with all the data from the server
-          setProgress(prev => prev ? {
-            ...prev, 
-            completedTasks: data.completedTasks, 
-            mood: data.newMood,
-            displayCompleted: data.displayCompleted, 
-            maxValue: data.maxValue,
-            allTimeCompleted: data.allTimeCompleted, 
-            currentMilestone: data.currentMilestone
-          } : null);
-          
-          // Also refresh progress from server to ensure consistency
-          fetchProgress().catch(console.error);
-        }
-        // Only show regular toast if not a milestone achievement
-        if (!data.reachedNewMilestone) {
-          toast.success(completed ? 'Task completed!' : 'Task uncompleted');
-        }
-      } else {
-        setTasks(prev => prev.map(task =>
-          String(task.id) === String(id) ? { ...task, completed: previousCompleted || false } : task
-        ));
+
+      if (!response.ok) {
+        // Revert if failed
+        setTasks(prev => 
+          prev.map(t => 
+            t.id === taskId ? { ...t, completed: !newCompletedState } : t
+          )
+        );
         toast.error('Failed to update task');
       }
+      // Note: We no longer update userProgress since we calculate milestones client-side
     } catch (error) {
-      setTasks(prev => prev.map(task =>
-        String(task.id) === String(id) ? { ...task, completed: previousCompleted || false } : task
-      ));
-      console.error('Error updating task:', error);
+      // Revert if failed
+      setTasks(prev => 
+        prev.map(t => 
+          t.id === taskId ? { ...t, completed: !newCompletedState } : t
+        )
+      );
       toast.error('Failed to update task');
     }
   };
 
-  const handleDeleteTask = async (id: number | string) => {
-    // Store the task before removing it (for recovery if API call fails)
-    const taskToDelete = tasks.find(task => task.id === id);
-    const taskIndex = tasks.findIndex(task => task.id === id);
-    
-    if (!taskToDelete) {
-      console.error('Task not found for deletion:', id);
-      return;
+  // Handle confirmation popup responses
+  const handleConfirmCompletion = async (confirmed: boolean) => {
+    if (confirmed && pendingTaskId) {
+      await completeTask(pendingTaskId, true);
     }
-    
-    // Optimistically update UI - remove the task
-    setTasks(prev => prev.filter(task => task.id !== id));
-    
-    try {
-      const token = await getToken();
-      const response = await fetch(`/api/tasks/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        // Fetch progress in the background
-        fetchProgress().catch(console.error);
-        toast.success('Task deleted successfully!');
-      } else {
-        // Revert the optimistic update if the API call failed
-        setTasks(prev => {
-          const existingIds = new Set(prev.map(t => t.id));
-          if (existingIds.has(id)) {
-            return prev; // Don't add back if already exists
-          }
-          return [...prev.slice(0, taskIndex), taskToDelete, ...prev.slice(taskIndex)];
-        });
-        toast.error('Failed to delete task');
-      }
-    } catch (error) {
-      // Revert the optimistic update if there was an error
-      setTasks(prev => {
-        const existingIds = new Set(prev.map(t => t.id));
-        if (existingIds.has(id)) {
-          return prev; // Don't add back if already exists
-        }
-        return [...prev.slice(0, taskIndex), taskToDelete, ...prev.slice(taskIndex)];
-      });
-      console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
-    }
+    setShowConfirmationPopup(false);
+    setPendingTaskId(null);
   };
 
-  const handleMoodSelect = async (mood: string) => {
+  const handleDismissConfirmations = () => {
+    localStorage.setItem('task_confirmations_dismissed', 'true');
+    setConfirmationsDismissed(true);
+    setShowConfirmationPopup(false);
+    
+    // Complete the pending task
+    if (pendingTaskId) {
+      completeTask(pendingTaskId, true);
+    }
+    setPendingTaskId(null);
+  };
+
+  // Handle adding a sustainable task
+  const handleAddSustainableTask = async () => {
+    // Check daily limit before adding
+    if (dailyTasksCount >= 10) {
+      setShowDailyLimitPopup(true);
+      return;
+    }
+
+    const randomTask = sustainableTasks[Math.floor(Math.random() * sustainableTasks.length)];
+    const optimisticTask: Task = {
+      id: Date.now() + Math.random(),
+      title: randomTask,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    setTasks(prev => [optimisticTask, ...prev]);
+    toast.success('Sustainable task added! Complete it for 20 points! 🌱');
+
     try {
       const token = await getToken();
-      
-      // Check daily limit first
-      const limitResponse = await fetch('/api/progress/check-mood-limit', {
+      const response = await fetch('/api/tasks', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        }
-      });
-      
-      if (limitResponse.ok) {
-        const limitData = await limitResponse.json();
-        if (limitData.limitReached) {
-          toast.error('Daily mood check-in limit reached! Try again tomorrow.');
-          return;
-        }
-      }
-      
-      const response = await fetch('/api/progress', {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ mood })
+        body: JSON.stringify({ title: randomTask })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setProgress(prev => prev ? {
-          ...prev,
-          mood: data.mood,
-          dailyMoodChecks: data.dailyMoodChecks
-        } : null);
-        setShowMoodCheck(false); // Hide the mood check after selection
-        setMoodCheckDismissed(true); // Mark as dismissed
-        toast.success('Mood updated!');
+        setTasks(prev => prev.map(task => 
+          task.id === optimisticTask.id ? data : task
+        ));
+      } else {
+        setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+        toast.error('Failed to add sustainable task');
       }
     } catch (error) {
-      console.error('Error updating mood:', error);
-      toast.error('Failed to update mood');
+      setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+      toast.error('Failed to add sustainable task');
     }
   };
 
-  const showMoodCheckAgain = () => {
-    setShowMoodCheck(true);
-  };
+  // Handle adding a single mood-generated task
+  const handleMoodTaskAdded = async (taskTitle: string) => {
+    // Check daily limit before adding
+    if (dailyTasksCount >= 10) {
+      setShowDailyLimitPopup(true);
+      return;
+    }
 
-  const dismissMoodCheck = () => {
-    setShowMoodCheck(false);
-    setMoodCheckDismissed(true);
-  };
-
-  const handleDailyReset = async () => {
+    const optimisticTask: Task = {
+      id: Date.now() + Math.random(), // Ensure unique IDs
+      title: taskTitle,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add to UI
+    setTasks(prev => [optimisticTask, ...prev]);
+    
     try {
       const token = await getToken();
-      const response = await fetch('/api/daily-reset', {
+      const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ userId: user?.id })
+        body: JSON.stringify({ title: taskTitle })
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Daily reset completed:', result);
-        
-        // Refresh data after reset
-        fetchTasks();
-        fetchProgress();
-        
-        toast.success('Daily tasks reset! Mike\'s progress preserved.');
+        const data = await response.json();
+        // Replace optimistic task with real data
+        setTasks(prev => prev.map(task => 
+          task.id === optimisticTask.id ? data : task
+        ));
       } else {
-        console.error('❌ Daily reset failed:', await response.text());
-        toast.error('Failed to reset daily tasks');
+        // Remove optimistic task on failure
+        setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+        toast.error('Failed to add task');
       }
     } catch (error) {
-      console.error('❌ Daily reset error:', error);
-      toast.error('Failed to reset daily tasks');
+      // Remove optimistic task on failure
+      setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+      toast.error('Failed to add task');
     }
   };
 
-  const showDailySummaryPopup = () => {
-    setDailySummaryData({
-      tasks,
-      progress
-    });
-    setShowDailySummary(true);
-  };
+  // Delete task
+  const handleDeleteTask = async (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-  const handleAddSubtasks = async (subtasks: string[], originalTaskId?: number | string) => {
+    // Remove from UI immediately
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+
     try {
-      // Remove the original task from state immediately for instant feedback
-      if (originalTaskId) {
-        setTasks(prev => prev.filter(task => task.id !== originalTaskId));
-      }
-      
-      // Add each subtask with hasBeenSplit flag
-      for (const title of subtasks) {
-        const token = await getToken();
-        const response = await fetch('/api/tasks', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ 
-            title: title.trim(),
-            hasBeenSplit: true // Mark as split so it can't be split again
-          })
-        });
-
-        if (response.ok) {
-          const newTask = await response.json();
-          setTasks(prev => [newTask, ...prev]);
+      const token = await getToken();
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-        // Small delay between adding subtasks
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Delete the original task from database
-      if (originalTaskId) {
-        await handleDeleteTask(originalTaskId);
+      });
+
+      if (!response.ok) {
+        // Restore task if failed
+        setTasks(prev => [task, ...prev]);
+        toast.error('Failed to delete task');
+      } else {
+        toast.success('Task deleted');
+        // Track successful task deletion
+        try {
+          trackTaskDeleted(task.title, taskId);
+        } catch (error) {
+          console.warn('Task deletion tracking failed:', error);
+        }
       }
     } catch (error) {
-      console.error('Error creating subtasks:', error);
-      // Don't remove the original task if subtask creation failed
+      // Restore task if failed
+      setTasks(prev => [task, ...prev]);
+      toast.error('Failed to delete task');
     }
   };
 
-  const completedTasksCount = tasks.filter(task => task.completed).length;
-  const pendingTasksCount = tasks.length - completedTasksCount;
-
-  // Show loading state while auth is loading
-  if (!isLoaded) {
+  // Show loading while hydrating, user loading, or data loading - prevent white flash
+  if (!isHydrated || isLoading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading state while user is not authenticated
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to sign in...</p>
+          <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mb-4 mx-auto animate-spin" />
+          <p className="text-white/60 font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="px-4 sm:px-6 py-3 sm:py-4 fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex items-center space-x-3"
-          >
-            <motion.div
-              whileHover={{ rotate: [0, -5, 5, -5, 0], transition: { duration: 0.5 } }}
-            >
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-sm">
-                <Image
-                  src="/teyra-logo-64kb.png"
-                  alt="Teyra"
-                  width={40}
-                  height={40}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
-            <span className="text-xl sm:text-2xl font-bold text-black">
-              Teyra
-            </span>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 sm:mt-0"
-          >
-            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full">
-              <User className="w-4 h-4" />
-              <span className="truncate max-w-[150px] md:max-w-none">{user.emailAddresses[0]?.emailAddress}</span>
-            </div>
-
-            {moodCheckDismissed && (progress?.dailyMoodChecks || 0) < 1 && (
-              <button
-                onClick={showMoodCheckAgain}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs sm:text-sm rounded-full hover:from-pink-600 hover:to-purple-700"
-              >
-                😊 Mood
-              </button>
-            )}
-            {moodCheckDismissed && (progress?.dailyMoodChecks || 0) >= 1 && progress?.mood && (
-              <div className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-green-50 to-blue-50 text-green-700 text-xs sm:text-sm rounded-full border border-green-200">
-                😊 {progress.mood}
+    <div className="min-h-screen dark-gradient-bg noise-texture text-white relative">
+      {/* Subtle tech grid background */}
+      <div 
+        className="fixed inset-0 opacity-[0.02] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+          backgroundSize: '20px 20px'
+        }}
+      />
+      {/* Clean Header with dark theme */}
+      <header className="glass-dark-modern border-b border-precise px-4 py-4 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <h1 className="text-2xl font-black text-white tracking-tight">teyra</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            {currentMood && (
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-white/10 rounded-lg">
+                <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${currentMood.color} flex items-center justify-center text-white text-xs`}>
+                  {currentMood.emoji}
+                </div>
+                <span className="text-xs font-medium text-white/80">{currentMood.label}</span>
               </div>
             )}
-            <button
-              onClick={() => { fetchTasks(); fetchProgress(); }}
-              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-500 text-white text-xs sm:text-sm rounded-full hover:bg-blue-600"
+            <button 
+              onClick={() => setShowAllTasks(true)}
+              className="hidden sm:flex items-center space-x-2 px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              title="View all tasks"
             >
-              🔄
+              <List className="w-4 h-4" />
+              <span>All Tasks ({tasks.filter(t => t?.completed).length})</span>
             </button>
-            <Button variant="ghost" asChild className="hover:bg-gray-50 text-gray-700 font-medium hidden sm:flex">
-              <Link href="/">Home</Link>
-            </Button>
+            <div className="text-xs text-white/60 font-mono hidden sm:block">
+              {new Date().toLocaleTimeString([], { hour12: false })}
+            </div>
+            <button
+              onClick={() => setShowNotificationSettings(true)}
+              className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200"
+              title="Notification Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
             <UserButton 
               afterSignOutUrl="/"
               appearance={{
                 elements: {
-                  avatarBox: "w-7 h-7 sm:w-8 sm:h-8"
+                  avatarBox: "w-8 h-8 rounded-full",
+                  userButtonPopover: "glass-dark-modern border-precise shadow-xl rounded-xl",
+                  userButtonTrigger: "rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 }
               }}
             />
-          </motion.div>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="pt-20 sm:pt-24 pb-12 px-3 sm:px-4 md:px-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Mood Check-in (conditionally shown) */}
-          {showMoodCheck && (
-            <div className="mb-6 sm:mb-8">
-              <MoodCheckIn 
-                onMoodSelect={handleMoodSelect} 
-                onTaskSuggestion={handleAddTask}
-                onDismiss={dismissMoodCheck}
-                existingTasks={tasks.map(task => task.title)}
-              />
-            </div>
-          )}
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
           
-          {/* Dashboard Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Left Column - Tasks */}
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              {/* Add Task Card - For all users */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="bg-white rounded-xl shadow-md border border-gray-200 p-5"
-              >
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">✨</span>
-                  What's one thing you want to complete today?
-                </h2>
-                <TaskInput onAddTask={handleAddTask} isLoading={isAddingTask} />
-              </motion.div>
-              
-              {/* Tasks List */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: isNewUser ? 0.1 : 0 }}
-                className="bg-white rounded-xl shadow-md border border-gray-200 p-5"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center">
-                    <span className="mr-2">📝</span>
-                    Today's Tasks
-                  </h3>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex space-x-2">
-                      <span className="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded-full">
-                        {completedTasksCount} <span className="text-red-600">completed</span>
-                      </span>
-                      {pendingTasksCount > 0 && (
-                        <span className="bg-yellow-100 text-yellow-600 text-xs font-bold px-2 py-1 rounded-full">
-                          {pendingTasksCount} pending
-                        </span>
-                      )}
-                    </div>
+          {/* Left Column: Task Management */}
+          <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
+            {/* Mood-based Task Generator */}
+            <MoodTaskGenerator 
+              currentTasks={tasks}
+              onTaskAdded={handleMoodTaskAdded}
+              onMoodSelected={(mood) => {
+                setCurrentMood(mood);
+                try {
+                  trackMoodSelected(mood.label, mood);
+                  gtag.trackMoodSelected(mood.label);
+                } catch (error) {
+                  console.warn('Mood tracking failed:', error);
+                }
+              }}
+            />
 
+            {/* Sustainable Task Generator */}
+            <div className="glass-dark-modern border-precise rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center">
+                    <span className="text-white text-sm">🌱</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-white">Sustainable Action</span>
+                    <p className="text-xs text-white/60">Complete eco-friendly tasks for 20 points</p>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {tasks.map((task) => (
-                      <motion.div
-                        key={task.id}
-                        initial={{ opacity: 0, y: 2 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -2 }}
-                        transition={{ 
-                          duration: 0.2, 
-                          ease: "easeOut"
-                        }}
-                      >
-                        <CartoonTaskCard
-                          task={task}
-                          onToggleComplete={handleToggleComplete}
-                          onDelete={handleDeleteTask}
-                          onAddSubtasks={handleAddSubtasks}
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                  
-                  {tasks.length === 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-center py-8"
-                    >
-                      <div className="text-gray-500">
-                        <motion.div
-                          whileHover={{ rotate: [0, -5, 5, -5, 0], transition: { duration: 0.5 } }}
-                          className="inline-block"
-                        >
-                          <Star className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        </motion.div>
-                        <p className="text-sm font-medium mb-2">No tasks yet!</p>
-                        <p className="text-xs text-gray-400 mb-4">
-                          Add your first task above to get started!
-                        </p>
-                        <Button 
-                          onClick={() => handleAddTask("My first task")}
-                          className="bg-black hover:bg-gray-800 text-white"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Add Example Task
-                          </div>
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
+                <button
+                  onClick={handleAddSustainableTask}
+                  className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-medium"
+                >
+                  Add Task
+                </button>
+              </div>
             </div>
             
-            {/* Right Column - Mike and Stats */}
-            <div className="space-y-6">
-              {/* Mike the Cactus Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-white rounded-xl shadow-md border border-gray-200 p-8 text-center"
-              >
-                <h3 className="text-xl font-bold text-gray-900 mb-6">
-                  Meet Mike! 🌵
-                </h3>
-                
-                {/* Mike the Cactus */}
-                <div className="flex justify-center mb-8 py-4">
-                  {progress ? (
-                    <motion.div 
-                      className="transform scale-150"
-                      whileHover={{ scale: 1.6 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 10 }}
-                    >
-                      <Cactus 
-                        mood={progress.mood as 'sad' | 'neutral' | 'happy'} 
-                        todayCompletedTasks={[]}
-                      />
-                    </motion.div>
-                  ) : (
-                    <div className="text-gray-500 text-sm">
-                      Loading Mike...
-                    </div>
-                  )}
-                </div>
-
-                {/* Mike's Speech Bubble */}
-                {progress ? (
-                  <div className="mb-6">
-                    <MikeSpeechBubble 
-                      mood={progress.mood} 
-                      completedTasks={progress.completedTasks} 
-                    />
-                  </div>
-                ) : (
-                  <div className="mb-6 text-gray-500 text-sm">
-                    Loading speech bubble...
-                  </div>
-                )}
-
-                {/* Progress Circle */}
-                {progress ? (
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="mt-6"
-                  >
-                    <ProgressCircle 
-                      completed={progress.displayCompleted || 0} 
-                      total={progress.maxValue || 10}
-                      maxValue={progress.maxValue || 10}
-                      mood={progress.mood}
-                    />
-                  </motion.div>
-                ) : (
-                  <div className="mt-6 text-gray-500 text-sm">
-                    Loading progress...
-                  </div>
-                )}
-              </motion.div>
+            {/* Task Input */}
+            <div className="glass-dark-modern border-precise rounded-2xl p-6">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="text"
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                  placeholder="What needs to be done?"
+                  className="flex-1 px-4 py-3 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 bg-white/5 text-white placeholder:text-white/40 text-lg transition-all duration-200"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
+                />
+                <button
+                  onClick={handleAddTask}
+                  disabled={!newTask.trim()}
+                  className="px-6 py-3 bg-white hover:bg-white/90 text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
               
-              {/* Date Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="bg-white rounded-xl shadow-md border border-gray-200 p-5"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center">
-                    <Calendar className="w-5 h-5 text-gray-500 mr-2" />
-                    <h3 className="text-lg font-medium text-gray-700">Today</h3>
-                  </div>
-                  <span className="text-lg font-bold">
-                    {new Date().toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
+              {dailyTasksCount >= 8 && (
+                <div className="mt-3 text-center">
+                  <span className={`text-sm px-3 py-1 rounded-full ${
+                    dailyTasksCount >= 10 
+                      ? 'bg-red-500/20 text-red-400 border border-red-400/30'
+                      : 'bg-orange-500/20 text-orange-400 border border-orange-400/30'
+                  }`}>
+                    {dailyTasksCount >= 10 ? 'Daily limit reached (10/10)' : `${dailyTasksCount}/10 tasks today`}
                   </span>
                 </div>
-                
-                {/* Daily Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Tasks Completed Today:</span>
-                    <span className="text-lg font-bold text-green-600">
-                      {progress?.dailyCompletedTasks || 0}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">All-Time Completed:</span>
-                    <span className="text-lg font-bold text-purple-600">
-                      {progress?.allTimeCompleted || 0}
-                    </span>
-                  </div>
-                  {progress?.mood && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Current Mood:</span>
-                      <span className="text-sm font-medium text-pink-600 capitalize">
-                        😊 {progress.mood}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Daily Limits */}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="text-xs text-gray-500 mb-2">Daily Limits:</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Mood Check-ins:</span>
-                        <span className={`text-xs font-medium ${(progress?.dailyMoodChecks || 0) >= 1 ? 'text-red-500' : 'text-green-500'}`}>
-                          {progress?.dailyMoodChecks || 0}/1
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">AI Task Splits:</span>
-                        <span className={`text-xs font-medium ${(progress?.dailyAISplits || 0) >= 2 ? 'text-red-500' : 'text-green-500'}`}>
-                          {progress?.dailyAISplits || 0}/2
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Countdown Timer */}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="text-xs text-gray-500 mb-1">Next Reset:</div>
-                    <div className="text-sm font-bold text-orange-600">
-                      ⏰ {timeUntilReset}
-                    </div>
-                  </div>
-                  
+              )}
+            </div>
 
-                  
-                  {/* Delete Account Button */}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="text-xs text-gray-500 mb-2">Account:</div>
-                    <DeleteAccountButton />
+            {/* Task List - Directly under input */}
+            <div className="glass-dark-modern border-precise rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <h2 className="text-xl font-bold text-white">Today's Tasks</h2>
+                  <div className="text-xs text-white/60 font-mono bg-white/10 px-3 py-1 rounded-full">
+                    {new Date().toLocaleDateString()}
                   </div>
                 </div>
-              </motion.div>
+                <div className="text-sm text-white/60 font-mono bg-white/5 px-3 py-1 rounded-full">
+                  {completedTasksCount}/{totalTasksCount}
+                </div>
+              </div>
               
-              {/* Daily Countdown Timer */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-              >
-                <DailyCountdownTimer
-                  lastDailyReset={progress?.lastResetDate || null}
-                  lastActivityAt={progress?.updatedAt || null}
-                  timezone="UTC"
-                  onResetDue={(isDue) => {
-                    if (isDue) {
-                      console.log('Reset is due!');
-                    }
-                  }}
-                  onEmailDue={(isDue) => {
-                    if (isDue) {
-                      console.log('Email is due!');
-                    }
-                  }}
-                  isNewUser={isNewUser}
-                  userId={user?.id}
-                />
-              </motion.div>
+              <div className="min-h-[200px]">
+                {tasks.length === 0 ? (
+                  <div className="text-center py-12">
+                    <motion.div 
+                      className="w-16 h-16 bg-white/10 rounded-full mx-auto mb-4 flex items-center justify-center"
+                      animate={{ 
+                        scale: [1, 1.05, 1],
+                        rotate: [0, 2, -2, 0]
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Plus className="w-8 h-8 text-white/40" />
+                    </motion.div>
+                    <p className="text-white/60 text-lg font-medium">No tasks yet</p>
+                    <p className="text-white/40 text-sm mt-1">Add your first task above to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onToggle={handleToggleTask}
+                        onDelete={handleDeleteTask}
+                        isSustainable={sustainableTasks.includes(task.title)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Right Column: Progress & Motivation */}
+          <div className="lg:col-span-1 order-1 lg:order-2">
+            <div className="glass-dark-modern border-precise rounded-2xl p-4 lg:p-6 lg:sticky lg:top-24">
+              <div className="text-center mb-4 lg:mb-6">
+                <h2 className="text-lg font-bold text-white mb-3 lg:mb-4">Progress</h2>
+                
+                {/* Mobile: Horizontal layout for smaller screens */}
+                <div className="flex lg:block">
+                  {/* Mike the Cactus */}
+                  <div className="flex justify-center mb-4 lg:mb-6 flex-shrink-0">
+                    <div className="bg-white/10 rounded-full p-4 lg:p-6">
+                      <Cactus mood={milestoneData.cactusState} />
+                    </div>
+                  </div>
+                  
+                  {/* Progress Circle and Stats */}
+                  <div className="flex-1 lg:block ml-4 lg:ml-0">
+                    {/* Progress Circle */}
+                    <div className="flex justify-center mb-4 lg:mb-6">
+                      <AnimatedCircularProgressBar
+                        max={milestoneData.maxPoints}
+                        value={milestoneData.currentPoints}
+                        gaugePrimaryColor="#22c55e"
+                        gaugeSecondaryColor="rgba(255,255,255,0.2)"
+                        className="size-20 lg:size-24"
+                      />
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="bg-white/5 rounded-2xl p-3 lg:p-4 border border-white/20">
+                      <div className="text-xl lg:text-2xl font-bold text-white font-mono">
+                        {milestoneData.currentPoints.toString().padStart(2, '0')}
+                      </div>
+                      <div className="text-white/60 text-xs font-mono uppercase tracking-wide">
+                        progress / {milestoneData.maxPoints}
+                      </div>
+                      <div className="text-xs text-green-400 font-medium mt-1">
+                        Total earned: {milestoneData.totalPointsEarned}
+                      </div>
+                      {completedSustainableTasksCount > 0 && (
+                        <div className="text-xs text-green-400 font-medium">
+                          +{completedSustainableTasksCount * 10} bonus from eco tasks (20pts each)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </main>
 
-      {/* Milestone Celebration */}
-      <MilestoneCelebration
-        isOpen={showMilestoneCelebration}
-        onClose={() => setShowMilestoneCelebration(false)}
-        milestone={currentMilestone || 0}
-        newMood={newMood}
+      {/* Daily Reset Checker */}
+      <DailyResetChecker 
+        onResetCompleted={() => {
+          fetchUserData();
+        }}
       />
 
-      {/* Daily Summary Popup */}
-      {showDailySummary && dailySummaryData && (
-        <DailySummaryPopup
-          isOpen={showDailySummary}
-          onClose={() => setShowDailySummary(false)}
-          tasks={dailySummaryData.tasks}
-          progress={dailySummaryData.progress}
-          onTasksReset={handleDailyReset}
-        />
-      )}
+      {/* All Tasks Modal */}
+      <AnimatePresence>
+        {showAllTasks && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAllTasks(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <List className="w-6 h-6 text-white" />
+                  <h2 className="text-2xl font-bold text-white">All Tasks Summary</h2>
+                  <span className="text-sm text-white/60 bg-white/10 px-3 py-1 rounded-full">
+                    {tasks.filter(t => t?.completed).length} completed all-time
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowAllTasks(false)}
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <Plus className="w-5 h-5 rotate-45 text-white/60" />
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto max-h-[60vh] space-y-4">
+                {/* Progress Overview */}
+                <div className="bg-gradient-to-r from-blue-500/20 to-green-500/20 border border-blue-400/30 rounded-xl p-4">
+                  <h3 className="font-semibold text-white mb-3">🎯 Your Progress</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-400">
+                        {tasks.filter(t => t?.completed).length}
+                      </div>
+                      <div className="text-sm text-white/60">Total Completed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-400">
+                        {rawTotalPoints}
+                      </div>
+                      <div className="text-sm text-white/60">Progress Points</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cactus Progress */}
+                <div className="bg-green-500/20 border border-green-400/30 rounded-xl p-4">
+                  <h3 className="font-semibold text-white mb-3">🌵 Cactus Growth</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Current Mood:</span>
+                      <span className="font-medium text-white capitalize">{milestoneData.cactusState}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Milestone:</span>
+                      <span className="font-medium text-white">{milestoneData.milestone + 1} / 3</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Progress:</span>
+                      <span className="font-medium text-white">{milestoneData.currentPoints} / {milestoneData.maxPoints}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current Session */}
+                <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                  <h3 className="font-semibold text-white mb-3">📋 Current Session</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Active Tasks:</span>
+                      <span className="font-medium text-white">{tasks.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Completed Today:</span>
+                      <span className="font-medium text-green-400">{tasks.filter(t => t?.completed).length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Remaining:</span>
+                      <span className="font-medium text-orange-400">{tasks.filter(t => !t?.completed).length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily Tasks (if any) */}
+                {tasks.length > 0 && (
+                  <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                    <h3 className="font-semibold text-white mb-3">📝 Today's Tasks</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {tasks.map((task) => (
+                        <div key={task.id} className="flex items-center space-x-2 text-sm">
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            task.completed ? 'bg-green-500 border-green-500' : 'border-white/30'
+                          }`}>
+                            {task.completed && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <span className={task.completed ? 'line-through text-white/40' : 'text-white'}>
+                            {task.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Task Completion Confirmation Popup */}
+      <AnimatePresence>
+        {showConfirmationPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4"
+            onClick={() => handleConfirmCompletion(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-blue-500/20 border border-blue-400/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-white">
+                    Task Completion
+                  </h3>
+                  <div className="relative">
+                    <HelpCircle
+                      className="w-4 h-4 text-white/60 hover:text-white cursor-help transition-colors"
+                      onMouseEnter={() => setShowTooltip(true)}
+                      onMouseLeave={() => setShowTooltip(false)}
+                    />
+                    {showTooltip && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded shadow-lg border border-white/20 whitespace-nowrap z-60">
+                        Be honest with yourself about your effort
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <p className="text-white/70">
+                  Are you 100% sure you did this to the best of your ability?
+                </p>
+              </div>
+
+              <div className="flex space-x-3 mb-4">
+                <button
+                  onClick={() => handleConfirmCompletion(false)}
+                  className="flex-1 px-4 py-2 border border-white/20 text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  No
+                </button>
+                <button
+                  onClick={() => handleConfirmCompletion(true)}
+                  className="flex-1 px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg transition-colors"
+                >
+                  Yes
+                </button>
+              </div>
+
+              <button
+                onClick={handleDismissConfirmations}
+                className="w-full text-xs text-white/60 hover:text-white transition-colors"
+              >
+                Don't ask me again
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Milestone Achievement Popup */}
+      <AnimatePresence>
+        {showMilestonePopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowMilestonePopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl">🎉</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-3">
+                  Milestone Achieved!
+                </h3>
+                <p className="text-white/70 mb-6">
+                  {milestoneMessage}
+                </p>
+                <button
+                  onClick={() => setShowMilestonePopup(false)}
+                  className="w-full px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-medium"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Daily Limit Popup */}
+      <AnimatePresence>
+        {showDailyLimitPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDailyLimitPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 bg-orange-500/20 border border-orange-400/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">⚠️</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Daily Task Limit Reached
+                </h3>
+                <p className="text-white/70 mb-4">
+                  You have passed the limit for tasks you can add today (10/10).
+                </p>
+                
+                <div className="text-left bg-white/5 border border-white/20 rounded-lg p-4 mb-6">
+                  <h4 className="font-medium text-white mb-2">Here's why adding more than 10 tasks can be counterproductive:</h4>
+                  <ul className="text-sm text-white/70 space-y-2">
+                    <li className="flex items-start space-x-2">
+                      <span className="text-orange-400 mt-0.5">•</span>
+                      <span><strong>Lower motivation:</strong> Too many tasks can feel overwhelming and reduce your drive to complete them</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="text-orange-400 mt-0.5">•</span>
+                      <span><strong>Reduced focus:</strong> Spreading attention across many tasks decreases the quality of your work</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <span className="text-orange-400 mt-0.5">•</span>
+                      <span><strong>Decision fatigue:</strong> Having too many options makes it harder to decide what to work on next</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => setShowDailyLimitPopup(false)}
+                  className="w-full px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-medium"
+                >
+                  Got it!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Onboarding Tour */}
+      <AnimatePresence>
+        {showOnboardingTour && (
+          <OnboardingTour onComplete={() => {
+            setShowOnboardingTour(false);
+            if (user?.id) {
+              localStorage.setItem(`dashboard_tour_${user.id}`, 'true');
+            }
+          }} />
+        )}
+      </AnimatePresence>
+
+      {/* Smart Notification Setup */}
+      <AnimatePresence>
+        {showSmartNotificationSetup && (
+          <SmartNotificationSetup 
+            onComplete={() => {
+              setShowSmartNotificationSetup(false);
+              if (user?.id) {
+                localStorage.setItem(`smart_setup_${user.id}`, 'true');
+              }
+            }}
+            onEnableNotifications={() => {
+              // Request notification permission
+              if ('Notification' in window) {
+                Notification.requestPermission();
+              }
+              if (user?.id) {
+                localStorage.setItem(`push_notifications_${user.id}`, 'true');
+              }
+              toast.success('Smart notifications enabled! 🔔');
+            }}
+            onEnableEmails={() => {
+              // Enable emails via API call
+              fetch('/api/user/email-preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enableDailyEmails: true })
+              }).catch(console.error);
+              if (user?.id) {
+                localStorage.setItem(`email_notifications_${user.id}`, 'true');
+              }
+              toast.success('Daily emails enabled! 📧');
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Notification Settings */}
+      <NotificationSettings
+        isOpen={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+      />
+
+      {/* Test Reset Button - Development Only */}
+      {process.env.NODE_ENV === 'development' && <TestResetButton />}
     </div>
+  );
+}
+
+// Test Reset Button Component
+function TestResetButton() {
+  const { getToken } = useAuth();
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleTestReset = async () => {
+    if (!confirm('🧪 This will delete ALL tasks from today and add completed ones to your cactus progress. Continue?')) return;
+
+    setIsResetting(true);
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/test-reset', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Create detailed task summary
+        const completedList = result.taskSummary.completed.length > 0 
+          ? '\n✅ Completed:\n' + result.taskSummary.completed.map(t => `• ${t}`).join('\n')
+          : '';
+        
+        const incompleteList = result.taskSummary.incomplete.length > 0
+          ? '\n⏸️ Incomplete:\n' + result.taskSummary.incomplete.map(t => `• ${t}`).join('\n')
+          : '';
+        
+        alert(`🔄 Daily Reset Complete!\n\n📊 Tasks Deleted:\n- Total: ${result.taskSummary.total}\n- Completed: ${result.taskSummary.completed_count}\n- Incomplete: ${result.taskSummary.incomplete_count}${completedList}${incompleteList}\n\n🌵 Cactus progress updated!\n📧 Email sent!\n\n🔄 Refreshing page...`);
+        
+        setTimeout(() => window.location.reload(), 3000);
+      } else {
+        alert(`❌ Failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Test reset error:', error);
+      alert('❌ Error - check console');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleTestReset}
+      disabled={isResetting}
+      className="fixed bottom-4 right-4 z-50 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-4 py-2 rounded-lg shadow-lg transition-colors text-sm font-medium"
+    >
+      {isResetting ? '🔄 Testing Reset...' : '🧪 Test 24hr Reset'}
+    </button>
   );
 }

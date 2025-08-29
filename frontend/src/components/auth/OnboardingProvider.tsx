@@ -49,18 +49,8 @@ export default function OnboardingProvider({ children }: { children: React.React
       currentPath
     });
 
-    // Redirect new users who haven't completed onboarding to the welcome page
-    if (isNewUser && !hasCompletedOnboarding) {
-      console.log('[OnboardingProvider] Redirecting new user to welcome page');
-      
-      // Only redirect if we're not already on the welcome page or in the process of signing in
-      if (currentPath !== '/welcome' && 
-          !currentPath.includes('sign-in') && 
-          !currentPath.includes('sign-up') && 
-          !currentPath.includes('sso-callback')) {
-        router.replace('/welcome');
-      }
-    }
+    // Skip automatic welcome page redirects - let users go to dashboard
+    // Onboarding tour will show on dashboard instead
   }, [isAuthLoaded, isUserLoaded, userId, user, router]);
 
   return <>{children}</>;

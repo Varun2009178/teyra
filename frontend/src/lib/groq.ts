@@ -34,43 +34,201 @@ export async function callGroqAPI(prompt: string, systemPrompt?: string): Promis
   }
 }
 
-// AI Task Breakdown - Generate 3 simple, standalone tasks
+// AI Task Breakdown - Generate 3 simple, standalone tasks with mood-aware suggestions
 export async function breakDownTask(taskDescription: string, userMood?: string): Promise<string[]> {
   const taskLower = taskDescription.toLowerCase();
   
-  // Common subtask patterns based on task type
-  if (taskLower.includes('email') || taskLower.includes('write')) {
+  // Mood-based energy level adjustments
+  const isLowEnergyMood = userMood && ['tired', 'down', 'stressed'].includes(userMood);
+  const isHighEnergyMood = userMood && ['happy', 'energetic', 'focused'].includes(userMood);
+  
+  // More specific task type detection with mood adaptations
+  if (taskLower.includes('email') || taskLower.includes('write') || taskLower.includes('letter') || taskLower.includes('message')) {
+    if (isLowEnergyMood) {
+      return [
+        "Start with a simple greeting and main point",
+        "Add key details one at a time",
+        "Quick proofread and send"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Create detailed outline with all key points",
+        "Write comprehensive draft with examples",
+        "Polish, refine, and send with confidence"
+      ];
+    }
     return [
       "Outline main points to cover",
       "Draft the content",
       "Review and send"
     ];
-  } else if (taskLower.includes('clean') || taskLower.includes('organize')) {
+  } else if (taskLower.includes('clean') || taskLower.includes('organize') || taskLower.includes('tidy')) {
+    if (isLowEnergyMood) {
+      return [
+        "Pick up and sort just the most obvious items",
+        "Focus on one small area at a time",
+        "Put away what you've sorted"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Do a complete declutter and deep clean",
+        "Create an organized system for everything",
+        "Set up maintenance routines"
+      ];
+    }
     return [
       "Clear out unnecessary items",
-      "Sort and categorize what remains",
+      "Sort and categorize what remains", 
       "Put everything in its proper place"
     ];
-  } else if (taskLower.includes('research') || taskLower.includes('study')) {
+  } else if (taskLower.includes('research') || taskLower.includes('study') || taskLower.includes('learn')) {
+    if (isLowEnergyMood) {
+      return [
+        "Find 2-3 reliable sources to start with",
+        "Read and take basic notes",
+        "Summarize key takeaways"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Create comprehensive research plan with multiple sources",
+        "Deep dive into topics with detailed note-taking",
+        "Synthesize findings and create actionable insights"
+      ];
+    }
     return [
       "Identify key topics to explore",
       "Gather and review relevant resources",
       "Take notes and summarize findings"
     ];
-  } else if (taskLower.includes('presentation') || taskLower.includes('meeting')) {
+  } else if (taskLower.includes('presentation') || taskLower.includes('meeting') || taskLower.includes('talk')) {
+    if (isLowEnergyMood) {
+      return [
+        "Create simple outline with main points",
+        "Prepare basic talking points",
+        "Do a quick run-through"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Design comprehensive presentation with engaging visuals",
+        "Prepare detailed talking points and examples",
+        "Practice multiple times and refine delivery"
+      ];
+    }
     return [
       "Create an outline or agenda",
       "Prepare visual materials or talking points",
       "Practice delivery and timing"
     ];
-  } else if (taskLower.includes('project') || taskLower.includes('develop')) {
+  } else if (taskLower.includes('project') || taskLower.includes('develop') || taskLower.includes('build')) {
+    if (isLowEnergyMood) {
+      return [
+        "Define basic requirements and first steps",
+        "Set up simple workspace or tools",
+        "Start with smallest component"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Create detailed project plan with milestones",
+        "Set up comprehensive development environment",
+        "Begin implementation of core features"
+      ];
+    }
     return [
       "Define project requirements and scope",
       "Create initial implementation plan",
       "Set up development environment"
     ];
+  } else if (taskLower.includes('exercise') || taskLower.includes('workout') || taskLower.includes('fitness')) {
+    if (isLowEnergyMood) {
+      return [
+        "Start with 5-10 minutes of light movement",
+        "Focus on gentle stretching or walking",
+        "Cool down and hydrate"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Plan an energizing full workout routine",
+        "Execute high-intensity exercises with focus",
+        "Cool down properly and track progress"
+      ];
+    }
+    return [
+      "Plan your workout routine",
+      "Execute the main exercises",
+      "Cool down and stretch"
+    ];
+  } else if (taskLower.includes('cook') || taskLower.includes('meal') || taskLower.includes('recipe')) {
+    if (isLowEnergyMood) {
+      return [
+        "Choose a simple recipe with few ingredients",
+        "Prep ingredients in batches as you go",
+        "Cook and clean up one step at a time"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Plan elaborate meal with multiple components",
+        "Prep all ingredients with precision",
+        "Cook with attention to technique and plating"
+      ];
+    }
+    return [
+      "Plan menu and gather ingredients",
+      "Prep and cook the meal",
+      "Serve and clean up"
+    ];
+  } else if (taskLower.includes('shop') || taskLower.includes('buy') || taskLower.includes('purchase')) {
+    if (isLowEnergyMood) {
+      return [
+        "Make simple list of essentials only",
+        "Go to nearest store for quick trip",
+        "Get what you need and head home"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Research best deals and create detailed shopping list",
+        "Visit multiple stores for optimal purchases",
+        "Compare prices and make thoughtful choices"
+      ];
+    }
+    return [
+      "Create shopping list and check prices",
+      "Visit stores and make purchases",
+      "Organize and put away items"
+    ];
+  } else if (taskLower.includes('call') || taskLower.includes('phone') || taskLower.includes('contact')) {
+    if (isLowEnergyMood) {
+      return [
+        "Write down key points to discuss",
+        "Make the call when you feel ready",
+        "Follow up with any next steps"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        "Prepare comprehensive talking points and questions",
+        "Have engaging conversation with follow-up questions",
+        "Document outcomes and plan next steps"
+      ];
+    }
+    return [
+      "Prepare what you want to discuss",
+      "Make the call",
+      "Follow up on any action items"
+    ];
   } else {
-    // Generic subtasks for any task
+    // More specific generic subtasks based on mood
+    if (isLowEnergyMood) {
+      return [
+        `Start with the easiest part of "${taskDescription}"`,
+        "Take small steps without pressure",
+        "Finish what you can and celebrate progress"
+      ];
+    } else if (isHighEnergyMood) {
+      return [
+        `Create detailed plan for "${taskDescription}"`,
+        "Execute with full focus and energy",
+        "Review results and plan improvements"
+      ];
+    }
     return [
       `Plan how to approach "${taskDescription}"`,
       "Work on the main components",
@@ -82,29 +240,80 @@ export async function breakDownTask(taskDescription: string, userMood?: string):
 // Generate task breakdown based on prompt
 function generateTaskBreakdown(prompt: string): string {
   const taskMatch = prompt.match(/["']([^"']+)["']/);
+  const moodMatch = prompt.match(/mood is (\w+)/i);
   const task = taskMatch ? taskMatch[1] : "task";
+  const mood = moodMatch ? moodMatch[1].toLowerCase() : undefined;
   
+  // Use the improved breakDownTask function
+  const subtasksPromise = breakDownTask(task, mood);
+  
+  // Since this is synchronous, we'll use a simplified version
   const taskLower = task.toLowerCase();
   let subtasks: string[];
   
+  const isLowEnergyMood = mood && ['tired', 'down', 'stressed'].includes(mood);
+  const isHighEnergyMood = mood && ['happy', 'energetic', 'focused'].includes(mood);
+  
   if (taskLower.includes('email') || taskLower.includes('write')) {
-    subtasks = [
-      "Outline main points to cover",
-      "Draft the content",
-      "Review and send"
-    ];
+    if (isLowEnergyMood) {
+      subtasks = [
+        "Start with a simple greeting and main point",
+        "Add key details one at a time",
+        "Quick proofread and send"
+      ];
+    } else if (isHighEnergyMood) {
+      subtasks = [
+        "Create detailed outline with all key points",
+        "Write comprehensive draft with examples",
+        "Polish, refine, and send with confidence"
+      ];
+    } else {
+      subtasks = [
+        "Outline main points to cover",
+        "Draft the content",
+        "Review and send"
+      ];
+    }
   } else if (taskLower.includes('clean') || taskLower.includes('organize')) {
-    subtasks = [
-      "Clear out unnecessary items",
-      "Sort and categorize what remains",
-      "Put everything in its proper place"
-    ];
+    if (isLowEnergyMood) {
+      subtasks = [
+        "Pick up and sort just the most obvious items",
+        "Focus on one small area at a time",
+        "Put away what you've sorted"
+      ];
+    } else if (isHighEnergyMood) {
+      subtasks = [
+        "Do a complete declutter and deep clean",
+        "Create an organized system for everything",
+        "Set up maintenance routines"
+      ];
+    } else {
+      subtasks = [
+        "Clear out unnecessary items",
+        "Sort and categorize what remains",
+        "Put everything in its proper place"
+      ];
+    }
   } else {
-    subtasks = [
-      `Plan how to approach "${task}"`,
-      "Work on the main components",
-      "Review and finalize"
-    ];
+    if (isLowEnergyMood) {
+      subtasks = [
+        `Start with the easiest part of "${task}"`,
+        "Take small steps without pressure",
+        "Finish what you can and celebrate progress"
+      ];
+    } else if (isHighEnergyMood) {
+      subtasks = [
+        `Create detailed plan for "${task}"`,
+        "Execute with full focus and energy",
+        "Review results and plan improvements"
+      ];
+    } else {
+      subtasks = [
+        `Plan how to approach "${task}"`,
+        "Work on the main components",
+        "Review and finalize"
+      ];
+    }
   }
   
   return JSON.stringify(subtasks);

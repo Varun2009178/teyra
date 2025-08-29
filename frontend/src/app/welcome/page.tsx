@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Cactus } from '@/components/Cactus';
 import { useAuth } from '@clerk/nextjs';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, ChevronRight } from 'lucide-react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 
 export default function WelcomePage() {
@@ -23,7 +21,7 @@ export default function WelcomePage() {
   const [authChecked, setAuthChecked] = useState(false);
   
   // Use useEffect for redirects to avoid hydration issues
-  React.useEffect(() => {
+  useEffect(() => {
     // Wait for auth to be loaded
     if (!isLoaded) return;
     
@@ -45,12 +43,12 @@ export default function WelcomePage() {
       console.error('Error clearing localStorage:', e);
     }
     
-    // Check if user is new (created in the last 30 minutes - increased time window)
+    // Check if user is new (created in the last 60 minutes - increased time window for better UX)
     if (user?.createdAt) {
       const creationTime = new Date(user.createdAt).getTime();
       const now = new Date().getTime();
-      const thirtyMinutesInMs = 30 * 60 * 1000;
-      const isNewUser = now - creationTime < thirtyMinutesInMs;
+      const sixtyMinutesInMs = 60 * 60 * 1000;
+      const isNewUser = now - creationTime < sixtyMinutesInMs;
       
       console.log('Welcome page debug:', {
         userId,
@@ -87,7 +85,14 @@ export default function WelcomePage() {
     return () => {
       document.body.classList.remove('page-transition');
     };
-  }, [userId, user?.createdAt, router]);
+  }, [userId, user?.createdAt, router, isLoaded]);
+
+  // Handle keyboard navigation
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isSubmitting && task.trim()) {
+      handleSubmit(e as any);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,25 +171,19 @@ export default function WelcomePage() {
       // Mark onboarding as complete using our custom hook
       completeOnboarding();
       
+      // Signal dashboard to start interactive tutorial
+      if (user?.id) {
+        sessionStorage.setItem(`start_dashboard_tutorial_${user.id}`, 'true');
+      }
+      
       // Add a visual indication that we're navigating
       document.body.style.cursor = 'wait';
       
       // Apply a fade-out effect
       document.body.classList.add('page-transition-exit');
       
-      // Force a small delay to ensure localStorage is updated and animation plays
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // First try the Next.js router
+      // Navigate to dashboard
       router.replace('/dashboard');
-      
-      // Set a fallback in case the router navigation doesn't work
-      setTimeout(() => {
-        if (document.body.style.cursor === 'wait') {
-          console.log('Router navigation may have failed, using direct navigation');
-          window.location.href = '/dashboard';
-        }
-      }, 300);
     } catch (error) {
       console.error('Navigation error:', error);
       // Fallback direct navigation if router fails
@@ -192,21 +191,21 @@ export default function WelcomePage() {
     }
   };
 
-  // Updated animation variants for smoother transitions
+  // Updated animation variants for faster transitions
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
       transition: { 
         when: "beforeChildren",
-        staggerChildren: 0.2,
-        duration: 0.3,
+        staggerChildren: 0.1,
+        duration: 0.2,
         ease: "easeOut"
       }
     },
     exit: {
       opacity: 0,
-      transition: { duration: 0.2, ease: "easeIn" }
+      transition: { duration: 0.15, ease: "easeIn" }
     }
   };
 
@@ -215,25 +214,39 @@ export default function WelcomePage() {
     visible: { 
       y: 0, 
       opacity: 1,
-      transition: { duration: 0.3, ease: "easeOut" }
+      transition: { duration: 0.2, ease: "easeOut" }
     }
   };
 
-  // Show loading state while checking auth
+  // Show minimal loading state while checking auth
   if (!authChecked || !isLoaded) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12">
+    <div className="min-h-screen dark-gradient-bg noise-texture text-white flex flex-col relative">
+      {/* Skip button fixed to top-right corner of screen */}
+      <motion.button 
+        onClick={goToDashboard}
+        className="fixed top-6 right-6 group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-full transition-all duration-200 text-sm font-medium text-white/70 hover:text-white z-50"
+        title="Skip to dashboard"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <span className="hidden sm:inline">Skip</span>
+        <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+      </motion.button>
+      
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto">
         <AnimatePresence mode="wait" initial={false}>
           {step === 1 ? (
             <motion.div 
@@ -248,7 +261,7 @@ export default function WelcomePage() {
                 className="text-center mb-8 sm:mb-12 md:mb-16"
                 variants={itemVariants}
               >
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium text-black mb-4 sm:mb-6">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-medium text-white mb-4 sm:mb-6">
                   What's one thing you want to complete today?
                 </h1>
               </motion.div>
@@ -259,12 +272,14 @@ export default function WelcomePage() {
                 variants={itemVariants}
               >
                 <div className="relative">
-                  <Input
+                  <input
                     type="text"
                     placeholder="Enter your task..."
                     value={task}
                     onChange={(e) => setTask(e.target.value)}
-                    className="w-full py-7 px-5 text-xl border border-gray-200 rounded-xl focus:border-black focus:ring-black shadow-sm"
+                    onKeyPress={handleKeyPress}
+                    className="w-full py-7 px-5 text-xl bg-white/5 border border-white/20 rounded-xl focus:border-white/40 focus:ring-2 focus:ring-white/10 text-white placeholder:text-white/40"
+                    style={{ outline: 'none', boxShadow: 'none' }}
                     autoFocus
                   />
                   {error && (
@@ -272,14 +287,15 @@ export default function WelcomePage() {
                   )}
                 </div>
 
-                <Button
+                <button
                   type="submit"
-                  className="w-full py-5 sm:py-7 bg-black hover:bg-gray-800 text-white text-base sm:text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
+                  className="w-full py-5 sm:py-7 bg-white hover:bg-white/90 text-black text-base sm:text-lg rounded-xl flex items-center justify-center transition-all duration-200 font-medium"
                   disabled={isSubmitting}
+                  style={{ outline: 'none', boxShadow: 'none' }}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -290,31 +306,31 @@ export default function WelcomePage() {
                       Continue <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </span>
                   )}
-                </Button>
+                </button>
               </motion.form>
             </motion.div>
           ) : (
             <motion.div 
               key="step2"
-              className="w-full max-w-2xl"
+              className="w-full max-w-2xl flex flex-col min-h-0"
               initial="hidden"
               animate="visible"
               exit="exit"
               variants={containerVariants}
             >
               <motion.div 
-                className="text-center mb-12"
+                className="text-center mb-6 sm:mb-8"
                 variants={itemVariants}
               >
-                <div className="flex justify-center mb-8">
+                <div className="flex justify-center mb-4 sm:mb-6">
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ 
                       type: "spring",
-                      stiffness: 260,
-                      damping: 20,
-                      delay: 0.1
+                      stiffness: 400,
+                      damping: 25,
+                      delay: 0.05
                     }}
                   >
                     <Cactus mood="happy" />
@@ -324,34 +340,48 @@ export default function WelcomePage() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
-                  className="mb-8"
+                  transition={{ delay: 0.1, duration: 0.2 }}
+                  className="mb-4 sm:mb-6"
                 >
-                  <div className="inline-flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-full">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    <span>Task added</span>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3">
+                    Great start! 🌟
+                  </h2>
+                  <p className="text-white/70 text-base sm:text-lg leading-relaxed max-w-lg mx-auto">
+                    You've taken the first step toward a more productive you. Mike the Cactus is excited to help you grow!
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.2 }}
+                  className="mb-6 sm:mb-8"
+                >
+                  <div className="bg-white/5 border border-white/20 rounded-xl p-4 sm:p-6">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <span className="text-white font-medium">Task added successfully</span>
+                    </div>
+                    <p className="text-white/70 text-sm">
+                      "{task}" has been added to your dashboard. Ready to tackle more?
+                    </p>
                   </div>
                 </motion.div>
-                
-                <h1 className="text-4xl md:text-5xl font-medium text-black mb-6">
-                  Meet Mike the Cactus
-                </h1>
-                <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-                  Mike is your productivity companion! He grows happier as you complete tasks. 
-                  Start with small goals, build momentum, and watch Mike transform from sad to happy as you reach milestones. 
-                  He'll suggest tasks based on your mood and celebrate your progress with you.
-                </p>
-              </motion.div>
 
-              <motion.div variants={itemVariants}>
-                <Button
+                <motion.button
                   onClick={goToDashboard}
-                  className="w-full py-5 sm:py-7 bg-black hover:bg-gray-800 text-white text-base sm:text-lg rounded-xl flex items-center justify-center shadow-sm transition-all duration-200"
+                  className="w-full py-5 sm:py-7 bg-white hover:bg-white/90 text-black text-base sm:text-lg rounded-xl flex items-center justify-center transition-all duration-200 font-medium"
+                  style={{ outline: 'none', boxShadow: 'none' }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.2 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <span className="flex items-center">
                     Go to Dashboard <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                   </span>
-                </Button>
+                </motion.button>
               </motion.div>
             </motion.div>
           )}

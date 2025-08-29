@@ -1,115 +1,129 @@
 'use client';
 
 import React from 'react';
-import { Navbar } from '@/components/Navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail, Heart } from 'lucide-react';
+import { useUser, UserButton } from '@clerk/nextjs';
 
 export default function ContactPage() {
+  const { user, isSignedIn } = useUser();
+  
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <Navbar />
-      
-      <div className="flex-1 flex items-center justify-center pt-24 pb-12">
-        <div className="w-full max-w-4xl mx-auto px-4">
+    <div className="min-h-screen dark-gradient-bg noise-texture text-white">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 glass-dark-modern border-b border-precise">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20 lg:h-24">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center space-x-2">
+                <Image 
+                  src="/teyra-logo-64kb.png" 
+                  alt="Teyra" 
+                  width={32} 
+                  height={32}
+                  className="w-8 h-8"
+                />
+                <span className="text-xl font-bold text-white">teyra</span>
+              </Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link href="/sustainability">
+                <Button variant="ghost" className="btn-modern">
+                  sustainability
+                </Button>
+              </Link>
+              {isSignedIn ? (
+                <>
+                  <Link href="/dashboard">
+                    <Button variant="ghost" className="btn-modern">
+                      dashboard
+                    </Button>
+                  </Link>
+                  <UserButton 
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 border border-white/20"
+                      }
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  <Link href="/sign-in">
+                    <Button variant="ghost" className="btn-modern">
+                      sign in
+                    </Button>
+                  </Link>
+                  <Link href="/sign-up">
+                    <Button className="btn-primary-modern">
+                      get started
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex-1 flex items-center justify-center pt-28 lg:pt-32 pb-12">
+        <div className="w-full max-w-3xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-black mb-4">
-              Get in Touch
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Contact Us
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Have questions, feedback, or just want to say hello? We'd love to hear from you!
+            <p className="text-lg text-white/60 max-w-2xl mx-auto">
+              Questions or feedback? We'd love to hear from you.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* What We Do */}
-            <Card className="shadow-lg border-0">
+            {/* Contact Information */}
+            <Card className="glass-dark-modern border-precise">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <MessageSquare className="w-6 h-6" />
-                  What We Do
+                <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+                  <Mail className="w-5 h-5 text-white/60" />
+                  Get in Touch
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900">Our Mission</h3>
-                  <p className="text-gray-600">
-                    We're building the world's most <span className="text-red-600 font-semibold">intelligent</span> and <span className="text-red-600 font-semibold">empathetic</span> productivity companion. Teyra uses advanced <span className="text-red-600 font-semibold">AI</span> to understand your unique workflow and provide personalized motivation and support.
+                  <h3 className="font-medium text-white">Email</h3>
+                  <p className="text-lg font-medium text-white/80">
+                    greenteyra@gmail.com
                   </p>
+                  <p className="text-sm text-white/50">We respond within 24 hours</p>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900">How It Works</h3>
-                  <p className="text-gray-600">
-                    Simply add your tasks and let <span className="text-red-600 font-semibold">Mike the Cactus</span> guide you through your productivity journey. Our <span className="text-red-600 font-semibold">AI</span> learns your patterns and adapts to help you achieve more than you ever thought possible.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900">Why Teyra?</h3>
-                  <p className="text-gray-600">
-                    Unlike other productivity tools, Teyra focuses on <span className="text-red-600 font-semibold">emotional intelligence</span> and <span className="text-red-600 font-semibold">personal growth</span>. We believe productivity isn't just about getting things done—it's about becoming the best version of yourself.
+                  <h3 className="font-medium text-white">We Welcome</h3>
+                  <p className="text-white/60">
+                    Feedback, bug reports, feature requests, and stories about how Teyra helps you.
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Contact Information */}
-            <div className="space-y-6">
-              <Card className="shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                    <Mail className="w-6 h-6" />
-                    Contact Us
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900">Get in Touch</h3>
-                    <p className="text-gray-600">
-                      If you have any <span className="text-red-600 font-semibold">questions</span>, <span className="text-red-600 font-semibold">criticisms</span>, or <span className="text-red-600 font-semibold">concerns</span>, email us at:
-                    </p>
-                    <p className="text-lg font-semibold text-red-600">
-                      greenteyra@gmail.com
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900">Response Time</h3>
-                    <p className="text-gray-600">We typically respond within 24 hours</p>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-900">Feedback Welcome</h3>
-                    <p className="text-gray-600">
-                      We love hearing from our users! Your feedback helps us make Teyra even better. Whether it's a <span className="text-red-600 font-semibold">bug report</span>, <span className="text-red-600 font-semibold">feature request</span>, or just a <span className="text-red-600 font-semibold">hello</span>, we're here to listen.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold">Frequently Asked Questions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">How does Teyra work?</h4>
-                    <p className="text-gray-600 text-sm">
-                      Teyra uses <span className="text-red-600 font-semibold">AI</span> to help you break down tasks and stay motivated. Just add your tasks and let <span className="text-red-600 font-semibold">Mike the Cactus</span> guide you through your productivity journey.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">Is Teyra free?</h4>
-                    <p className="text-gray-600 text-sm">
-                      Yes! Teyra is completely <span className="text-red-600 font-semibold">free</span> to use. We believe productivity tools should be accessible to everyone.
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-gray-900">Can I export my data?</h4>
-                    <p className="text-gray-600 text-sm">
-                      Currently, we're working on <span className="text-red-600 font-semibold">data export</span> features. Your data is always yours and we're committed to making it easy to access.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* About Teyra */}
+            <Card className="glass-dark-modern border-precise">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold flex items-center gap-2 text-white">
+                  <Heart className="w-5 h-5 text-white/60" />
+                  About Teyra
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-white/60">
+                  We're building an emotionally intelligent productivity companion that understands your unique workflow.
+                </p>
+                <p className="text-white/60">
+                  We focus on sustainable habits and emotional well-being. No burnout, no guilt. Just healthy progress.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
