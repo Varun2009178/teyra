@@ -4,6 +4,7 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
 import AuthProvider from '@/components/auth/AuthProvider'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -54,6 +55,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
+        <GoogleAnalytics />
         <AuthProvider>
           {children}
         </AuthProvider>
