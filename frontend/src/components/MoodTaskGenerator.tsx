@@ -82,6 +82,18 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
     setIsGenerating(true);
     
     try {
+      // First, save the mood to the database
+      const moodResponse = await fetch('/api/mood', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: moodId })
+      });
+
+      if (!moodResponse.ok) {
+        throw new Error('Failed to save mood to database');
+      }
+
+      // Then generate tasks based on the mood
       const response = await fetch('/api/mood-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,7 +107,7 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
         const data = await response.json();
         setGeneratedTasks(data.tasks);
         
-        // Save to localStorage
+        // Save to localStorage for UI state consistency
         const today = new Date().toDateString();
         localStorage.setItem('moodTaskGenerator_lastUsed', today);
         localStorage.setItem('moodTaskGenerator_mood', moodId);

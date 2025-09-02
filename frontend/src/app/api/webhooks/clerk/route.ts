@@ -3,7 +3,13 @@ import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createUserProgress } from '@/lib/supabase-service';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Service role client for admin operations (bypasses RLS)
+const serviceSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -91,7 +97,7 @@ export async function POST(req: Request) {
       console.log(`📧 User email: ${userEmail}`);
       
       // First check if user_progress already exists by user_id to prevent duplicates
-      const { data: existingProgress, error: checkError } = await supabase
+      const { data: existingProgress, error: checkError } = await serviceSupabase
         .from('user_progress')
         .select('id, user_id')
         .eq('user_id', id)
@@ -157,7 +163,7 @@ export async function POST(req: Request) {
       ];
       
       const checkPromises = tablesToCheck.map(table => 
-        supabase.from(table).select('id').eq('user_id', id)
+        serviceSupabase.from(table).select('id').eq('user_id', id)
       );
       
       const checkResults = await Promise.allSettled(checkPromises);
@@ -191,7 +197,7 @@ export async function POST(req: Request) {
         try {
           console.log(`🗑️  Deleting from ${table} for user ${id}...`);
           
-          const deleteResult = await supabase
+          const deleteResult = await serviceSupabase
             .from(table)
             .delete()
             .eq('user_id', id);
