@@ -76,7 +76,7 @@ export default function SignInPage() {
               },
               layout: {
                 socialButtonsVariant: "blockButton",
-                socialButtonsPlacement: "bottom",
+                socialButtonsPlacement: "top",
               },
               variables: {
                 colorPrimary: '#ffffff',

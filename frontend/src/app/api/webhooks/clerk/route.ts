@@ -125,9 +125,10 @@ export async function POST(req: Request) {
     } catch (error) {
       console.error(`❌ Webhook: Error creating user ${id}:`, error);
       
-      // Don't fail if user already exists
-      if (error instanceof Error && error.message.includes('duplicate key')) {
-        console.log(`⚠️  Webhook: User ${id} already exists`);
+      // Don't fail if user already exists (handle race conditions)
+      if (error instanceof Error && (error.message.includes('duplicate key') || 
+          (error as any)?.code === '23505')) {
+        console.log(`⚠️  Webhook: User ${id} already exists (duplicate key error)`);
         return new Response('User already exists', { status: 200 });
       }
       
@@ -152,8 +153,7 @@ export async function POST(req: Request) {
         'daily_checkins',
         'moods',
         'user_ai_patterns',
-        'user_behavior',
-        'notification_logs'
+        'user_behavior'
       ];
       
       const checkPromises = tablesToCheck.map(table => 
@@ -180,8 +180,8 @@ export async function POST(req: Request) {
         'daily_checkins',
         'moods',
         'user_ai_patterns',
-        'user_behavior',
-        'notification_logs' // If you have notification tracking
+        'user_behavior'
+        // Removed notification_logs since it doesn't exist in schema
       ];
       
       // Delete from all user-related tables sequentially for better error tracking

@@ -97,7 +97,7 @@ export default function SignUpPage() {
               },
               layout: {
                 socialButtonsVariant: "blockButton",
-                socialButtonsPlacement: "bottom",
+                socialButtonsPlacement: "top",
               },
               variables: {
                 colorPrimary: '#ffffff',
