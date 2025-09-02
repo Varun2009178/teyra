@@ -282,7 +282,7 @@ export async function createUserProgress(userId: string) {
       .from('user_progress')
       .insert({
         user_id: userId,
-        current_mood: 'neutral',
+        current_mood: 'sad',
         daily_mood_checks: 0,
         last_mood_update: new Date().toISOString(),
         last_reset_date: new Date().toISOString(),
