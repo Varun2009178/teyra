@@ -1,17 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let _supabase: ReturnType<typeof createClient> | null = null
 
-if (!supabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+const createSupabaseClient = () => {
+  if (_supabase) return _supabase
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+  }
+
+  if (!supabaseKey) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+  }
+
+  _supabase = createClient(supabaseUrl, supabaseKey)
+  return _supabase
 }
 
-if (!supabaseKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_, prop) {
+    return createSupabaseClient()[prop as keyof ReturnType<typeof createClient>]
+  }
+})
 
 // Database types (matching your current schema)
 export interface Database {
@@ -89,4 +102,9 @@ export interface Database {
 }
 
 // Typed supabase client
-export const typedSupabase = createClient<Database>(supabaseUrl, supabaseKey)
+export const typedSupabase = new Proxy({} as ReturnType<typeof createClient<Database>>, {
+  get(_, prop) {
+    const client = createSupabaseClient() as ReturnType<typeof createClient<Database>>
+    return client[prop as keyof typeof client]
+  }
+})
