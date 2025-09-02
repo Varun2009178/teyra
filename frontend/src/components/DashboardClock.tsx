@@ -158,7 +158,7 @@ export default function DashboardClock({ className = '' }: DashboardClockProps) 
         whileHover={{ scale: 1.01 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        title="Daily reset is ready - your tasks will be reset and you'll get an email summary"
+        title="Daily reset is ready - Incomplete tasks will clear, completed tasks saved, cactus progress stays, mood resets, email sent"
       >
         <div className="flex items-center space-x-2">
           <Mail className="w-3 h-3 text-green-600" />
@@ -190,7 +190,7 @@ export default function DashboardClock({ className = '' }: DashboardClockProps) 
       whileHover={{ scale: 1.01 }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      title={showClock ? "Current time - switch to see daily reset countdown" : "Daily Reset Countdown - When this reaches zero, you'll get an email about incomplete tasks and everything resets (cactus mood stays)"}
+      title={showClock ? "Current time - switch to see daily reset countdown" : "Daily Reset Countdown - When this reaches zero: Incomplete tasks clear • Completed tasks saved • Cactus progress stays • Mood resets • Email sent"}
     >
       <div className="flex items-center space-x-2">
         {showClock ? (
