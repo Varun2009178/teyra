@@ -3,10 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
-import GoogleAnalytics from '@/components/GoogleAnalytics'
 import AuthProvider from '@/components/auth/AuthProvider'
-import OnboardingProvider from '@/components/auth/OnboardingProvider'
-
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -57,11 +54,8 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
-        <GoogleAnalytics />
         <AuthProvider>
-          <OnboardingProvider>
-            {children}
-          </OnboardingProvider>
+          {children}
         </AuthProvider>
         <Toaster />
         <Analytics />

@@ -6,12 +6,12 @@ import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const moods = [
-  { id: 'energized', emoji: '⚡', label: 'Energized', color: 'from-orange-400 to-red-400' },
-  { id: 'focused', emoji: '🎯', label: 'Focused', color: 'from-blue-400 to-purple-400' },
-  { id: 'creative', emoji: '✨', label: 'Creative', color: 'from-purple-400 to-pink-400' },
-  { id: 'calm', emoji: '🌊', label: 'Calm', color: 'from-green-400 to-blue-400' },
-  { id: 'motivated', emoji: '🚀', label: 'Motivated', color: 'from-yellow-400 to-orange-400' },
-  { id: 'tired', emoji: '😴', label: 'Tired', color: 'from-indigo-400 to-blue-400' },
+  { id: 'energized', emoji: '⚡️', label: 'Energized', color: 'from-yellow-500 to-orange-600' },
+  { id: 'focused', emoji: '🎯', label: 'Focused', color: 'from-blue-500 to-blue-700' },
+  { id: 'creative', emoji: '🎨', label: 'Creative', color: 'from-purple-500 to-pink-600' },
+  { id: 'calm', emoji: '🧘‍♂️', label: 'Calm', color: 'from-green-500 to-emerald-600' },
+  { id: 'motivated', emoji: '🚀', label: 'Motivated', color: 'from-red-500 to-orange-600' },
+  { id: 'tired', emoji: '😪', label: 'Tired', color: 'from-gray-500 to-gray-700' },
 ];
 
 interface MoodTaskGeneratorProps {
@@ -128,8 +128,8 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
       <div className="glass-dark-modern border-precise rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedMoodData?.color} flex items-center justify-center text-white text-sm`}>
-              {selectedMoodData?.emoji}
+            <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedMoodData?.color} flex items-center justify-center shadow-lg border border-white/20`}>
+              <span className="text-lg">{selectedMoodData?.emoji}</span>
             </div>
             <div>
               <span className="text-sm font-medium text-white">AI Tasks for {selectedMoodData?.label}</span>
@@ -188,14 +188,14 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
             `}
           >
             <div className="flex flex-col items-center space-y-2">
-              <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${mood.color} flex items-center justify-center text-white text-sm`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r ${mood.color} flex items-center justify-center shadow-lg border border-white/20`}>
                 {isGenerating && selectedMood === mood.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
                 ) : (
-                  mood.emoji
+                  <span className="text-lg sm:text-xl">{mood.emoji}</span>
                 )}
               </div>
-              <span className="text-xs font-medium text-white">{mood.label}</span>
+              <span className="text-xs font-medium text-white text-center leading-tight">{mood.label}</span>
             </div>
           </motion.button>
         ))}

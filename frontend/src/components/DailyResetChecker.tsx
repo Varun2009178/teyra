@@ -312,6 +312,19 @@ export default function DailyResetChecker({ onResetCompleted }: DailyResetChecke
                   </div>
                 </div>
 
+                {/* Support Contact */}
+                <div className="text-center bg-gray-50/60 backdrop-blur-sm rounded-xl border border-gray-200/50 p-3 mb-6">
+                  <p className="text-xs text-gray-600">
+                    Having issues? Email us at{' '}
+                    <a 
+                      href="mailto:greenteyra@gmail.com" 
+                      className="text-blue-600 underline hover:text-blue-800"
+                    >
+                      greenteyra@gmail.com
+                    </a>
+                  </p>
+                </div>
+
                 <button
                   onClick={handleResetPopupClose}
                   className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all font-semibold text-lg"

@@ -4,9 +4,10 @@ import Image from "next/image";
 interface CactusProps {
   mood?: 'happy' | 'neutral' | 'sad' | 'overwhelmed' | 'tired' | 'stressed' | 'focused' | 'excited' | 'energized';
   todayCompletedTasks?: Array<{ title: string; completedAt?: string }>;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompletedTasks = [] }) => {
+export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompletedTasks = [], size = 'lg' }) => {
   // Map expanded moods to cactus states
   const getCactusMood = () => {
     if (mood === 'energized' || mood === 'excited' || mood === 'focused') {
@@ -28,6 +29,21 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
         return '/Sad With Tears 2.gif';
       default: // neutral
         return '/Neutral Calm.gif';
+    }
+  };
+
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'sm':
+        return 'w-12 h-12';
+      case 'md':
+        return 'w-16 h-16';
+      case 'lg':
+        return 'w-24 h-24';
+      case 'xl':
+        return 'w-32 h-32';
+      default:
+        return 'w-24 h-24';
     }
   };
 
@@ -66,20 +82,19 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
           repeat: Infinity,
           ease: "easeInOut",
         }}
-        className="w-48 h-48 relative"
+        className={`relative ${getSizeClasses()}`}
       >
         <Image
           src={getGifSrc()}
           alt={`${mood} cactus`}
-          width={192}
-          height={192}
+          fill
           priority={mood === 'sad'}
           unoptimized
-          className="w-full h-full object-contain"
+          className="object-contain"
         />
         
-        {/* Smooth blob-like floating elements */}
-        {cactusMood === 'happy' && (
+        {/* Floating elements for different moods */}
+        {cactusMood === 'happy' && size === 'xl' && (
           <>
             <motion.div
               animate={{
@@ -133,36 +148,26 @@ export const Cactus: React.FC<CactusProps> = ({ mood = 'neutral', todayCompleted
             </motion.div>
           </>
         )}
-        
-        {cactusMood === 'sad' && (
-          <>
-            {/* No floating emojis for sad mood - just the sad cactus animation */}
-          </>
+
+        {cactusMood === 'neutral' && size === 'xl' && (
+          <motion.div
+            animate={{
+              y: [-3, -8, -3],
+              x: [-1, 1, -1],
+              opacity: [0.2, 0.5, 0.2],
+              scale: [0.9, 1.1, 0.9]
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute -top-2 -right-2 text-lg"
+          >
+            🌱
+          </motion.div>
         )}
-
-        {cactusMood === 'neutral' && (
-          <>
-            <motion.div
-              animate={{
-                y: [-3, -8, -3],
-                x: [-1, 1, -1],
-                opacity: [0.2, 0.5, 0.2],
-                scale: [0.9, 1.1, 0.9]
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="absolute -top-2 -right-2 text-lg"
-            >
-              🌱
-            </motion.div>
-          </>
-        )}
-
-
       </motion.div>
     </div>
   );
-}; 
+};

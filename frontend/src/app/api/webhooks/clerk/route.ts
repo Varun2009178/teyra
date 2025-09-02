@@ -11,6 +11,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   console.log('🎯 WEBHOOK CALLED - Clerk webhook endpoint hit!');
   console.log('🕐 Timestamp:', new Date().toISOString());
+  console.log('🌐 Environment:', process.env.NODE_ENV);
+  console.log('🔗 Request URL:', req.url);
   
   // Get the headers (await required in Next.js 15)
   const headerPayload = await headers();
@@ -141,18 +143,27 @@ export async function POST(req: Request) {
       // First, check what data exists for this user before deletion
       console.log(`🔍 Checking existing data for user ${id}...`);
       
-      const checkPromises = [
-        supabase.from('tasks').select('id').eq('user_id', id),
-        supabase.from('user_progress').select('id').eq('user_id', id),
-        supabase.from('user_behavior_events').select('id').eq('user_id', id),
-        supabase.from('user_behavior_analysis').select('id').eq('user_id', id)
+      // Check all tables that might have user data
+      const tablesToCheck = [
+        'tasks', 
+        'user_progress', 
+        'user_behavior_events', 
+        'user_behavior_analysis',
+        'daily_checkins',
+        'moods',
+        'user_ai_patterns',
+        'user_behavior',
+        'notification_logs'
       ];
       
+      const checkPromises = tablesToCheck.map(table => 
+        supabase.from(table).select('id').eq('user_id', id)
+      );
+      
       const checkResults = await Promise.allSettled(checkPromises);
-      const tableNames = ['tasks', 'user_progress', 'user_behavior_events', 'user_behavior_analysis'];
       
       checkResults.forEach((result, index) => {
-        const tableName = tableNames[index];
+        const tableName = tablesToCheck[index];
         if (result.status === 'fulfilled' && result.value.data) {
           console.log(`📋 Found ${result.value.data.length} records in ${tableName} for user ${id}`);
         } else {
@@ -160,12 +171,17 @@ export async function POST(req: Request) {
         }
       });
       
-      // Define all user-related tables (including AI behavior tracking)
+      // Define ALL user-related tables for complete cleanup
       const userTables = [
         'tasks', 
         'user_progress', 
         'user_behavior_events', 
-        'user_behavior_analysis'
+        'user_behavior_analysis',
+        'daily_checkins',
+        'moods',
+        'user_ai_patterns',
+        'user_behavior',
+        'notification_logs' // If you have notification tracking
       ];
       
       // Delete from all user-related tables sequentially for better error tracking
@@ -222,4 +238,17 @@ export async function POST(req: Request) {
   
   console.log(`⚠️  Webhook: Unhandled event type: ${eventType}`);
   return new Response('Event processed', { status: 200 });
+}
+
+// GET endpoint for testing webhook connectivity
+export async function GET() {
+  console.log('🧪 Webhook GET test endpoint called');
+  return new Response(JSON.stringify({
+    status: 'Webhook endpoint is active',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

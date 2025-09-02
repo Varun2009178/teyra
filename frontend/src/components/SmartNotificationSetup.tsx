@@ -16,6 +16,14 @@ export function SmartNotificationSetup({
   onEnableEmails 
 }: SmartNotificationSetupProps) {
   const [currentStep, setCurrentStep] = React.useState(0);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    checkMobile();
+  }, []);
 
   const steps = [
     {
@@ -26,9 +34,15 @@ export function SmartNotificationSetup({
     },
     {
       title: "🧠 AI Smart Notifications",
-      description: "Want AI-powered reminders that learn when you're most productive? We'll send gentle nudges at optimal times, not spam.",
+      description: isMobile 
+        ? "Get AI-powered reminders! After enabling, you'll need to add this app to your home screen for mobile notifications to work properly."
+        : "Want AI-powered reminders that learn when you're most productive? We'll send gentle nudges at optimal times, not spam.",
       icon: <Zap className="w-8 h-8 text-blue-400" />,
-      action: "notifications"
+      action: "notifications",
+      mobileInstructions: isMobile ? {
+        ios: "📱 iOS: Tap Share → 'Add to Home Screen'",
+        android: "📱 Android: Tap Menu (⋮) → 'Add to Home Screen' or 'Install App'"
+      } : null
     },
     {
       title: "📧 Daily Progress Emails",
@@ -120,6 +134,17 @@ export function SmartNotificationSetup({
               <p className="text-white/70 text-base leading-relaxed">
                 {currentStepData.description}
               </p>
+              
+              {/* Mobile instructions */}
+              {currentStepData.mobileInstructions && (
+                <div className="mt-4 p-4 bg-blue-500/10 border border-blue-400/30 rounded-xl">
+                  <p className="text-blue-300 text-sm font-medium mb-2">📱 For mobile notifications:</p>
+                  <div className="space-y-1 text-xs text-white/60">
+                    <div>{currentStepData.mobileInstructions.ios}</div>
+                    <div>{currentStepData.mobileInstructions.android}</div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 

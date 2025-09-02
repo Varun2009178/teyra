@@ -9,351 +9,314 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// POST - Send smart notification based on user behavior
-export async function POST(request: NextRequest) {
-  try {
-    const user = await currentUser();
-    
-    if (!user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user's behavior analysis and current mood
-    const [{ data: analysis, error: analysisError }, { data: userProgress }] = await Promise.all([
-      supabase
-        .from('user_behavior_analysis')
-        .select('*')
-        .eq('user_id', user.id)
-        .single(),
-      supabase
-        .from('user_progress')
-        .select('current_mood, daily_mood_checks')
-        .eq('user_id', user.id)
-        .single()
-    ]);
-
-    if (analysisError) {
-      console.error('Error fetching behavior analysis:', analysisError);
-      return NextResponse.json({ error: 'Could not fetch behavior analysis' }, { status: 500 });
-    }
-
-    if (!analysis) {
-      return NextResponse.json({ error: 'No behavior analysis found' }, { status: 404 });
-    }
-
-    // Get current user tasks
-    const { data: currentTasks, error: tasksError } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (tasksError) {
-      console.error('Error fetching tasks:', tasksError);
-      return NextResponse.json({ error: 'Could not fetch tasks' }, { status: 500 });
-    }
-
-    // Determine what type of notification to send
-    const notificationStrategy = determineNotificationStrategy(analysis, currentTasks || [], userProgress);
-    
-    if (!notificationStrategy) {
-      return NextResponse.json({ message: 'No notification needed at this time' });
-    }
-
-    // Send the notification (this would integrate with push notification service)
-    const notificationSent = await sendSmartNotification(user.id, notificationStrategy);
-
-    if (notificationSent) {
-      // Log the notification
-      await supabase
-        .from('user_behavior_events')
-        .insert({
-          user_id: user.id,
-          event_type: 'notification_sent',
-          event_data: {
-            notification_type: notificationStrategy.type,
-            message: notificationStrategy.message,
-            strategy: notificationStrategy.strategy
-          },
-          created_at: new Date().toISOString()
-        });
-
-      return NextResponse.json({ 
-        message: 'Smart notification sent successfully',
-        notification: notificationStrategy
-      });
-    } else {
-      return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 });
-    }
-
-  } catch (error) {
-    console.error('Error sending smart notification:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
-}
-
-// GET - Check if user should receive notification
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
-    
     if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const checkType = searchParams.get('type') || 'general';
+    // Anti-spam: Check if we sent a notification recently
+    const recentNotification = await checkRecentNotification(user.id);
+    if (recentNotification) {
+      return NextResponse.json({ 
+        shouldNotify: false,
+        reason: 'Recent notification sent',
+        lastNotification: recentNotification.sent_at
+      });
+    }
 
-    // Get user's behavior analysis
-    const { data: analysis } = await supabase
-      .from('user_behavior_analysis')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    // Get recent events to check when last notification was sent
-    const { data: recentEvents } = await supabase
-      .from('user_behavior_events')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('event_type', 'notification_sent')
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    // Get current tasks
-    const { data: currentTasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    const shouldNotify = shouldSendNotification(analysis, recentEvents || [], currentTasks || [], checkType);
-
+    // Check if user should receive a smart notification
+    const shouldNotify = await checkNotificationTriggers(user.id);
+    
     return NextResponse.json({ 
       shouldNotify,
-      analysis: analysis ? {
-        completion_rate: analysis.task_completion_rate,
-        productive_hours: analysis.productive_hours,
-        notification_responsiveness: analysis.notification_responsiveness
-      } : null
+      userId: user.id,
+      timestamp: new Date().toISOString()
     });
-
   } catch (error) {
-    console.error('Error checking notification status:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('❌ Error checking smart notifications:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-function determineNotificationStrategy(analysis: any, currentTasks: any[], userProgress: any) {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const incompleteTasks = currentTasks.filter(t => !t.completed);
-  const hasActiveTasks = incompleteTasks.length > 0;
-  const currentMood = userProgress?.current_mood;
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  
-  // Mood-based notification adjustments
-  const getMoodAdjustedMessage = (baseMessage: string, mood: string) => {
-    const moodAdjustments = {
-      'sad': '💙 Take it one step at a time. ',
-      'stressed': '🧘 Let\'s focus on just one thing. ',
-      'tired': '☕ Small progress is still progress. ',
-      'angry': '🔥 Channel that energy into action! ',
-      'motivated': '🚀 You\'re feeling great - let\'s keep the momentum! ',
-      'happy': '😊 Your positive energy is perfect for getting things done! ',
-      'neutral': ''
-    };
-    return (moodAdjustments[mood as keyof typeof moodAdjustments] || '') + baseMessage;
-  };
-
-  // Don't send notifications during sleeping hours (11 PM - 7 AM)
-  if (currentHour >= 23 || currentHour <= 7) {
-    return null;
-  }
-
-  // Weekend vs weekday intelligence
-  const isWeekendLazy = isWeekend && currentHour > 10 && incompleteTasks.length === 0;
-  if (isWeekendLazy && currentMood !== 'motivated') {
-    return {
-      type: 'weekend_gentle_nudge',
-      message: getMoodAdjustedMessage('Weekend vibes are nice, but maybe add one small task to feel accomplished?', currentMood || 'neutral'),
-      strategy: 'weekend_motivation',
-      urgency: 'low'
-    };
-  }
-
-  // High completion rate users (80%+) - Gentle encouragement
-  if (analysis.task_completion_rate >= 80) {
-    if (hasActiveTasks && analysis.productive_hours.includes(currentHour)) {
-      const baseMessage = currentMood === 'tired' 
-        ? 'This is usually your productive time, but take it easy if you need to.'
-        : currentMood === 'motivated' 
-        ? 'Perfect timing! This is when you typically crush your tasks.'
-        : `You're usually more productive now! Ready to tackle your tasks?`;
-      
-      return {
-        type: 'productive_time_reminder',
-        message: getMoodAdjustedMessage(baseMessage, currentMood || 'neutral'),
-        strategy: 'productive_hour_reminder',
-        urgency: 'low'
-      };
-    }
-    return null; // High performers don't need much nudging
-  }
-
-  // Medium completion rate (40-79%) - Strategic reminders
-  if (analysis.task_completion_rate >= 40) {
-    if (hasActiveTasks) {
-      // Check if it's been more than 3 hours since last activity
-      const lastTaskTime = new Date(Math.max(...currentTasks.map(t => new Date(t.created_at).getTime())));
-      const hoursSinceLastTask = (now.getTime() - lastTaskTime.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursSinceLastTask >= 3) {
-        const baseMessage = currentMood === 'stressed'
-          ? `You have ${incompleteTasks.length} task${incompleteTasks.length === 1 ? '' : 's'} waiting, but let's just pick one to start with.`
-          : currentMood === 'motivated'
-          ? `You've got ${incompleteTasks.length} task${incompleteTasks.length === 1 ? '' : 's'} ready to conquer!`
-          : `Quick check-in: You have ${incompleteTasks.length} task${incompleteTasks.length === 1 ? '' : 's'} waiting. Ready to make progress?`;
-        
-        return {
-          type: 'gentle_reminder',
-          message: getMoodAdjustedMessage(baseMessage, currentMood || 'neutral'),
-          strategy: 'inactive_user_nudge',
-          urgency: 'medium'
-        };
-      }
-    }
-    return null;
-  }
-
-  // Low completion rate (0-39%) - Motivational support with mood intelligence
-  if (hasActiveTasks) {
-    if (incompleteTasks.length > 5) {
-      const simplestTask = incompleteTasks.sort((a, b) => a.title.length - b.title.length)[0];
-      const baseMessage = currentMood === 'sad' || currentMood === 'stressed'
-        ? `Let's start super simple. Just try: "${simplestTask.title}"`
-        : currentMood === 'angry'
-        ? `Use that energy! Start with: "${simplestTask.title}"`
-        : `Feeling overwhelmed? Let's start small! Try: "${simplestTask.title}"`;
-      
-      return {
-        type: 'overwhelm_support',
-        message: getMoodAdjustedMessage(baseMessage, currentMood || 'neutral'),
-        strategy: 'overwhelm_reduction',
-        urgency: 'high'
-      };
-    } else {
-      const baseMessage = currentMood === 'tired'
-        ? 'Even small steps count today. Pick just one task to complete.'
-        : currentMood === 'motivated'
-        ? 'Your motivation is perfect - time to turn it into action!'
-        : 'Small wins lead to big victories! Ready to tackle your tasks?';
-      
-      return {
-        type: 'motivation_boost',
-        message: getMoodAdjustedMessage(baseMessage, currentMood || 'neutral'),
-        strategy: 'motivation_support',
-        urgency: 'medium'
-      };
-    }
-  }
-
-  // User has no active tasks - mood-aware task creation prompts
-  if (!hasActiveTasks && currentTasks.length === 0) {
-    const baseMessage = currentMood === 'motivated'
-      ? 'You\'re feeling great! What would you like to accomplish today?'
-      : currentMood === 'sad' || currentMood === 'tired'
-      ? 'Maybe start with something small that will make you feel good?'
-      : currentMood === 'happy'
-      ? 'Your good mood is perfect for setting some exciting goals!'
-      : isWeekend
-      ? 'Weekend goals can be different - what would make this weekend fulfilling?'
-      : 'Ready to make today productive? What\'s one thing you\'d like to accomplish?';
-    
-    return {
-      type: 'task_creation_prompt',
-      message: getMoodAdjustedMessage(baseMessage, currentMood || 'neutral'),
-      strategy: 'new_user_activation',
-      urgency: 'low'
-    };
-  }
-
-  return null;
-}
-
-function shouldSendNotification(analysis: any, recentEvents: any[], currentTasks: any[], checkType: string): boolean {
-  if (!analysis) return false;
-
-  const now = new Date();
-  const currentHour = now.getHours();
-  
-  // No notifications during sleeping hours
-  if (currentHour >= 23 || currentHour <= 7) {
-    return false;
-  }
-
-  // Check if we sent a notification recently (within last 2 hours)
-  const lastNotification = recentEvents[0];
-  if (lastNotification) {
-    const lastNotificationTime = new Date(lastNotification.created_at);
-    const hoursSinceLastNotification = (now.getTime() - lastNotificationTime.getTime()) / (1000 * 60 * 60);
-    
-    // Respect user's notification responsiveness
-    const minHoursBetweenNotifications = analysis.notification_responsiveness > 60 ? 2 : 4;
-    
-    if (hoursSinceLastNotification < minHoursBetweenNotifications) {
-      return false;
-    }
-  }
-
-  // Check if it's user's productive time
-  const isProductiveTime = analysis.productive_hours.includes(currentHour);
-  
-  // High responders can get notifications during productive hours
-  if (analysis.notification_responsiveness > 60 && isProductiveTime) {
-    return true;
-  }
-
-  // Low responders only get critical notifications
-  if (analysis.notification_responsiveness < 30) {
-    const incompleteTasks = currentTasks.filter(t => !t.completed);
-    // Only send if they have many incomplete tasks and it's been a while
-    return incompleteTasks.length > 3;
-  }
-
-  return true; // Default for medium responders
-}
-
-async function sendSmartNotification(userId: string, strategy: any): Promise<boolean> {
+export async function POST(request: NextRequest) {
   try {
-    // This would integrate with your push notification service
-    // For now, we'll just log it and return true
-    console.log(`📱 Smart notification for user ${userId}:`, strategy);
-    
-    // You would implement actual push notification sending here
-    // Example with web push:
-    /*
-    const subscription = await getUserPushSubscription(userId);
-    if (subscription) {
-      await webpush.sendNotification(subscription, JSON.stringify({
-        title: 'Teyra',
-        body: strategy.message,
-        tag: strategy.type,
-        data: { strategy: strategy.strategy }
-      }));
+    const user = await currentUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    */
+
+    // Generate and send a personalized notification
+    const notification = await generatePersonalizedNotification(user.id);
+    
+    if (notification) {
+      // Send via Firebase (implement based on your setup)
+      await sendFirebaseNotification(user.id, notification);
+      
+      // Track notification sent
+      await trackNotificationSent(user.id, notification);
+      
+      return NextResponse.json({ 
+        success: true,
+        notification,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      return NextResponse.json({ 
+        success: false,
+        message: 'No notification needed at this time'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error sending smart notification:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function checkNotificationTriggers(userId: string): Promise<boolean> {
+  try {
+    // Get user's recent activity and patterns
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(20);
+
+    const { data: userProgress } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!tasks || !userProgress) return false;
+
+    const now = new Date();
+    const lastActivity = tasks[0]?.updated_at || userProgress.created_at;
+    const hoursSinceActivity = (now.getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60);
+
+    // Trigger conditions for smart notifications
+    const triggers = {
+      // User inactive for 4+ hours during active hours (9 AM - 8 PM)
+      inactivityReminder: hoursSinceActivity >= 4 && isActiveHours(),
+      
+      // User has incomplete tasks and it's been 6+ hours
+      incompleteTasksReminder: tasks.filter(t => !t.completed).length > 0 && hoursSinceActivity >= 6,
+      
+      // User completed many tasks recently (achievement notification)
+      achievementCelebration: getRecentCompletionRate(tasks) > 0.8,
+      
+      // User struggling with completion (encouragement)
+      encouragementNeeded: getRecentCompletionRate(tasks) < 0.3 && tasks.length > 3,
+      
+      // Daily check-in reminder (once per day)
+      dailyCheckIn: shouldSendDailyCheckIn(userProgress),
+      
+      // Mood-based suggestion (if user hasn't set mood recently)
+      moodSuggestion: shouldSuggestMoodCheck(userProgress)
+    };
+
+    // Return true if any trigger condition is met
+    return Object.values(triggers).some(Boolean);
+
+  } catch (error) {
+    console.error('❌ Error checking notification triggers:', error);
+    return false;
+  }
+}
+
+async function generatePersonalizedNotification(userId: string): Promise<any | null> {
+  try {
+    // Get user data for personalization
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(10);
+
+    const { data: userProgress } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!tasks || !userProgress) return null;
+
+    const completedTasks = tasks.filter(t => t.completed);
+    const incompleteTasks = tasks.filter(t => !t.completed);
+    const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length : 0;
+
+    // Generate notification based on user patterns
+    let notification = null;
+
+    if (completionRate > 0.8 && completedTasks.length >= 3) {
+      // High achiever - celebration
+      notification = {
+        title: '🏆 You\'re crushing it!',
+        message: `Amazing work! You've completed ${completedTasks.length} tasks recently. Mike is so proud! 🌵`,
+        type: 'achievement',
+        data: { completionRate, completedCount: completedTasks.length }
+      };
+    } else if (completionRate < 0.3 && tasks.length > 2) {
+      // Needs encouragement
+      notification = {
+        title: '💪 Small steps count!',
+        message: 'Every task you complete helps Mike grow. Ready to tackle something small today? 🌱',
+        type: 'encouragement',
+        data: { completionRate, taskCount: tasks.length }
+      };
+    } else if (incompleteTasks.length > 0) {
+      // Task reminder
+      const taskTitle = incompleteTasks[0].title;
+      notification = {
+        title: '📝 Task waiting for you!',
+        message: `"${taskTitle.length > 30 ? taskTitle.substring(0, 30) + '...' : taskTitle}" is ready to be completed!`,
+        type: 'task_reminder',
+        data: { taskId: incompleteTasks[0].id, taskTitle }
+      };
+    } else if (shouldSuggestMoodCheck(userProgress)) {
+      // Mood check suggestion
+      notification = {
+        title: '💙 How are you feeling?',
+        message: 'Take a moment to check in with your mood. It helps Mike suggest better tasks for you!',
+        type: 'mood_checkin',
+        data: { lastMoodUpdate: userProgress.last_mood_update }
+      };
+    }
+
+    return notification;
+
+  } catch (error) {
+    console.error('❌ Error generating personalized notification:', error);
+    return null;
+  }
+}
+
+async function sendFirebaseNotification(userId: string, notification: any): Promise<boolean> {
+  try {
+    // This would integrate with your Firebase Cloud Messaging setup
+    console.log(`🔔 Would send Firebase notification to ${userId}:`, notification);
+    
+    // Example implementation:
+    // const admin = require('firebase-admin');
+    // const message = {
+    //   notification: {
+    //     title: notification.title,
+    //     body: notification.message
+    //   },
+    //   data: notification.data,
+    //   topic: `user_${userId}` // or use FCM token
+    // };
+    // await admin.messaging().send(message);
     
     return true;
   } catch (error) {
-    console.error('Error sending notification:', error);
+    console.error('❌ Error sending Firebase notification:', error);
     return false;
+  }
+}
+
+async function trackNotificationSent(userId: string, notification: any): Promise<void> {
+  try {
+    // Track notification in database for analytics
+    await supabase
+      .from('notification_logs')
+      .insert({
+        user_id: userId,
+        notification_type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        sent_at: new Date().toISOString()
+      });
+  } catch (error) {
+    console.error('❌ Error tracking notification:', error);
+  }
+}
+
+// Helper functions
+function isActiveHours(): boolean {
+  const hour = new Date().getHours();
+  return hour >= 9 && hour <= 20; // 9 AM to 8 PM
+}
+
+function getRecentCompletionRate(tasks: any[]): number {
+  if (tasks.length === 0) return 0;
+  
+  // Look at tasks from the last 24 hours
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentTasks = tasks.filter(task => new Date(task.created_at) > oneDayAgo);
+  
+  if (recentTasks.length === 0) return 0;
+  
+  const completedRecent = recentTasks.filter(task => task.completed);
+  return completedRecent.length / recentTasks.length;
+}
+
+function shouldSendDailyCheckIn(userProgress: any): boolean {
+  if (!userProgress.last_email_sent) return true;
+  
+  const lastEmail = new Date(userProgress.last_email_sent);
+  const now = new Date();
+  const hoursSinceLastEmail = (now.getTime() - lastEmail.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceLastEmail >= 24; // Once per day
+}
+
+function shouldSuggestMoodCheck(userProgress: any): boolean {
+  if (!userProgress.last_mood_update) return true;
+  
+  const lastMoodUpdate = new Date(userProgress.last_mood_update);
+  const now = new Date();
+  const hoursSinceLastMood = (now.getTime() - lastMoodUpdate.getTime()) / (1000 * 60 * 60);
+  
+  return hoursSinceLastMood >= 12; // Suggest mood check every 12 hours
+}
+
+// Anti-spam function
+async function checkRecentNotification(userId: string): Promise<any | null> {
+  try {
+    const { data: recentNotification } = await supabase
+      .from('notification_logs')
+      .select('sent_at, notification_type')
+      .eq('user_id', userId)
+      .order('sent_at', { ascending: false })
+      .limit(1);
+
+    if (!recentNotification || recentNotification.length === 0) {
+      return null;
+    }
+
+    const lastNotification = recentNotification[0];
+    const lastSent = new Date(lastNotification.sent_at);
+    const now = new Date();
+    const hoursSinceLastNotification = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60);
+
+    // Anti-spam rules:
+    // - No more than 1 notification per 2 hours
+    // - No more than 3 notifications per day
+    if (hoursSinceLastNotification < 2) {
+      return lastNotification;
+    }
+
+    // Check daily limit
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { count: todayCount } = await supabase
+      .from('notification_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('sent_at', today.toISOString());
+
+    if (todayCount && todayCount >= 3) {
+      return { sent_at: 'daily_limit_reached', type: 'rate_limit' };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ Error checking recent notifications:', error);
+    return null;
   }
 }

@@ -200,36 +200,36 @@ export async function calculateUserProgress(userId: string) {
     
     const allTimeCompleted = currentCompletedTasks + archivedTasks
     
-    // Milestone system: 0→10→15→20 with progress bar reset
+    // Milestone system: 0→100→150→200 with progress bar reset
     let currentMilestone = 1
-    let maxValue = 10
+    let maxValue = 100
     let displayCompleted = allTimeCompleted
     let mood = 'sad' // Default sad cactus
     
-    if (allTimeCompleted >= 20) {
-      // Happy cactus - maxed out at 20
+    if (allTimeCompleted >= 200) {
+      // Happy cactus - maxed out at 200
       currentMilestone = 4
-      maxValue = 20
+      maxValue = 200
       displayCompleted = allTimeCompleted // Show full count for maxed out
       mood = 'happy'
-    } else if (allTimeCompleted >= 15) {
-      // Working towards happy (15→20) - reset progress bar and show out of 20
+    } else if (allTimeCompleted >= 150) {
+      // Working towards happy (150→200) - reset progress bar and show out of 200
       currentMilestone = 3
-      maxValue = 20
-      displayCompleted = allTimeCompleted - 15 // Reset: 0-4 progress within this milestone
-      mood = 'neutral'
-    } else if (allTimeCompleted >= 10) {
-      // Medium cactus achieved! Working towards next milestone (10→15) - reset progress bar
+      maxValue = 200
+      displayCompleted = allTimeCompleted - 150 // Reset: 0-49 progress within this milestone
+      mood = 'happy'
+    } else if (allTimeCompleted >= 100) {
+      // Medium cactus achieved! Working towards next milestone (100→150) - reset progress bar
       currentMilestone = 2  
-      maxValue = 15
-      displayCompleted = allTimeCompleted - 10 // Reset: 0-4 progress within this milestone
+      maxValue = 150
+      displayCompleted = allTimeCompleted - 100 // Reset: 0-49 progress within this milestone
       mood = 'neutral'
     } else {
-      // Working towards first milestone (0→10)
+      // Working towards first milestone (0→100)
       currentMilestone = 1
-      maxValue = 10
-      displayCompleted = allTimeCompleted // 0-9 progress towards first milestone
-      mood = allTimeCompleted >= 10 ? 'neutral' : 'sad' // Neutral when reaching first milestone
+      maxValue = 100
+      displayCompleted = allTimeCompleted // 0-99 progress towards first milestone
+      mood = allTimeCompleted >= 100 ? 'neutral' : 'sad' // Neutral when reaching first milestone
     }
     
     return {

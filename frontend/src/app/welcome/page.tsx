@@ -168,26 +168,26 @@ export default function WelcomePage() {
 
   const goToDashboard = async () => {
     try {
+      console.log('Welcome: Starting navigation to dashboard');
+      
       // Mark onboarding as complete using our custom hook
       completeOnboarding();
       
       // Signal dashboard to start interactive tutorial
       if (user?.id) {
         sessionStorage.setItem(`start_dashboard_tutorial_${user.id}`, 'true');
+        console.log('Welcome: Set tutorial flag for user', user.id);
       }
       
-      // Add a visual indication that we're navigating
-      document.body.style.cursor = 'wait';
+      console.log('Welcome: Navigating to dashboard...');
       
-      // Apply a fade-out effect
-      document.body.classList.add('page-transition-exit');
+      // Use Next.js router for proper navigation
+      router.push('/dashboard');
       
-      // Navigate to dashboard
-      router.replace('/dashboard');
     } catch (error) {
       console.error('Navigation error:', error);
-      // Fallback direct navigation if router fails
-      window.location.href = '/dashboard';
+      // Fallback to router replace
+      router.replace('/dashboard');
     }
   };
 

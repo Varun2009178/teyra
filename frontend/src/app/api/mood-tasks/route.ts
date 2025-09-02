@@ -10,21 +10,34 @@ const groq = new Groq({
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('GROQ API Key exists:', !!process.env.NEXT_PUBLIC_GROQ_API_KEY);
-    
-    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
-    }
+    console.log('🧠 Mood task generation request received');
+    console.log('GROQ API Key configured:', !!process.env.NEXT_PUBLIC_GROQ_API_KEY);
     
     const user = await currentUser();
     if (!user?.id) {
+      console.log('❌ Unauthorized request - no user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { mood, existingTasks } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const { mood, existingTasks } = body;
+    
+    console.log('📝 Request data:', { mood, existingTasksCount: existingTasks?.length || 0 });
     
     if (!mood || typeof mood !== 'string') {
-      return NextResponse.json({ error: 'Mood is required' }, { status: 400 });
+      console.log('❌ Invalid mood provided:', mood);
+      return NextResponse.json({ error: 'Mood is required and must be a string' }, { status: 400 });
+    }
+
+    // If GROQ API is not configured, return fallback tasks immediately
+    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+      console.log('⚠️ GROQ API not configured, using fallback tasks');
+      const fallbackTasks = getFallbackTasks(mood);
+      return NextResponse.json({ 
+        tasks: fallbackTasks,
+        source: 'fallback',
+        message: 'AI service not configured, using curated tasks'
+      });
     }
 
     const moodPrompts: Record<string, string> = {
@@ -68,6 +81,8 @@ Example for "energized":
 Example for "tired":
 ["Do gentle stretches for 5 minutes", "Prepare tomorrow's clothes and snacks", "Listen to a calming podcast"]`;
 
+    console.log('🤖 Calling GROQ API for mood-based tasks...');
+    
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -85,18 +100,23 @@ Example for "tired":
     });
 
     const response = completion.choices[0]?.message?.content;
+    console.log('🤖 GROQ API response received:', response?.substring(0, 100) + '...');
     
     if (!response) {
+      console.log('❌ No response from GROQ API');
       throw new Error('No response from AI');
     }
 
     // Parse the JSON response
     let tasks;
     try {
-      tasks = JSON.parse(response);
+      // Clean the response - remove any markdown formatting
+      const cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      tasks = JSON.parse(cleanResponse);
       
       // Validate it's an array of strings
       if (!Array.isArray(tasks) || !tasks.every(task => typeof task === 'string')) {
+        console.log('❌ Invalid AI response format:', tasks);
         throw new Error('Invalid response format');
       }
       
@@ -111,22 +131,36 @@ Example for "tired":
         }
       }
       
+      console.log('✅ Successfully generated AI tasks:', tasks);
+      
     } catch (parseError) {
-      console.error('Failed to parse AI response:', response);
+      console.error('❌ Failed to parse AI response:', response, parseError);
       
       // Use fallback tasks
       tasks = getFallbackTasks(mood);
+      console.log('🔄 Using fallback tasks instead:', tasks);
     }
 
-    return NextResponse.json({ tasks });
+    return NextResponse.json({ 
+      tasks,
+      source: 'ai',
+      mood: mood
+    });
     
   } catch (error) {
-    console.error('Error in mood task generation:', error);
+    console.error('❌ Error in mood task generation:', error);
     
     // Fallback response
     const { mood } = await request.json().catch(() => ({ mood: 'calm' }));
+    const fallbackTasks = getFallbackTasks(mood);
+    
+    console.log('🔄 Returning fallback tasks due to error:', fallbackTasks);
+    
     return NextResponse.json({
-      tasks: getFallbackTasks(mood)
+      tasks: fallbackTasks,
+      source: 'fallback_error',
+      mood: mood,
+      error: 'AI service temporarily unavailable'
     });
   }
 }

@@ -28,12 +28,27 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
 
     // Load settings
     if (user?.id) {
-      const emailSetting = localStorage.getItem(`email_notifications_${user.id}`) === 'true';
-      const pushSetting = localStorage.getItem(`push_notifications_${user.id}`) === 'true';
+      const emailValue = localStorage.getItem(`email_notifications_${user.id}`);
+      const pushValue = localStorage.getItem(`push_notifications_${user.id}`);
+      const emailSetting = emailValue === 'true';
+      const pushSetting = pushValue === 'true';
+      
+      // Enhanced debug logging
+      console.log('🔧 Loading notification settings:', {
+        userId: user.id,
+        emailKey: `email_notifications_${user.id}`,
+        pushKey: `push_notifications_${user.id}`,
+        emailValue: emailValue,
+        pushValue: pushValue,
+        emailEnabled: emailSetting,
+        pushEnabled: pushSetting,
+        allLocalStorageKeys: Object.keys(localStorage).filter(key => key.includes(user.id))
+      });
+      
       setEmailEnabled(emailSetting);
       setPushEnabled(pushSetting);
     }
-  }, [user?.id]);
+  }, [user?.id, isOpen]); // Also reload when modal opens
 
   const handleEmailToggle = async () => {
     if (!user?.id) return;
@@ -57,6 +72,11 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
     const newState = !pushEnabled;
     setPushEnabled(newState);
     localStorage.setItem(`push_notifications_${user.id}`, newState.toString());
+    
+    // Also update the notification permission state if enabling
+    if (newState && permission.state !== 'granted') {
+      await requestPermission();
+    }
     
     console.log(`Push notifications ${newState ? 'enabled' : 'disabled'} for user ${user.id}`);
   };

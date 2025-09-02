@@ -14,17 +14,17 @@ console.log('🧪 Testing Teyra Local System...\n');
 const localTests = [
   {
     name: 'Daily Reset Check',
-    url: 'http://localhost:3005/api/daily-reset',
+          url: 'http://localhost:3000/api/daily-reset',
     method: 'GET'
   },
   {
     name: 'AI Learning Endpoint',
-    url: 'http://localhost:3005/api/ai/learn-user-patterns',
+          url: 'http://localhost:3000/api/ai/learn-user-patterns',
     method: 'POST'
   },
   {
     name: 'Get User Patterns',
-    url: 'http://localhost:3005/api/ai/get-user-patterns',
+          url: 'http://localhost:3000/api/ai/get-user-patterns',
     method: 'GET'
   }
 ];
@@ -87,7 +87,7 @@ async function testEndpoint(test) {
 }
 
 async function runTests() {
-  console.log('📍 Testing Local Endpoints (localhost:3005)...\n');
+  console.log('📍 Testing Local Endpoints (localhost:3000)...\n');
   
   for (const test of localTests) {
     const result = await testEndpoint(test);

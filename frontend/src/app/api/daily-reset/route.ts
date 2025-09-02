@@ -128,20 +128,26 @@ export async function POST(request: NextRequest) {
       resetDate: now.toISOString()
     };
     
-    // 1. Archive completed tasks first
+    // 1. Archive completed tasks - mark them as completed for persistence
     const archivePromises = completedTasks.map(task => 
       supabase
         .from('tasks')
         .update({ 
-          title: `[ARCHIVED ${now.toLocaleDateString()}] ${task.title.replace(/^\[ARCHIVED [^\]]+\]\s*/, '')}`,
-          completed: true 
+          title: `[COMPLETED] ${task.title.replace(/^\[COMPLETED\]\s*/, '')}`,
+          completed: true
         })
         .eq('id', task.id)
         .eq('user_id', userId) // Extra safety check
     );
 
-    // 2. Keep incomplete tasks for the next day (no deletion)
-    // Incomplete tasks carry over automatically since we don't delete them
+    // 2. Delete incomplete tasks - they don't carry over
+    const deletePromises = incompleteTasks.map(task =>
+      supabase
+        .from('tasks')
+        .delete()
+        .eq('id', task.id)
+        .eq('user_id', userId) // Extra safety check
+    );
 
     // 3. Reset user progress
     const progressResetPromise = supabase
@@ -155,18 +161,19 @@ export async function POST(request: NextRequest) {
       })
       .eq('user_id', userId);
 
-    const resetPromises = [...archivePromises, progressResetPromise];
+    const resetPromises = [...archivePromises, ...deletePromises, progressResetPromise];
 
     // Execute all reset operations
     const results = await Promise.allSettled(resetPromises);
     
     // Count successful operations
     const successfulArchives = results.slice(0, completedTasks.length).filter(r => r.status === 'fulfilled').length;
+    const successfulDeletes = results.slice(completedTasks.length, completedTasks.length + incompleteTasks.length).filter(r => r.status === 'fulfilled').length;
     const progressResetSuccess = results[results.length - 1].status === 'fulfilled';
     
     console.log(`📊 Reset results for user ${userId}:
       - Archived tasks: ${successfulArchives}/${completedTasks.length}
-      - Incomplete tasks carried over: ${incompleteTasks.length}
+      - Deleted incomplete tasks: ${successfulDeletes}/${incompleteTasks.length}
       - Progress reset: ${progressResetSuccess ? 'Success' : 'Failed'}`);
     
     // Log individual failures for debugging
@@ -174,6 +181,9 @@ export async function POST(request: NextRequest) {
       if (result.status === 'rejected') {
         if (index < completedTasks.length) {
           console.error(`❌ Failed to archive task ${completedTasks[index].id}:`, result.reason);
+        } else if (index < completedTasks.length + incompleteTasks.length) {
+          const taskIndex = index - completedTasks.length;
+          console.error(`❌ Failed to delete task ${incompleteTasks[taskIndex].id}:`, result.reason);
         } else {
           console.error(`❌ Failed to reset progress:`, result.reason);
         }
@@ -258,7 +268,7 @@ export async function POST(request: NextRequest) {
         completed: completedTasks.map(t => t.title),
         incomplete: incompleteTasks.map(t => t.title)
       },
-      resetType: 'daily_completed_archived', // Only completed tasks were archived, incomplete carry over
+      resetType: 'daily_completed_archived_incomplete_deleted', // Completed tasks archived, incomplete deleted
       progressData: progressData, // Send progress data to frontend for localStorage storage
       progressUpdate: {
         completed_tasks_added_to_total: completedTasks.length,

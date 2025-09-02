@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import Image from 'next/image'
-import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle } from 'lucide-react'
+import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
+import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, Sparkles, Brain, Zap } from 'lucide-react'
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { Cactus } from '@/components/Cactus';
@@ -16,7 +15,6 @@ import { useSmartNotifications } from '@/hooks/useSmartNotifications';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { SmartNotificationSetup } from '@/components/SmartNotificationSetup';
 import { NotificationSettings } from '@/components/NotificationSettings';
-import DailyNotificationPrompt from '@/components/DailyNotificationPrompt';
 import * as gtag from '@/lib/gtag';
 
 interface Task {
@@ -134,7 +132,7 @@ export default function MVPDashboard() {
   useSmartNotifications();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
-  // Remove userProgress - not used since milestone calculation moved to client-side
+  const [userProgress, setUserProgress] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
   const [showAllTasks, setShowAllTasks] = useState(false);
@@ -165,11 +163,11 @@ export default function MVPDashboard() {
     "🥬 Add vegetables to one meal"
   ];
 
-  // Memoized values for performance - count current session tasks (including completed ones from today)
-  const completedTasksCount = useMemo(() => tasks.filter(t => t?.completed && !t.title.includes('[COMPLETED]')).length, [tasks]);
-  const totalTasksCount = useMemo(() => tasks.filter(t => !t.title.includes('[COMPLETED]')).length, [tasks]);
+  // Memoized values for performance
+  const completedTasksCount = useMemo(() => tasks.filter(t => t?.completed).length, [tasks]);
+  const totalTasksCount = useMemo(() => tasks.length, [tasks]);
   const completedSustainableTasksCount = useMemo(() => 
-    tasks.filter(t => t?.completed && sustainableTasks.includes(t.title) && !t.title.includes('[COMPLETED]')).length, 
+    tasks.filter(t => t?.completed && sustainableTasks.includes(t.title)).length, 
     [tasks]
   );
   
@@ -177,36 +175,34 @@ export default function MVPDashboard() {
   const rawTotalPoints = useMemo(() => {
     if (tasks.length === 0) return 0;
     
-    // Calculate stored points from completed tasks (from previous resets)
-    const completedTasks = tasks.filter(task => task.title.includes('[COMPLETED]'));
+    // Calculate stored points by parsing archived tasks from ALL tasks (more accurate)
+    const archivedTasks = tasks.filter(task => task.title.includes('[ARCHIVED'));
     let storedPoints = 0;
     
-    if (completedTasks.length > 0) {
-      const completedRegularTasks = completedTasks.filter(task => {
-        const cleanTitle = task.title.replace(/^\[COMPLETED\]\s*/, '');
-        return !sustainableTasks.some(sustainableTask => 
-          cleanTitle === sustainableTask || sustainableTask.includes(cleanTitle.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
-        );
-      });
-      const completedSustainableTasks = completedTasks.filter(task => {
-        const cleanTitle = task.title.replace(/^\[COMPLETED\]\s*/, '');
-        return sustainableTasks.some(sustainableTask => 
-          cleanTitle === sustainableTask || sustainableTask.includes(cleanTitle.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
-        );
-      });
-      storedPoints = (completedRegularTasks.length * 10) + (completedSustainableTasks.length * 20);
+    if (archivedTasks.length > 0) {
+      const archivedRegularTasks = archivedTasks.filter(task => 
+        !sustainableTasks.some(sustainableTask => 
+          task.title.includes(sustainableTask.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
+        )
+      );
+      const archivedSustainableTasks = archivedTasks.filter(task => 
+        sustainableTasks.some(sustainableTask => 
+          task.title.includes(sustainableTask.replace(/^🌱|♻️|🚶|💡|🌿\s*/g, ''))
+        )
+      );
+      storedPoints = (archivedRegularTasks.length * 10) + (archivedSustainableTasks.length * 20);
       
-      console.log('📊 Completed tasks analysis:', {
-        totalCompleted: completedTasks.length,
-        completedRegular: completedRegularTasks.length,
-        completedSustainable: completedSustainableTasks.length,
+      console.log('📊 Archived tasks analysis:', {
+        totalArchived: archivedTasks.length,
+        archivedRegular: archivedRegularTasks.length,
+        archivedSustainable: archivedSustainableTasks.length,
         storedPoints
       });
     }
     
     // Calculate current session points (regular = 10, sustainable = 20)
-    // Exclude completed tasks from previous resets
-    const currentCompletedTasks = tasks.filter(t => t?.completed && !t.title.includes('[COMPLETED]'));
+    // Exclude archived tasks from current session calculations
+    const currentCompletedTasks = tasks.filter(t => t?.completed && !t.title.includes('[ARCHIVED'));
     const regularCompleted = currentCompletedTasks.filter(t => !sustainableTasks.includes(t.title)).length;
     const sustainableCompleted = currentCompletedTasks.filter(t => sustainableTasks.includes(t.title)).length;
     const currentPoints = (regularCompleted * 10) + (sustainableCompleted * 20);
@@ -215,7 +211,7 @@ export default function MVPDashboard() {
     const totalPoints = storedPoints + currentPoints;
     
     console.log('🔍 Real-time points calculation:', {
-      completedTasksCount: completedTasks.length,
+      archivedTasksCount: archivedTasks.length,
       storedPoints,
       regularCompleted,
       sustainableCompleted,
@@ -305,8 +301,34 @@ export default function MVPDashboard() {
       // Immediately show UI with tasks, load progress in background
       setIsLoading(false);
       
-      // Note: User progress is now calculated client-side from tasks
-      // No need to fetch/create separate progress data
+      // Load progress data in background (less critical for immediate UI)
+      try {
+        const progressRes = await fetch('/api/progress', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (progressRes.ok) {
+          const progressData = await progressRes.json();
+          setUserProgress(progressData);
+        } else if (progressRes.status === 404) {
+          // User progress doesn't exist, create it
+          console.log('Creating user progress for new user');
+          const createRes = await fetch('/api/progress', {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (createRes.ok) {
+            const newProgressData = await createRes.json();
+            setUserProgress(newProgressData);
+          }
+        }
+      } catch (progressError) {
+        console.error('Error fetching/creating progress:', progressError);
+        // Don't show error for background progress load
+      }
       
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -331,30 +353,14 @@ export default function MVPDashboard() {
       console.warn('Session tracking failed:', error);
     }
 
-    // For existing users, ensure they get appropriate onboarding experiences
-    const initializeUserExperience = () => {
-      const userId = user.id;
-      
-      // Check if this is a first visit for onboarding tour
-      const hasSeenTour = localStorage.getItem(`dashboard_tour_${userId}`) === 'true';
-      
-      // For existing users who have never seen the tour, show it
-      if (!hasSeenTour) {
-        console.log('👋 New user detected - showing onboarding tour');
-        setTimeout(() => {
-          setShowOnboardingTour(true);
-        }, 1000);
-      }
-      
-      // Set up first task completion trigger for smart notifications
-      // This doesn't show immediately but prepares for when they complete their first task
-      const hasSeenSmartSetup = localStorage.getItem(`smart_setup_${userId}`) === 'true';
-      if (!hasSeenSmartSetup) {
-        console.log('📱 User hasn\'t seen smart notification setup - will show after first task');
-      }
-    };
-
-    initializeUserExperience();
+    // Check if user should see onboarding tour
+    const hasSeenTour = localStorage.getItem(`dashboard_tour_${user.id}`) === 'true';
+    if (!hasSeenTour) {
+      // Show tour after a short delay to let dashboard load
+      setTimeout(() => {
+        setShowOnboardingTour(true);
+      }, 1000);
+    }
   }, [fetchUserData, trackSessionStart, user?.id, isHydrated]);
 
   // Force loading to complete if user is available but still loading
@@ -746,21 +752,16 @@ export default function MVPDashboard() {
           backgroundSize: '20px 20px'
         }}
       />
-      {/* Clean Header with dark theme - Mobile optimized */}
-      <header className="glass-dark-modern border-b border-precise px-3 sm:px-4 py-3 sm:py-4 sticky top-0 z-10">
+      {/* Clean Header with dark theme */}
+      <header className="glass-dark-modern border-b border-precise px-4 py-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <Image 
-              src="/teyra-logo-64kb.png" 
-              alt="Teyra" 
-              width={32} 
-              height={32}
-              className="w-8 h-8"
-            />
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <h1 className="text-2xl font-black text-white tracking-tight">teyra</h1>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-4">
             {currentMood && (
-              <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-white/10 rounded-lg">
+              <div className="flex items-center space-x-2 px-3 py-1.5 bg-white/10 rounded-lg">
                 <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${currentMood.color} flex items-center justify-center text-white text-xs`}>
                   {currentMood.emoji}
                 </div>
@@ -769,61 +770,41 @@ export default function MVPDashboard() {
             )}
             <button 
               onClick={() => setShowAllTasks(true)}
-              className="hidden md:flex items-center space-x-2 px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="hidden sm:flex items-center space-x-2 px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               title="View all tasks"
             >
               <List className="w-4 h-4" />
               <span>All Tasks ({tasks.filter(t => t?.completed).length})</span>
             </button>
-            <button 
-              onClick={() => setShowAllTasks(true)}
-              className="md:hidden flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
-              title="View all tasks"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <div className="text-xs text-white/60 font-mono hidden lg:block">
+            <div className="text-xs text-white/60 font-mono hidden sm:block">
               {new Date().toLocaleTimeString([], { hour12: false })}
             </div>
-            <div className="relative">
-              <button
-                onClick={() => setShowNotificationSettings(true)}
-                className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
-                title="Notification Settings"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setShowOnboardingTour(true)}
-                className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
-                title="Redo Demo"
-              >
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="relative">
-              <UserButton 
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-8 h-8 rounded-full",
-                    userButtonPopover: "glass-dark-modern border-precise shadow-xl rounded-xl",
-                    userButtonTrigger: "rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
-                  }
-                }}
-              />
-            </div>
+            <button
+              onClick={() => setShowNotificationSettings(true)}
+              className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200"
+              title="Notification Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <UserButton 
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8 rounded-full",
+                  userButtonPopover: "glass-dark-modern border-precise shadow-xl rounded-xl",
+                  userButtonTrigger: "rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                }
+              }}
+            />
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
           
           {/* Left Column: Task Management */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
+          <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
             {/* Mood-based Task Generator */}
             <MoodTaskGenerator 
               currentTasks={tasks}
@@ -861,22 +842,22 @@ export default function MVPDashboard() {
             </div>
             
             {/* Task Input */}
-            <div className="glass-dark-modern border-precise rounded-xl sm:rounded-2xl p-4 sm:p-6">
-              <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="glass-dark-modern border-precise rounded-2xl p-6">
+              <div className="flex items-center space-x-3">
                 <input
                   type="text"
                   value={newTask}
                   onChange={(e) => setNewTask(e.target.value)}
                   placeholder="What needs to be done?"
-                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-white/20 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 bg-white/5 text-white placeholder:text-white/40 text-base sm:text-lg transition-all duration-200"
+                  className="flex-1 px-4 py-3 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 bg-white/5 text-white placeholder:text-white/40 text-lg transition-all duration-200"
                   onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
                 />
                 <button
                   onClick={handleAddTask}
                   disabled={!newTask.trim()}
-                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white hover:bg-white/90 text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="px-6 py-3 bg-white hover:bg-white/90 text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Plus className="w-5 h-5" />
                 </button>
               </div>
               
@@ -894,21 +875,21 @@ export default function MVPDashboard() {
             </div>
 
             {/* Task List - Directly under input */}
-            <div className="glass-dark-modern border-precise rounded-xl sm:rounded-2xl p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <h2 className="text-lg sm:text-xl font-bold text-white">Today's Tasks</h2>
-                  <div className="text-xs text-white/60 font-mono bg-white/10 px-2 sm:px-3 py-1 rounded-full hidden sm:block">
+            <div className="glass-dark-modern border-precise rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <h2 className="text-xl font-bold text-white">Today's Tasks</h2>
+                  <div className="text-xs text-white/60 font-mono bg-white/10 px-3 py-1 rounded-full">
                     {new Date().toLocaleDateString()}
                   </div>
                 </div>
-                <div className="text-sm text-white/60 font-mono bg-white/5 px-2 sm:px-3 py-1 rounded-full">
+                <div className="text-sm text-white/60 font-mono bg-white/5 px-3 py-1 rounded-full">
                   {completedTasksCount}/{totalTasksCount}
                 </div>
               </div>
               
               <div className="min-h-[200px]">
-                {tasks.filter(t => !t.title.includes('[COMPLETED]')).length === 0 ? (
+                {tasks.length === 0 ? (
                   <div className="text-center py-12">
                     <motion.div 
                       className="w-16 h-16 bg-white/10 rounded-full mx-auto mb-4 flex items-center justify-center"
@@ -929,8 +910,7 @@ export default function MVPDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Show all current session tasks (both completed and incomplete) */}
-                    {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
+                    {tasks.map((task) => (
                       <TaskCard
                         key={task.id}
                         task={task}
@@ -947,35 +927,35 @@ export default function MVPDashboard() {
 
           {/* Right Column: Progress & Motivation */}
           <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="glass-dark-modern border-precise rounded-2xl p-3 sm:p-4 lg:p-6 lg:sticky lg:top-24">
-              <div className="text-center mb-3 sm:mb-4 lg:mb-6">
-                <h2 className="text-lg font-bold text-white mb-2 sm:mb-3 lg:mb-4">Progress</h2>
+            <div className="glass-dark-modern border-precise rounded-2xl p-4 lg:p-6 lg:sticky lg:top-24">
+              <div className="text-center mb-4 lg:mb-6">
+                <h2 className="text-lg font-bold text-white mb-3 lg:mb-4">Progress</h2>
                 
                 {/* Mobile: Horizontal layout for smaller screens */}
-                <div className="flex flex-col sm:flex-row lg:block">
+                <div className="flex lg:block">
                   {/* Mike the Cactus */}
-                  <div className="flex justify-center mb-3 sm:mb-4 lg:mb-6 flex-shrink-0">
-                    <div className="bg-white/10 rounded-full p-4 sm:p-6 lg:p-8">
-                      <Cactus mood={milestoneData.cactusState} size="xl" />
+                  <div className="flex justify-center mb-4 lg:mb-6 flex-shrink-0">
+                    <div className="bg-white/10 rounded-full p-4 lg:p-6">
+                      <Cactus mood={milestoneData.cactusState} />
                     </div>
                   </div>
                   
                   {/* Progress Circle and Stats */}
-                  <div className="flex-1 lg:block sm:ml-4 lg:ml-0">
+                  <div className="flex-1 lg:block ml-4 lg:ml-0">
                     {/* Progress Circle */}
-                    <div className="flex justify-center mb-3 sm:mb-4 lg:mb-6">
+                    <div className="flex justify-center mb-4 lg:mb-6">
                       <AnimatedCircularProgressBar
                         max={milestoneData.maxPoints}
                         value={milestoneData.currentPoints}
                         gaugePrimaryColor="#22c55e"
                         gaugeSecondaryColor="rgba(255,255,255,0.2)"
-                        className="size-16 sm:size-20 lg:size-24"
+                        className="size-20 lg:size-24"
                       />
                     </div>
                     
                     {/* Stats */}
-                    <div className="bg-white/5 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 lg:p-4 border border-white/20">
-                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white font-mono">
+                    <div className="bg-white/5 rounded-2xl p-3 lg:p-4 border border-white/20">
+                      <div className="text-xl lg:text-2xl font-bold text-white font-mono">
                         {milestoneData.currentPoints.toString().padStart(2, '0')}
                       </div>
                       <div className="text-white/60 text-xs font-mono uppercase tracking-wide">
@@ -999,12 +979,12 @@ export default function MVPDashboard() {
         </div>
       </main>
 
-      {/* Daily Reset Checker - Temporarily disabled to fix 404 spam */}
-      {/* <DailyResetChecker 
+      {/* Daily Reset Checker */}
+      <DailyResetChecker 
         onResetCompleted={() => {
           fetchUserData();
         }}
-      /> */}
+      />
 
       {/* All Tasks Modal */}
       <AnimatePresence>
@@ -1028,7 +1008,7 @@ export default function MVPDashboard() {
                   <List className="w-6 h-6 text-white" />
                   <h2 className="text-2xl font-bold text-white">All Tasks Summary</h2>
                   <span className="text-sm text-white/60 bg-white/10 px-3 py-1 rounded-full">
-                    {tasks.filter(t => t?.completed || t.title.includes('[COMPLETED]')).length} completed all-time
+                    {tasks.filter(t => t?.completed).length} completed all-time
                   </span>
                 </div>
                 <button
@@ -1046,7 +1026,7 @@ export default function MVPDashboard() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-400">
-                        {tasks.filter(t => t?.completed || t.title.includes('[COMPLETED]')).length}
+                        {tasks.filter(t => t?.completed).length}
                       </div>
                       <div className="text-sm text-white/60">Total Completed</div>
                     </div>
@@ -1084,45 +1064,25 @@ export default function MVPDashboard() {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-white/60">Active Tasks:</span>
-                      <span className="font-medium text-white">{tasks.filter(t => !t.title.includes('[COMPLETED]')).length}</span>
+                      <span className="font-medium text-white">{tasks.length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-white/60">Completed Today:</span>
-                      <span className="font-medium text-green-400">{tasks.filter(t => t?.completed && !t.title.includes('[COMPLETED]')).length}</span>
+                      <span className="font-medium text-green-400">{tasks.filter(t => t?.completed).length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-white/60">Remaining:</span>
-                      <span className="font-medium text-orange-400">{tasks.filter(t => !t?.completed && !t.title.includes('[COMPLETED]')).length}</span>
+                      <span className="font-medium text-orange-400">{tasks.filter(t => !t?.completed).length}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* All-Time Completed Tasks */}
-                {tasks.filter(t => t.title.includes('[COMPLETED]')).length > 0 && (
-                  <div className="bg-green-500/10 border border-green-400/30 rounded-xl p-4">
-                    <h3 className="font-semibold text-white mb-3">🏆 All-Time Completed Tasks</h3>
-                    <p className="text-xs text-white/60 mb-3">These tasks stay here permanently and contribute to your cactus's mood</p>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {tasks.filter(t => t.title.includes('[COMPLETED]')).map((task) => (
-                        <div key={task.id} className="flex items-center space-x-2 text-sm">
-                          <div className="w-4 h-4 rounded border bg-green-500 border-green-500 flex items-center justify-center">
-                            <Check className="w-2.5 h-2.5 text-white" />
-                          </div>
-                          <span className="text-green-400">
-                            {task.title.replace(/^\[COMPLETED\]\s*/, '')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Today's Tasks (if any) */}
-                {tasks.filter(t => !t.title.includes('[COMPLETED]')).length > 0 && (
+                {/* Daily Tasks (if any) */}
+                {tasks.length > 0 && (
                   <div className="bg-white/5 border border-white/20 rounded-xl p-4">
                     <h3 className="font-semibold text-white mb-3">📝 Today's Tasks</h3>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
+                      {tasks.map((task) => (
                         <div key={task.id} className="flex items-center space-x-2 text-sm">
                           <div className={`w-4 h-4 rounded border flex items-center justify-center ${
                             task.completed ? 'bg-green-500 border-green-500' : 'border-white/30'
@@ -1175,9 +1135,9 @@ export default function MVPDashboard() {
                       onMouseLeave={() => setShowTooltip(false)}
                     />
                     {showTooltip && (
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded shadow-lg border border-white/20 whitespace-nowrap z-60 pointer-events-none">
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded shadow-lg border border-white/20 whitespace-nowrap z-60">
                         Be honest with yourself about your effort
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-black/90 rotate-45 border-r border-b border-white/20 -mt-px"></div>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
                       </div>
                     )}
                   </div>
@@ -1339,7 +1299,6 @@ export default function MVPDashboard() {
               }
               if (user?.id) {
                 localStorage.setItem(`push_notifications_${user.id}`, 'true');
-                console.log('✅ Push notifications enabled for user:', user.id);
               }
               toast.success('Smart notifications enabled! 🔔');
             }}
@@ -1352,7 +1311,6 @@ export default function MVPDashboard() {
               }).catch(console.error);
               if (user?.id) {
                 localStorage.setItem(`email_notifications_${user.id}`, 'true');
-                console.log('✅ Email notifications enabled for user:', user.id);
               }
               toast.success('Daily emails enabled! 📧');
             }}
@@ -1366,10 +1324,60 @@ export default function MVPDashboard() {
         onClose={() => setShowNotificationSettings(false)}
       />
 
-      {/* Daily Notification Prompt */}
-      <DailyNotificationPrompt />
-
+      {/* Test Reset Button - Development Only */}
+      {process.env.NODE_ENV === 'development' && <TestResetButton />}
     </div>
   );
 }
 
+// Test Reset Button Component
+function TestResetButton() {
+  const { getToken } = useAuth();
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleTestReset = async () => {
+    if (!confirm('🧪 This will delete ALL tasks from today and add completed ones to your cactus progress. Continue?')) return;
+
+    setIsResetting(true);
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/test-reset', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Create detailed task summary
+        const completedList = result.taskSummary.completed.length > 0 
+          ? '\n✅ Completed:\n' + result.taskSummary.completed.map(t => `• ${t}`).join('\n')
+          : '';
+        
+        const incompleteList = result.taskSummary.incomplete.length > 0
+          ? '\n⏸️ Incomplete:\n' + result.taskSummary.incomplete.map(t => `• ${t}`).join('\n')
+          : '';
+        
+        alert(`🔄 Daily Reset Complete!\n\n📊 Tasks Deleted:\n- Total: ${result.taskSummary.total}\n- Completed: ${result.taskSummary.completed_count}\n- Incomplete: ${result.taskSummary.incomplete_count}${completedList}${incompleteList}\n\n🌵 Cactus progress updated!\n📧 Email sent!\n\n🔄 Refreshing page...`);
+        
+        setTimeout(() => window.location.reload(), 3000);
+      } else {
+        alert(`❌ Failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Test reset error:', error);
+      alert('❌ Error - check console');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleTestReset}
+      disabled={isResetting}
+      className="fixed bottom-4 right-4 z-50 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-4 py-2 rounded-lg shadow-lg transition-colors text-sm font-medium"
+    >
+      {isResetting ? '🔄 Testing Reset...' : '🧪 Test 24hr Reset'}
+    </button>
+  );
+}

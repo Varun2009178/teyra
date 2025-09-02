@@ -261,7 +261,7 @@ export default function HomePage() {
               transition={{ duration: 0.6 }}
               className="flex items-center"
             >
-              <Link href="/" className="flex items-center space-x-3 group relative">
+              <Link href="/" className="flex items-center group relative">
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
@@ -281,21 +281,6 @@ export default function HomePage() {
                     transition={{ duration: 0.2 }}
                   />
                 </motion.div>
-                <div className="flex flex-col relative">
-                  <span className="text-xl sm:text-2xl lg:text-2xl font-bold text-white tracking-tight group-hover:text-white/90 transition-colors relative z-10">
-                    teyra
-                  </span>
-                  <span className="text-xs text-white/40 font-mono hidden sm:block relative z-10">
-                    productivity reimagined
-                  </span>
-                  {/* Hover background for text */}
-                  <motion.div
-                    className="absolute inset-0 bg-white/5 rounded-lg -mx-2 -my-1"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    whileHover={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                </div>
               </Link>
             </motion.div>
             
