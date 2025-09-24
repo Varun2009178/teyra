@@ -261,26 +261,14 @@ export default function HomePage() {
               transition={{ duration: 0.6 }}
               className="flex items-center"
             >
-              <Link href="/" className="flex items-center group relative">
-                <motion.div
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  className="relative"
-                >
-                  <Image 
-                    src="/teyra-logo-64kb.png" 
-                    alt="Teyra" 
-                    width={36} 
-                    height={36}
-                    className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10"
-                  />
-                  <motion.div
-                    className="absolute inset-0 bg-white/10 rounded-full"
-                    initial={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1.2, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                </motion.div>
+              <Link href="/" className="flex items-center group relative px-1 py-1 rounded hover:bg-white/5 transition-colors">
+                <Image
+                  src="/teyra-logo-64kb.png"
+                  alt="Teyra"
+                  width={36}
+                  height={36}
+                  className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10"
+                />
               </Link>
             </motion.div>
             
@@ -448,20 +436,20 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero Section - Teyra Style */}
+      {/* Hero Section - Clean & Informative */}
       <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-28 lg:pt-32">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 lg:gap-16 items-center">
-            
+
             {/* Left Side - Content */}
             <div className="lg:col-span-7 space-y-6 sm:space-y-7 text-center lg:text-left">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="space-y-6 sm:space-y-8"
             >
-              
+
               {/* Status Indicator */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -470,47 +458,100 @@ export default function HomePage() {
                 className="flex items-center justify-center lg:justify-start gap-3 text-sm text-white/60"
               >
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>mike is online</span>
+                <span>ai-powered</span>
                 <div className="w-px h-4 bg-white/20 mx-2"></div>
-                <span>ready to help</span>
+                <span>emotionally intelligent</span>
               </motion.div>
 
-              {/* Main Hero Text */}
+              {/* Main Hero Text - Clean & Animated */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.6 }}
-                className="space-y-6"
+                className="space-y-4 sm:space-y-6"
               >
-                <h1 className="hero-title">
-                  <span className="block">Productivity</span>
-                  <span className="block">is</span>
-                  <span className="block relative inline-block">
-                    Broken
-                    <motion.div 
-                      className="absolute -bottom-2 left-0 right-0 h-1 bg-white rounded-full"
-                      initial={{ scaleX: 0, opacity: 0 }}
-                      animate={{ scaleX: 1, opacity: 1 }}
-                      transition={{ delay: 1.5, duration: 0.8 }}
-                      style={{ transformOrigin: "left" }}
-                    />
-                  </span>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-white leading-tight tracking-tight">
+                  the todolist that
                 </h1>
+                <div className="space-y-1 sm:space-y-2 text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold tracking-tight">
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1.0 }}
+                    className="text-green-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                  >
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 1.2 }}
+                      className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl flex-shrink-0"
+                    >
+                      ✓
+                    </motion.span>
+                    <span className="select-none">learns from you</span>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1.2 }}
+                    className="text-purple-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                  >
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 1.4 }}
+                      className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl flex-shrink-0"
+                    >
+                      ✓
+                    </motion.span>
+                    <span className="select-none">integrates into your life</span>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1.4 }}
+                    className="text-blue-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                  >
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 1.6 }}
+                      className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl flex-shrink-0"
+                    >
+                      ✓
+                    </motion.span>
+                    <span className="select-none">understands your emotions</span>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: 1.6 }}
+                    className="text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                  >
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3, delay: 1.8 }}
+                      className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl flex-shrink-0"
+                    >
+                      ✓
+                    </motion.span>
+                    <span className="select-none">helps you focus</span>
+                  </motion.div>
+                </div>
               </motion.div>
 
               {/* Subtitle */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 1.0 }}
-                className="hero-subtitle max-w-xl mx-auto lg:mx-0"
+                transition={{ duration: 0.8, delay: 2.0 }}
+                className="text-base sm:text-lg md:text-xl text-white/70 max-w-lg mx-auto lg:mx-0 font-medium"
               >
                 {user ? (
-                  "welcome back! ready to continue your productivity journey?"
+                  "welcome back! ready to continue?"
                 ) : (
-                  <>
-                    so we made it honest, <span className="text-green-400 font-medium">sustainable</span>, and overwhelmingly easy
-                  </>
+                  "try out humane productivity today, for free"
                 )}
               </motion.p>
 
@@ -534,7 +575,7 @@ export default function HomePage() {
                 ) : (
                   <>
                     <Link href="/sign-up">
-                      <button 
+                      <button
                         className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200 w-full sm:w-auto"
                         style={{ outline: 'none', boxShadow: 'none' }}
                       >
@@ -543,13 +584,30 @@ export default function HomePage() {
                       </button>
                     </Link>
                     <Link href="/sign-in">
-                      <button 
+                      <button
                         className="px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white w-full sm:w-auto"
                         style={{ outline: 'none', boxShadow: 'none' }}
                       >
                         sign in
                       </button>
                     </Link>
+                    <motion.button
+                      onClick={() => document.getElementById('chrome-extension')?.scrollIntoView({ behavior: 'smooth' })}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="relative px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20 border border-purple-400/30 hover:border-purple-400/50 rounded-lg transition-all duration-300 text-white w-full sm:w-auto group overflow-hidden"
+                      style={{ outline: 'none', boxShadow: 'none' }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <span className="relative z-10 flex items-center justify-center gap-2">
+                        chrome extension
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          className="w-3 h-3 border border-purple-400 border-t-transparent rounded-full opacity-60"
+                        />
+                      </span>
+                    </motion.button>
                   </>
                 )}
               </motion.div>
@@ -578,210 +636,118 @@ export default function HomePage() {
             </motion.div>
             </div>
 
-            {/* Right Side - Interactive Demo */}
-            <div className="lg:col-span-5 hidden lg:block">
+            {/* Right Side - Productivity Preview */}
+            <div className="lg:col-span-5">
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="relative"
+              className="relative max-w-sm mx-auto lg:max-w-none"
             >
-              {/* Main Demo Container */}
-              <div className="glass-dark-modern rounded-xl p-6 relative overflow-visible">
-                
+              {/* Main Preview Container */}
+              <div className="glass-dark-modern rounded-xl p-4 sm:p-6 relative overflow-hidden">
+
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                   </div>
-                  <div className="text-xs text-white/40">teyra v3</div>
+                  <div className="text-xs text-white/40">today</div>
                 </div>
 
-                {/* Mike Display */}
-                <motion.div 
-                  className="text-center relative mb-6"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <motion.div 
-                    className="w-32 h-32 bg-gradient-to-br from-white/10 to-white/5 rounded-full border border-white/20 flex items-center justify-center mx-auto mb-4 relative"
-                    whileHover={{ borderColor: "rgba(255, 255, 255, 0.4)" }}
+                {/* Today's Tasks Preview */}
+                <div className="space-y-3">
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 1.2 }}
+                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
                   >
-                    <Image 
-                      src="/Neutral Calm.gif" 
-                      alt="Mike the Cactus" 
-                      width={80} 
-                      height={80}
-                      className="object-contain relative z-10"
-                    />
-                    
-                    {/* Subtle rotating ring */}
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-3 border border-white/10 rounded-full"
-                    />
+                    <div className="w-4 h-4 border-2 border-green-400 rounded flex items-center justify-center">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.3, delay: 1.5 }}
+                        className="w-2 h-2 bg-green-400 rounded-sm"
+                      />
+                    </div>
+                    <span className="text-sm text-white/80 flex-1">morning walk</span>
+                    <div className="text-xs text-green-400">done!</div>
                   </motion.div>
 
-                  {/* Status Grid */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="text-white/40 uppercase tracking-wide mb-1">empathy</div>
-                      <div className="text-white font-medium">high</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="text-white/40 uppercase tracking-wide mb-1">patience</div>
-                      <div className="text-white font-medium">∞</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="text-white/40 uppercase tracking-wide mb-1">ai level</div>
-                      <div className="text-white font-medium">smart</div>
-                    </div>
-                    <div className="text-center p-3 bg-white/5 rounded-lg border border-white/10">
-                      <div className="text-white/40 uppercase tracking-wide mb-1">kindness</div>
-                      <div className="text-white font-medium">max</div>
-                    </div>
-                  </div>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 1.4 }}
+                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
+                    <div className="w-4 h-4 border-2 border-white/40 rounded"></div>
+                    <span className="text-sm text-white/80 flex-1">review project docs</span>
+                    <div className="text-xs text-purple-400">focus time</div>
+                  </motion.div>
 
-                {/* Floating Status Indicators - positioned outside container */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 1.6 }}
+                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                  >
+                    <div className="w-4 h-4 border-2 border-white/40 rounded"></div>
+                    <span className="text-sm text-white/80 flex-1">call mom</span>
+                    <div className="text-xs text-blue-400">later</div>
+                  </motion.div>
+                </div>
+
+                {/* Mike's Suggestion */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 1.8 }}
+                  className="mt-4 sm:mt-6 p-3 bg-gradient-to-r from-green-400/10 to-purple-400/10 rounded-lg border border-green-400/20"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-green-400/20 flex items-center justify-center">
+                      <span className="text-xs">🌵</span>
+                    </div>
+                    <span className="text-xs font-medium text-green-400">mike suggests</span>
+                  </div>
+                  <p className="text-xs text-white/70 leading-relaxed">
+                    you're doing great! maybe take a 5-minute break before the next task?
+                  </p>
+                </motion.div>
               </div>
-              
-              {/* Floating indicators positioned outside the main container */}
+
+              {/* Floating Mood Indicator */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ 
-                  opacity: 1, 
+                animate={{
+                  opacity: 1,
                   scale: 1,
-                  y: [0, -4, 0] 
+                  y: [0, -3, 0]
                 }}
-                transition={{ 
+                transition={{
                   opacity: { duration: 0.5, delay: 1.0 },
                   scale: { duration: 0.5, delay: 1.0 },
-                  y: { duration: 3, repeat: Infinity, delay: 1.5 }
+                  y: { duration: 3, repeat: Infinity, delay: 2.0 }
                 }}
-                className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 bg-green-500 text-black px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium shadow-2xl border-2 border-green-300 z-30"
-                style={{
-                  boxShadow: "0 10px 35px -5px rgba(34, 197, 94, 0.6), 0 6px 10px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4)"
-                }}
+                className="absolute -top-2 -right-2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium shadow-xl z-30"
               >
-                online
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1,
-                  y: [0, 4, 0] 
-                }}
-                transition={{ 
-                  opacity: { duration: 0.5, delay: 1.2 },
-                  scale: { duration: 0.5, delay: 1.2 },
-                  y: { duration: 4, repeat: Infinity, delay: 2.0 }
-                }}
-                className="absolute -bottom-2 -left-2 sm:-bottom-4 sm:-left-4 bg-blue-500 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium shadow-2xl border-2 border-blue-300 z-30"
-                style={{
-                  boxShadow: "0 10px 35px -5px rgba(59, 130, 246, 0.6), 0 6px 10px -2px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)"
-                }}
-              >
-                learning
+                😊 focused
               </motion.div>
             </motion.div>
             </div>
 
-            {/* Mobile Mike Section */}
-            <div className="lg:hidden mt-6 sm:mt-8">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 1.2 }}
-                className="relative"
-              >
-                <div className="glass-dark-modern rounded-xl p-6 relative overflow-hidden max-w-sm mx-auto">
-                  
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                    </div>
-                    <div className="text-xs text-white/40">teyra v3</div>
-                  </div>
-
-                  {/* Mike Display */}
-                  <motion.div 
-                    className="text-center relative mb-6"
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    <motion.div 
-                      className="w-24 h-24 bg-gradient-to-br from-white/10 to-white/5 rounded-full border border-white/20 flex items-center justify-center mx-auto mb-4 relative"
-                      whileHover={{ borderColor: "rgba(255, 255, 255, 0.4)" }}
-                    >
-                      <Image 
-                        src="/Neutral Calm.gif" 
-                        alt="Mike the Cactus" 
-                        width={60} 
-                        height={60}
-                        className="object-contain relative z-10"
-                      />
-                      
-                      {/* Subtle rotating ring */}
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-2 border border-white/10 rounded-full"
-                      />
-                    </motion.div>
-
-                    {/* Status Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="text-center p-2 bg-white/5 rounded-lg border border-white/10">
-                        <div className="text-white/40 uppercase tracking-wide mb-1 text-[10px]">empathy</div>
-                        <div className="text-white font-medium text-xs">high</div>
-                      </div>
-                      <div className="text-center p-2 bg-white/5 rounded-lg border border-white/10">
-                        <div className="text-white/40 uppercase tracking-wide mb-1 text-[10px]">ai</div>
-                        <div className="text-white font-medium text-xs">smart</div>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Floating Status Indicators */}
-                  <motion.div
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
-                    className="absolute -top-1 -right-1 bg-green-500 text-black px-1.5 py-0.5 rounded-md text-xs font-medium z-30"
-                  >
-                    on
-                  </motion.div>
-                </div>
-              </motion.div>
-            </div>
 
           </div>
 
-          {/* Simple tagline */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 2.2 }}
-            className="text-center mt-16 px-4"
-          >
-            <p className="text-white/40 text-sm mx-auto max-w-md">
-              your emotional support cactus is waiting
-            </p>
-          </motion.div>
 
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section className="py-24 px-6 lg:px-8 border-t border-precise">
+      {/* How Teyra Works Section */}
+      <section className="py-12 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -791,31 +757,34 @@ export default function HomePage() {
             className="mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
-              the <span className="text-white">problem</span> with productivity
+              how teyra <span className="text-white">works</span>
             </h2>
+            <p className="hero-subtitle max-w-2xl mx-auto">
+              unlike traditional todo apps, teyra adapts to your unique productivity patterns and emotional needs
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {[
               {
-                icon: Clock,
-                title: "endless lists",
-                description: "you add tasks faster than you complete them"
+                icon: Brain,
+                title: "learns your patterns",
+                description: "AI analyzes when you're most productive and suggests optimal task timing"
               },
               {
-                icon: MessageCircle,
-                title: "guilt & shame",
-                description: "uncompleted tasks make you feel like a failure"
+                icon: Heart,
+                title: "understands emotions",
+                description: "recognizes your mood and adjusts recommendations to support your mental state"
               },
               {
-                icon: Coffee,
-                title: "no motivation",
-                description: "apps don't care about your feelings"
+                icon: Target,
+                title: "smart prioritization",
+                description: "automatically identifies what truly matters and helps you focus on high-impact tasks"
               },
               {
-                icon: Users,
-                title: "treats you like a robot",
-                description: "no understanding of human emotions"
+                icon: Shield,
+                title: "prevents burnout",
+                description: "built-in safeguards protect your energy and encourage sustainable productivity habits"
               }
             ].map((problem, index) => (
               <motion.div
@@ -846,7 +815,7 @@ export default function HomePage() {
       </section>
 
       {/* Meet Mike Section */}
-      <section className="py-24 px-6 lg:px-8 border-t border-precise">
+      <section className="py-24 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -909,8 +878,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Preview */}
-      <section className="py-24 px-6 lg:px-8 border-t border-precise">
+      {/* Key Features Section */}
+      <section className="py-24 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -920,44 +889,44 @@ export default function HomePage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
-              what makes mike <span className="text-white">special</span>
+              features that <span className="text-white">actually help</span>
             </h2>
             <p className="hero-subtitle max-w-2xl mx-auto">
-              built for humans, not machines
+              every feature designed around human psychology and real productivity needs
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                icon: Brain,
-                title: "emotional intelligence",
-                description: "understands your feelings and adapts to your emotional state"
+                icon: Zap,
+                title: "intelligent task breakdown",
+                description: "automatically breaks complex projects into manageable, actionable steps"
               },
               {
-                icon: Target,
-                title: "smart prioritization",
-                description: "helps you focus on what truly matters without overwhelming you"
+                icon: Clock,
+                title: "adaptive scheduling",
+                description: "learns your energy patterns and suggests when to tackle different types of tasks"
               },
               {
                 icon: Heart,
-                title: "guilt free environment",
-                description: "no shame, no pressure, just gentle guidance towards your goals"
+                title: "mood-aware suggestions",
+                description: "adjusts your task list based on your current emotional state and capacity"
+              },
+              {
+                icon: Target,
+                title: "impact-based prioritization",
+                description: "highlights tasks that will move you closer to your most important goals"
               },
               {
                 icon: Sparkles,
-                title: "celebrates every win",
-                description: "from tiny steps to major milestones, every progress is acknowledged"
+                title: "progress celebration",
+                description: "recognizes and celebrates every win, building momentum and motivation"
               },
               {
                 icon: Shield,
-                title: "burnout prevention",
-                description: "built in safeguards to protect your mental health and energy"
-              },
-              {
-                icon: Zap,
-                title: "always available",
-                description: "24/7 support that understands you're human, not a productivity machine"
+                title: "burnout protection",
+                description: "monitors your workload and suggests breaks before you reach exhaustion"
               }
             ].map((feature, index) => (
               <motion.div
@@ -987,8 +956,108 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Chrome Extension Coming Soon */}
+      <section id="chrome-extension" className="py-24 px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              className="relative"
+            >
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
+                chrome extension
+              </h2>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 rounded-full text-purple-300 text-sm font-medium mb-8"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-3 h-3 border border-purple-400 border-t-transparent rounded-full"
+                />
+                coming soon
+              </motion.div>
+            </motion.div>
+
+            <p className="hero-subtitle mb-12 max-w-2xl mx-auto">
+              mike will live in your browser, keeping you focused and on track
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -4 }}
+              className="glass-dark-modern rounded-xl p-6 relative group cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+              <div className="relative z-10">
+                <div className="w-12 h-12 bg-green-400/20 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-green-400 text-xl">🎯</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-3">productivity mode</h3>
+                <p className="text-white/60 text-sm leading-relaxed">
+                  detects when you're procrastinating on youtube or tiktok and gently nudges you back to your tasks
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -4 }}
+              className="glass-dark-modern rounded-xl p-6 relative group cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+              <div className="relative z-10">
+                <div className="w-12 h-12 bg-blue-400/20 rounded-lg flex items-center justify-center mb-4">
+                  <span className="text-blue-400 text-xl">💡</span>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-3">smart recommendations</h3>
+                <p className="text-white/60 text-sm leading-relaxed">
+                  suggests relevant tasks based on what website you're on and your current workflow
+                </p>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.open('https://tally.so/r/nr7G7l', '_blank')}
+              className="px-8 py-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-400/30 rounded-lg text-purple-300 font-medium hover:from-purple-500/20 hover:to-blue-500/20 transition-all duration-300 cursor-pointer"
+            >
+              get notified when it's ready
+            </motion.button>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Final CTA */}
-      <section className="py-24 px-6 lg:px-8 border-t border-precise">
+      <section className="py-24 px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -997,32 +1066,38 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
-              ready to transform your productivity?
+              get started
             </h2>
             <p className="hero-subtitle mb-8 max-w-2xl mx-auto">
-              join hundreds of users who've found their perfect productivity companion
+              join hundreds who've discovered a kinder, smarter way to be productive.
             </p>
-            
-            <div className="flex justify-center">
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link href={isLoaded && user ? '/dashboard' : '/sign-up'}>
-                <button 
-                  className="flex items-center gap-2 px-12 py-6 text-lg font-medium bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200"
+                <button
+                  className="flex items-center gap-2 px-12 py-6 text-lg font-medium bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200 w-full sm:w-auto"
                   style={{ outline: 'none', boxShadow: 'none' }}
                 >
-                  {isLoaded && user ? 'go to dashboard' : 'get started'}
+                  {isLoaded && user ? 'open dashboard' : 'get started'}
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </Link>
+              {!user && (
+                <div className="flex items-center gap-2 text-white/60 text-sm">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span>free forever plan available</span>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-white/40 mt-4">
-              {isLoaded && user ? 'continue your productivity journey' : 'sign up and start today'}
+            <p className="text-xs text-white/40 mt-6">
+              {isLoaded && user ? 'continue your productivity journey with mike' : 'no credit card required'}
             </p>
           </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-white/40 text-sm border-t border-precise">
+      <footer className="py-8 text-center text-white/40 text-sm">
         <div className="font-geist-mono">
           &copy; {new Date().getFullYear()} teyra. crafted with care for human productivity.
         </div>
