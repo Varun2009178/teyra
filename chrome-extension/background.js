@@ -19,11 +19,15 @@ chrome.runtime.onInstalled.addListener(function(details) {
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'userSignedIn' && request.user) {
     console.log('User signed in:', request.user);
+    console.log('Tasks received:', request.tasks);
 
-    // Store user data
-    chrome.storage.local.set({ teyra_user: request.user });
+    // Store user data and tasks
+    chrome.storage.local.set({
+      teyra_user: request.user,
+      teyra_tasks: request.tasks || []
+    });
 
-    console.log('User data stored for extension');
+    console.log('User data and tasks stored for extension');
   }
 
   if (request.action === 'productivityModeChanged') {

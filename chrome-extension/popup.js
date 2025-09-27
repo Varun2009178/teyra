@@ -1,26 +1,12 @@
 // Teyra Chrome Extension - Popup Script
 
-// Supabase configuration - will be injected by build process
-const SUPABASE_URL = 'SUPABASE_URL_PLACEHOLDER';
-const SUPABASE_ANON_KEY = 'SUPABASE_ANON_KEY_PLACEHOLDER';
-
-// Initialize Supabase
-const supabase = window.supabase ?
-  window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) :
-  (window.Supabase ? window.Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
+// Extension now uses Teyra's API instead of direct Supabase connection
 
 let currentUser = null;
 let tasks = [];
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Teyra popup loaded');
-
-  if (!supabase) {
-    console.error('Supabase failed to initialize');
-    showAuthScreen();
-    return;
-  }
-
   checkAuthState();
   setupEventListeners();
 });
@@ -28,12 +14,13 @@ document.addEventListener('DOMContentLoaded', function() {
 async function checkAuthState() {
   try {
     // Check if user data is stored in Chrome storage
-    const result = await chrome.storage.local.get(['teyra_user']);
+    const result = await chrome.storage.local.get(['teyra_user', 'teyra_tasks']);
 
     if (result.teyra_user) {
       currentUser = result.teyra_user;
+      tasks = result.teyra_tasks || [];
       showDashboard();
-      await loadUserTasks();
+      loadUserTasks(); // This will now use stored tasks
     } else {
       showAuthScreen();
     }
@@ -117,32 +104,32 @@ function showDashboard() {
   document.getElementById('dashboard-screen').classList.remove('hidden');
 }
 
-async function loadUserTasks() {
+function loadUserTasks() {
   if (!currentUser) return;
 
   try {
-    // Get today's date in YYYY-MM-DD format
+    console.log('Loading tasks from storage:', tasks);
+
+    // Filter for today's tasks
     const today = new Date().toISOString().split('T')[0];
+    const todayTasks = tasks.filter(task => {
+      const taskDate = new Date(task.created_at).toISOString().split('T')[0];
+      return taskDate === today;
+    });
 
-    // Fetch tasks from Supabase
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .eq('date', today)
-      .order('created_at', { ascending: true });
+    console.log('Today\'s tasks:', todayTasks);
+    tasks = todayTasks;
 
-    if (error) {
-      console.error('Error loading tasks:', error);
-      return;
-    }
-
-    tasks = data || [];
     renderTasks();
     updateProgress();
 
   } catch (error) {
     console.error('Error loading tasks:', error);
+    // Show error in UI
+    const tasksList = document.getElementById('tasks-list');
+    if (tasksList) {
+      tasksList.innerHTML = '<div style="color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; padding: 20px;">Error loading tasks. Please refresh.</div>';
+    }
   }
 }
 
@@ -181,15 +168,18 @@ async function toggleTask(taskId) {
 
     const newCompleted = !task.completed;
 
-    // Update in Supabase
-    const { error } = await supabase
-      .from('tasks')
-      .update({ completed: newCompleted })
-      .eq('id', taskId);
+    // Update via API
+    const response = await fetch(`https://teyra.app/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ completed: newCompleted })
+    });
 
-    if (error) {
-      console.error('Error updating task:', error);
-      return;
+    if (!response.ok) {
+      throw new Error(`API response: ${response.status}`);
     }
 
     // Update local state
@@ -206,26 +196,25 @@ async function addTask(title) {
   if (!currentUser) return;
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // Add via API
+    const response = await fetch('https://teyra.app/api/tasks', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title: title })
+    });
 
-    // Add to Supabase
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([{
-        user_id: currentUser.id,
-        title: title,
-        completed: false,
-        date: today
-      }])
-      .select();
-
-    if (error) {
-      console.error('Error adding task:', error);
-      return;
+    if (!response.ok) {
+      throw new Error(`API response: ${response.status}`);
     }
 
+    const newTask = await response.json();
+    console.log('Task added via API:', newTask);
+
     // Add to local state
-    tasks.push(data[0]);
+    tasks.push(newTask);
     renderTasks();
     updateProgress();
 

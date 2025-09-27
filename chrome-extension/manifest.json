@@ -9,7 +9,7 @@
   ],
 
   "externally_connectable": {
-    "matches": ["https://teyra.app/*", "http://localhost:3000/*"]
+    "matches": ["https://teyra.app/*", "https://www.teyra.app/*", "http://localhost:3000/*"]
   },
 
   "background": {
@@ -23,7 +23,7 @@
 
   "content_scripts": [
     {
-      "matches": ["https://teyra.app/*", "http://localhost:3000/*"],
+      "matches": ["https://teyra.app/*", "https://www.teyra.app/*", "http://localhost:3000/*"],
       "js": ["bridge-listener.js"],
       "run_at": "document_start"
     }

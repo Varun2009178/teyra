@@ -59,11 +59,14 @@ console.log('🌵 Teyra Extension Bridge loaded!');
     }
   }
 
-  // Send user data to extension after sign in
+  // Send user data AND tasks to extension after sign in
   async function syncUserToExtension(clerkUser) {
     try {
       // Get full user data from Supabase via API
       const fullUserData = await getFullUserData(clerkUser);
+
+      // Also get user's tasks
+      const tasksData = await getUserTasks();
 
       // Try to send message to any listening extension
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
@@ -71,13 +74,37 @@ console.log('🌵 Teyra Extension Bridge loaded!');
         window.postMessage({
           type: 'TEYRA_USER_SIGNIN',
           source: 'teyra-webapp',
-          user: fullUserData
+          user: fullUserData,
+          tasks: tasksData
         }, '*');
 
-        console.log('Full user data posted for extension:', fullUserData);
+        console.log('Full user data and tasks posted for extension:', { user: fullUserData, tasks: tasksData });
       }
     } catch (error) {
       console.log('Extension not available or error syncing:', error);
+    }
+  }
+
+  // Get user's tasks from the current page
+  async function getUserTasks() {
+    try {
+      // Try to get tasks from the API
+      const response = await fetch('/api/tasks', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const tasks = await response.json();
+        console.log('Got user tasks from API:', tasks);
+        return tasks;
+      } else {
+        console.log('Failed to get tasks from API');
+        return [];
+      }
+    } catch (error) {
+      console.log('Error getting tasks:', error);
+      return [];
     }
   }
 
