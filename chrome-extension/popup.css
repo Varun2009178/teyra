@@ -1,0 +1,365 @@
+/* Teyra Chrome Extension Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 380px;
+  max-height: 600px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: white;
+  overflow-x: hidden;
+}
+
+.extension-container {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  font-size: 20px;
+}
+
+.app-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+/* Toggle Switch */
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-input {
+  display: none;
+}
+
+.toggle-label {
+  width: 40px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-slider {
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s ease;
+}
+
+.toggle-input:checked + .toggle-label {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.toggle-input:checked + .toggle-label .toggle-slider {
+  transform: translateX(20px);
+}
+
+.toggle-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+/* Stats Card */
+.stats-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.stat-emoji {
+  font-size: 16px;
+}
+
+.stat-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  width: 43%;
+  transition: width 0.3s ease;
+}
+
+/* Context Card */
+.context-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.context-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.context-emoji {
+  font-size: 16px;
+}
+
+.context-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.context-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.current-site {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.ai-suggestion {
+  font-size: 12px;
+  color: rgba(168, 85, 247, 0.8);
+  font-style: italic;
+}
+
+/* Tasks Section */
+.tasks-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tasks-emoji {
+  font-size: 16px;
+}
+
+.tasks-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.task-item.completed {
+  opacity: 0.7;
+}
+
+.task-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: all 0.2s ease;
+}
+
+.task-checkbox.checked {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: white;
+}
+
+.task-text {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.task-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.task-status.done {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.task-status.focus {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.task-status.later {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.add-task-btn {
+  width: 100%;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.add-task-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.add-icon {
+  font-size: 16px;
+  font-weight: 300;
+}
+
+/* Insights Footer */
+.insights-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.insight-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.insight-emoji {
+  font-size: 14px;
+}
+
+.insight-text {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.score, .time {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+/* Scrollbar Styling */
+.tasks-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tasks-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}

@@ -53,6 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Teyra" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="format-detection" content="telephone=no" />
+        <script src="/extension-bridge.js" defer></script>
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
         <GoogleAnalytics />

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Teyra - Productivity Companion",
+  "version": "1.0.0",
+  "description": "Your AI productivity companion that lives in your browser. Stay focused, complete tasks, and build better habits.",
+
+  "permissions": [
+    "storage"
+  ],
+
+  "externally_connectable": {
+    "matches": ["https://teyra.app/*", "http://localhost:3000/*"]
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_title": "Teyra - Your Productivity Companion",
+    "default_popup": "popup.html"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://teyra.app/*", "http://localhost:3000/*"],
+      "js": ["bridge-listener.js"],
+      "run_at": "document_start"
+    }
+  ]
+
+}

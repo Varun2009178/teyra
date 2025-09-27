@@ -478,7 +478,7 @@ export default function HomePage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 1.0 }}
-                    className="text-green-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                    className="text-green-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3 hover:bg-transparent"
                   >
                     <motion.span
                       initial={{ scale: 0 }}
@@ -494,7 +494,7 @@ export default function HomePage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 1.2 }}
-                    className="text-purple-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                    className="text-purple-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3 hover:bg-transparent"
                   >
                     <motion.span
                       initial={{ scale: 0 }}
@@ -510,7 +510,7 @@ export default function HomePage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 1.4 }}
-                    className="text-blue-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                    className="text-blue-400 flex items-center justify-center lg:justify-start gap-2 sm:gap-3 hover:bg-transparent"
                   >
                     <motion.span
                       initial={{ scale: 0 }}
@@ -526,7 +526,7 @@ export default function HomePage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.6, delay: 1.6 }}
-                    className="text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
+                    className="text-white flex items-center justify-center lg:justify-start gap-2 sm:gap-3 hover:bg-transparent"
                   >
                     <motion.span
                       initial={{ scale: 0 }}

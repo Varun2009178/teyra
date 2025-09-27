@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="supabase.js"></script>
+  <style>
+    body {
+      width: 350px;
+      height: 500px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      color: white;
+      overflow: hidden;
+    }
+
+    .teyra-popup {
+      padding: 20px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .teyra-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .teyra-logo-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .teyra-logo {
+      font-size: 18px;
+    }
+
+    .teyra-app-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .teyra-toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .teyra-toggle-input {
+      display: none;
+    }
+
+    .teyra-toggle-label {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .teyra-toggle-input:checked + .teyra-toggle-label {
+      background: #22c55e;
+    }
+
+    .teyra-toggle-slider {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+
+    .teyra-toggle-input:checked + .teyra-toggle-label .teyra-toggle-slider {
+      transform: translateX(20px);
+    }
+
+    .teyra-toggle-text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .teyra-stats-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .teyra-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .teyra-stat-emoji {
+      font-size: 16px;
+    }
+
+    .teyra-stat-text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .teyra-progress-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .teyra-progress-fill {
+      height: 100%;
+      background: #22c55e;
+      width: 43%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    .teyra-view-all-btn {
+      width: 100%;
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #22c55e;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .teyra-view-all-btn:hover {
+      background: rgba(34, 197, 94, 0.3);
+    }
+
+    /* Auth styles */
+    .auth-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+    }
+
+    .auth-logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .auth-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .auth-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 30px;
+    }
+
+    .google-signin-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: white;
+      color: #333;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 240px;
+      justify-content: center;
+    }
+
+    .google-signin-btn:hover {
+      background: #f5f5f5;
+      transform: translateY(-1px);
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .task-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #22c55e;
+      font-size: 12px;
+    }
+
+    .task-checkbox.completed {
+      background: #22c55e;
+      border-color: #22c55e;
+    }
+
+    .task-text {
+      flex: 1;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .task-text.completed {
+      text-decoration: line-through;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .add-task-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .add-task-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-container">
+    <div class="auth-logo">🌵</div>
+    <div class="auth-title">teyra</div>
+    <div class="auth-subtitle">your productivity companion</div>
+    <button class="google-signin-btn" id="google-signin">
+      <svg width="18" height="18" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Sign in with Google
+    </button>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboard-screen" class="teyra-popup hidden">
+    <!-- Header -->
+    <div class="teyra-header">
+      <div class="teyra-logo-section">
+        <div class="teyra-logo">🌵</div>
+        <span class="teyra-app-name">teyra</span>
+      </div>
+      <button id="sign-out" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer;">
+        sign out
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="teyra-stats-card">
+      <div class="teyra-stat-item">
+        <span class="teyra-stat-emoji">📊</span>
+        <span class="teyra-stat-text">today: <span id="task-progress">0/0</span> tasks</span>
+      </div>
+      <div class="teyra-progress-bar">
+        <div class="teyra-progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Today's Tasks -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <span style="font-size: 16px;">✅</span>
+        <span style="font-size: 14px; font-weight: 600;">today's tasks</span>
+      </div>
+      <div id="tasks-list"></div>
+      <input type="text" id="add-task-input" class="add-task-input" placeholder="add a task..." style="display: none;">
+      <button id="add-task-btn" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); padding: 8px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 8px;">
+        + add task
+      </button>
+    </div>
+
+    <!-- View All Button -->
+    <button class="teyra-view-all-btn" id="view-all-tasks">
+      open full dashboard →
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
