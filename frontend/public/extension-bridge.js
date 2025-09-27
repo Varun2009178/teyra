@@ -17,24 +17,64 @@ console.log('🌵 Teyra Extension Bridge loaded!');
     return null;
   }
 
-  // Send user data to extension after sign in
-  async function syncUserToExtension(user) {
+  // Get full user data from Teyra's API
+  async function getFullUserData(clerkUser) {
     try {
+      // First try to get user data from your API
+      const response = await fetch('/api/user/sync-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: clerkUser.id })
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('Got full user data from API:', userData);
+        return {
+          id: userData.id || clerkUser.id,
+          email: userData.email || clerkUser.primaryEmailAddress?.emailAddress || clerkUser.email,
+          name: userData.name || clerkUser.fullName || (clerkUser.firstName + ' ' + clerkUser.lastName),
+          image: userData.image || clerkUser.imageUrl,
+          clerk_id: clerkUser.id
+        };
+      } else {
+        console.log('API call failed, using Clerk data only');
+        return {
+          id: clerkUser.id,
+          email: clerkUser.primaryEmailAddress?.emailAddress || clerkUser.email,
+          name: clerkUser.fullName || (clerkUser.firstName + ' ' + clerkUser.lastName),
+          image: clerkUser.imageUrl,
+          clerk_id: clerkUser.id
+        };
+      }
+    } catch (error) {
+      console.log('Error getting full user data, using Clerk data:', error);
+      return {
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress || clerkUser.email,
+        name: clerkUser.fullName || (clerkUser.firstName + ' ' + clerkUser.lastName),
+        image: clerkUser.imageUrl,
+        clerk_id: clerkUser.id
+      };
+    }
+  }
+
+  // Send user data to extension after sign in
+  async function syncUserToExtension(clerkUser) {
+    try {
+      // Get full user data from Supabase via API
+      const fullUserData = await getFullUserData(clerkUser);
+
       // Try to send message to any listening extension
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
         // Post message to all extensions that might be listening
         window.postMessage({
           type: 'TEYRA_USER_SIGNIN',
           source: 'teyra-webapp',
-          user: {
-            id: user.id,
-            email: user.primaryEmailAddress?.emailAddress || user.email,
-            name: user.fullName || user.firstName + ' ' + user.lastName,
-            image: user.imageUrl
-          }
+          user: fullUserData
         }, '*');
 
-        console.log('User data posted for extension');
+        console.log('Full user data posted for extension:', fullUserData);
       }
     } catch (error) {
       console.log('Extension not available or error syncing:', error);
@@ -127,7 +167,6 @@ console.log('🌵 Teyra Extension Bridge loaded!');
 
   // Expose to global scope for manual use
   window.teyraExtensionBridge = {
-    syncUser: syncUserToExtension,
-    checkExtension: checkExtensionInstalled
+    syncUser: syncUserToExtension
   };
 })();

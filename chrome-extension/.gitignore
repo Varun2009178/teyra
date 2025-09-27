@@ -1,0 +1,10 @@
+# Build directory with sensitive environment variables
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Node modules if we add them later
+node_modules/

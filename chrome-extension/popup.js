@@ -1,8 +1,8 @@
 // Teyra Chrome Extension - Popup Script
 
-// Supabase configuration
-const SUPABASE_URL = 'https://wxazijihkqkzfwgzwwpk.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4YXppamloa3FremZ3Z3p3d3BrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ4NzAxMTEsImV4cCI6MjA3MDQ0NjExMX0.LTxEzAPl6Ji5cE1JW37Sxh1rQad38fPL_YZx3SSpk-M';
+// Supabase configuration - will be injected by build process
+const SUPABASE_URL = 'SUPABASE_URL_PLACEHOLDER';
+const SUPABASE_ANON_KEY = 'SUPABASE_ANON_KEY_PLACEHOLDER';
 
 // Initialize Supabase
 const supabase = window.supabase ?
