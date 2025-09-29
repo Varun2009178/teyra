@@ -1,8 +1,12 @@
 {
   "crons": [
     {
+      "path": "/api/cron/daily-resets",
+      "schedule": "0 */6 * * *"
+    },
+    {
       "path": "/api/cron/daily-emails",
-      "schedule": "0 6 * * *"
+      "schedule": "0 8 * * *"
     }
   ]
 } 

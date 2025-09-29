@@ -14,6 +14,10 @@ export async function DELETE(request: NextRequest) {
 
     console.log(`🗑️ Starting account deletion for user: ${userId}`);
 
+    // Parse request body to get verification token if provided
+    const body = await request.json().catch(() => ({}));
+    const { verificationToken } = body;
+
     // First, let's check what data exists for this user
     const [tasksCheck, progressCheck, checkinsCheck] = await Promise.allSettled([
       supabase.from('tasks').select('count', { count: 'exact' }).eq('user_id', userId),
@@ -101,14 +105,26 @@ export async function DELETE(request: NextRequest) {
       console.warn(`⚠️ Some database deletions failed for user ${userId}, but continuing with Clerk deletion`);
     }
 
-    // Delete the user from Clerk
+    // Delete the user from Clerk with error handling for verification requirements
     try {
       await clerkClient.users.deleteUser(userId);
-      console.log(`Successfully deleted Clerk user: ${userId}`);
-    } catch (clerkError) {
-      console.error('Error deleting Clerk user:', clerkError);
-      return NextResponse.json({ 
-        error: 'Failed to delete user account from authentication service' 
+      console.log(`✅ Successfully deleted Clerk user: ${userId}`);
+    } catch (clerkError: any) {
+      console.error('❌ Error deleting Clerk user:', clerkError);
+
+      // Check if it's a verification error
+      if (clerkError?.message?.includes('verification') ||
+          clerkError?.message?.includes('auth factor') ||
+          clerkError?.status === 422) {
+        return NextResponse.json({
+          error: 'Account deletion requires additional verification. Please contact support or try again later.',
+          code: 'VERIFICATION_REQUIRED'
+        }, { status: 422 });
+      }
+
+      return NextResponse.json({
+        error: 'Failed to delete user account from authentication service',
+        details: clerkError.message || 'Unknown error'
       }, { status: 500 });
     }
 

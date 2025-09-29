@@ -114,7 +114,7 @@ For "Plan birthday party" you might return:
       // Create the split tasks
       const createdTasks = [];
       for (const step of steps) {
-        const task = await createTask(user.id, step, true); // Mark as hasBeenSplit = true
+        const task = await createTask(user.id, step, undefined, true); // Mark as hasBeenSplit = true
         createdTasks.push(task);
       }
       

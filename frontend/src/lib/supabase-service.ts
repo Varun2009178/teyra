@@ -24,7 +24,7 @@ export async function getUserTasks(userId: string) {
   }
 }
 
-export async function createTask(userId: string, title: string, limit?: string) {
+export async function createTask(userId: string, title: string, limit?: string, hasBeenSplit?: boolean) {
   try {
     // Check if user already has tasks (if not, this is their first action)
     const existingTasks = await getUserTasks(userId)
@@ -52,6 +52,7 @@ export async function createTask(userId: string, title: string, limit?: string) 
         title,
         completed: false,
         limit,
+        has_been_split: hasBeenSplit || false,
       })
       .select()
       .single()
@@ -278,6 +279,23 @@ export async function createUserProgress(userId: string) {
   try {
     console.log(`👤 Creating user progress for ${userId}`)
 
+    // ATOMIC CHECK: First check if user already exists to prevent duplicates
+    const { data: existingUser, error: checkError } = await serviceSupabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError
+    }
+
+    if (existingUser) {
+      console.log(`✅ User ${userId} already exists, returning existing record`)
+      return existingUser
+    }
+
+    // User doesn't exist, create them
     const { data, error } = await serviceSupabase
       .from('user_progress')
       .insert({
@@ -286,32 +304,40 @@ export async function createUserProgress(userId: string) {
         daily_mood_checks: 0,
         last_mood_update: new Date().toISOString(),
         last_reset_date: new Date().toISOString(),
+        total_points: 0,
+        tasks_completed: 0,
+        mood_selections: 0,
+        ai_splits_used: 0,
+        notifications_enabled: true,
+        email_notifications_enabled: true
       })
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      // Handle race condition: if another process created the user between our check and insert
+      if (error.code === '23505' || error.message.includes('duplicate key')) {
+        console.log(`⚠️ Race condition detected for ${userId}, fetching existing record`)
+        const { data: existingRecord } = await serviceSupabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .single()
+
+        if (existingRecord) {
+          console.log(`✅ Retrieved existing record for ${userId} after race condition`)
+          return existingRecord
+        }
+      }
+      throw error
+    }
+
     if (!data) throw new Error(`Failed to create user progress for ${userId} - no record returned`)
 
     console.log(`✅ Created user progress for ${userId}`)
     return data
   } catch (error) {
     console.error(`❌ Error creating user progress for ${userId}:`, error)
-    
-    // Check for duplicate key error (user already exists)
-    if (error instanceof Error && error.message.includes('duplicate key')) {
-      // Try to fetch existing user progress instead
-      try {
-        const existingProgress = await getUserProgress(userId)
-        if (existingProgress) {
-          console.log(`✅ Found existing user progress for ${userId}`)
-          return existingProgress
-        }
-      } catch (fetchError) {
-        console.error(`❌ Could not fetch existing user progress:`, fetchError)
-      }
-    }
-    
     throw error
   }
 }

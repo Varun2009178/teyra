@@ -8,6 +8,8 @@ const isPublic = createRouteMatcher([
   '/sign-up',
   '/sso-callback',
   '/api/webhooks/clerk',
+  '/api/cron/(.*)',
+  '/api/admin/(.*)',
 ]);
 
 export default clerkMiddleware((auth, req) => {
@@ -16,7 +18,14 @@ export default clerkMiddleware((auth, req) => {
     return NextResponse.next();
   }
 
-  // For all other routes, let Clerk handle authentication
+  const { userId } = auth();
+
+  // If user is not authenticated, redirect to home page
+  if (!userId) {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
+  // For authenticated users, allow access to all protected routes
   return NextResponse.next();
 });
 

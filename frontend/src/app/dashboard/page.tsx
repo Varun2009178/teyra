@@ -804,7 +804,7 @@ export default function MVPDashboard() {
               </button>
             </div>
             <div className="relative">
-              <UserButton 
+              <UserButton
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {
@@ -813,7 +813,57 @@ export default function MVPDashboard() {
                     userButtonTrigger: "rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                   }
                 }}
-              />
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Action
+                    label="Delete Account"
+                    labelIcon={<Trash2 className="w-4 h-4" />}
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
+                      );
+
+                      if (confirmed) {
+                        console.log('🗑️ User confirmed account deletion');
+
+                        try {
+                          const response = await fetch('/api/user/delete', {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json'
+                            }
+                          });
+
+                          console.log('📡 Delete response:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            ok: response.ok
+                          });
+
+                          if (response.ok) {
+                            const result = await response.json();
+                            console.log('✅ Account deleted successfully:', result);
+                            toast.success('Account deleted successfully');
+                            // User will be redirected by Clerk after deletion
+                          } else {
+                            const error = await response.json().catch(() => ({}));
+                            console.error('❌ Account deletion failed:', error);
+
+                            if (error.code === 'VERIFICATION_REQUIRED') {
+                              toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
+                            } else {
+                              toast.error(error.error || 'Failed to delete account');
+                            }
+                          }
+                        } catch (error) {
+                          console.error('❌ Error during account deletion:', error);
+                          toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
+                        }
+                      }
+                    }}
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
             </div>
           </div>
         </div>

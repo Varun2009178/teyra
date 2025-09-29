@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const emailResult = await resend.emails.send({
-        from: 'Mike the Cactus <mike@teyra.app>',
+        from: 'Mike the Cactus <onboarding@resend.dev>',
         to: [email],
         subject: emailContent.subject,
         html: emailContent.html,
