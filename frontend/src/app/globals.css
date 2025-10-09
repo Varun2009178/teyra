@@ -23,8 +23,11 @@
   html {
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    background-color: #000000;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
   }
-  
+
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -33,6 +36,9 @@
     background: linear-gradient(180deg, #000000 0%, #111111 50%, #000000 100%);
     color: var(--text-primary);
     min-height: 100vh;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+    background-color: #000000;
   }
   
   /* Siden.ai inspired typography */
@@ -664,4 +670,16 @@ button:not(.btn-primary-modern):hover {
   color: white !important;
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Prevent green text from changing color on hover */
+.text-green-400:hover,
+.text-green-400 * {
+  color: rgb(74, 222, 128) !important;
+}
+
+/* Keep hero title productive text green */
+h1 .text-green-400:hover,
+h1 span.text-green-400 {
+  color: rgb(74, 222, 128) !important;
 }

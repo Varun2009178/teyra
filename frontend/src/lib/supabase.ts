@@ -69,6 +69,11 @@ export interface Database {
           last_reset_date: string
           daily_start_time: string | null
           is_locked: boolean
+          mike_xp: number | null
+          mike_level: number | null
+          mike_xp_for_next_level: number | null
+          mike_total_sessions: number | null
+          mike_distraction_free_sessions: number | null
           created_at: string
           updated_at: string
         }
@@ -81,6 +86,11 @@ export interface Database {
           last_reset_date?: string
           daily_start_time?: string | null
           is_locked?: boolean
+          mike_xp?: number | null
+          mike_level?: number | null
+          mike_xp_for_next_level?: number | null
+          mike_total_sessions?: number | null
+          mike_distraction_free_sessions?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -93,6 +103,11 @@ export interface Database {
           last_reset_date?: string
           daily_start_time?: string | null
           is_locked?: boolean
+          mike_xp?: number | null
+          mike_level?: number | null
+          mike_xp_for_next_level?: number | null
+          mike_total_sessions?: number | null
+          mike_distraction_free_sessions?: number | null
           created_at?: string
           updated_at?: string
         }
