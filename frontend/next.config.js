@@ -10,7 +10,7 @@ const nextConfig = {
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
-  // Add headers for better mobile compatibility
+  // Add headers for better mobile compatibility and prevent aggressive caching
   async headers() {
     return [
       {
@@ -27,6 +27,10 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
           },
         ],
       },

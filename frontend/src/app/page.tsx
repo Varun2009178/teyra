@@ -846,10 +846,10 @@ export default function HomePage() {
 
                     {/* AI suggested context link - clean appearance */}
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       transition={{ delay: 4.1, duration: 0.3, ease: "easeOut" }}
-                      className="mt-1.5 sm:mt-2 overflow-hidden"
+                      className="mt-1.5 sm:mt-2"
                     >
                       <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-white/50">
                         <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
