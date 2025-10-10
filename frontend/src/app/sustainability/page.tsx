@@ -1,17 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Leaf, Recycle, Heart, Globe, TreePine, Sun, Droplets, Wind } from 'lucide-react';
+import { Leaf, Recycle, Heart, Globe, TreePine, Sun, Droplets, Wind, Menu, X } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/nextjs';
 
 export default function SustainabilityPage() {
   const { user, isSignedIn } = useUser();
-  
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen dark-gradient-bg noise-texture text-white">
       {/* Navbar */}
@@ -30,7 +31,9 @@ export default function SustainabilityPage() {
                 <span className="text-xl font-bold text-white">teyra</span>
               </Link>
             </div>
-            <div className="flex items-center space-x-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-4">
               <Link href="/">
                 <button className="px-4 py-2.5 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white"
                   style={{ outline: 'none', boxShadow: 'none' }}>
@@ -79,7 +82,73 @@ export default function SustainabilityPage() {
                 </>
               )}
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/20 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-white" />
+              ) : (
+                <Menu className="w-6 h-6 text-white" />
+              )}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden py-4 space-y-3 border-t border-white/10">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+                <button className="w-full px-4 py-2.5 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white text-left"
+                  style={{ outline: 'none', boxShadow: 'none' }}>
+                  home
+                </button>
+              </Link>
+              <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
+                <button className="w-full px-4 py-2.5 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white text-left"
+                  style={{ outline: 'none', boxShadow: 'none' }}>
+                  contact
+                </button>
+              </Link>
+              {isSignedIn ? (
+                <>
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <button className="w-full px-4 py-2.5 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white text-left"
+                      style={{ outline: 'none', boxShadow: 'none' }}>
+                      dashboard
+                    </button>
+                  </Link>
+                  <div className="flex items-center justify-center pt-2">
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        elements: {
+                          avatarBox: "w-10 h-10 border-2 border-white/20 hover:border-white/40 transition-colors"
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
+                    <button className="w-full px-4 py-2.5 text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg transition-all duration-200 text-white text-left"
+                      style={{ outline: 'none', boxShadow: 'none' }}>
+                      sign in
+                    </button>
+                  </Link>
+                  <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
+                    <button className="w-full px-6 py-2.5 text-sm font-semibold bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200 text-left"
+                      style={{ outline: 'none', boxShadow: 'none' }}>
+                      get started
+                    </button>
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </nav>
 
