@@ -27,65 +27,86 @@ interface Task {
   updated_at: string;
 }
 
-// Premium Cursor-style task card with animations
-const TaskCard = React.memo(({
-  task,
-  onToggle,
+// Zero-flicker task card - instant appearance
+const TaskCard = React.memo(({ 
+  task, 
+  onToggle, 
   onDelete,
   isSustainable = false
-}: {
+}: { 
   task: Task;
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   isSustainable?: boolean;
 }) => {
+  const [justCompleted, setJustCompleted] = useState(false);
+  
+  // Track when task is completed to prevent immediate hover state
+  React.useEffect(() => {
+    if (task.completed) {
+      setJustCompleted(true);
+      const timer = setTimeout(() => setJustCompleted(false), 2000); // 2 second delay
+      return () => clearTimeout(timer);
+    }
+  }, [task.completed]);
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="group relative flex items-center gap-4 py-3 px-2 hover:bg-white/[0.07] rounded-lg transition-all duration-200"
+    <div className={`group relative backdrop-blur-sm border rounded-2xl p-4 hover:shadow-md transition-all duration-200 ${
+      isSustainable 
+        ? 'bg-green-500/10 border-green-400/30 hover:border-green-400/50 hover:bg-green-500/20' 
+        : 'bg-white/5 border-white/20 hover:border-white/30 hover:bg-white/10'
+    }`}
     >
-      <button
-        onClick={() => onToggle(task.id)}
-        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-          task.completed
-            ? 'bg-white border-white scale-110'
-            : 'border-white/40 hover:border-white/70 hover:scale-105'
-        }`}
-      >
-        {task.completed && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4 flex-1">
+          <button
+            onClick={() => onToggle(task.id)}
+            className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-200 ${
+              task.completed 
+                ? `bg-green-500 border-green-500 text-white ${!justCompleted ? 'hover:bg-gray-500 hover:border-gray-500' : ''}` 
+                : 'border-white/30 hover:border-green-400 bg-white/5 hover:bg-green-500/20'
+            }`}
           >
-            <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
-          </motion.div>
-        )}
-      </button>
-
-      <span
-        className={`flex-1 text-base transition-all duration-200 ${
-          task.completed
-            ? 'text-white/40 line-through'
-            : 'text-white/90'
-        }`}
-      >
-        {task.title}
-      </span>
-
-      {isSustainable && (
-        <span className="text-xs text-green-400 font-mono font-semibold">+20</span>
-      )}
-
-      <button
-        onClick={() => onDelete(task.id)}
-        className="w-7 h-7 flex items-center justify-center text-white/30 hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:bg-white/5 rounded"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </motion.div>
+            <motion.div
+              initial={false}
+              animate={{
+                scale: task.completed ? 1 : 0,
+              }}
+              transition={{
+                duration: 0.2,
+                ease: "easeOut"
+              }}
+            >
+              <Check className="w-2.5 h-2.5" />
+            </motion.div>
+          </button>
+          
+          <span 
+            className={`flex-1 transition-all duration-200 font-medium ${
+              task.completed 
+                ? 'text-white/40 line-through' 
+                : 'text-white'
+            }`}
+          >
+            {task.title}
+            {isSustainable && (
+              <span className="ml-2 text-xs bg-green-500/20 text-green-400 border border-green-400/30 px-2 py-0.5 rounded-full">
+                20 pts
+              </span>
+            )}
+          </span>
+        </div>
+        
+        <button
+          onClick={() => onDelete(task.id)}
+          className="flex items-center justify-center w-8 h-8 text-white/40 hover:text-red-400 hover:bg-red-500/20 rounded-full transition-all duration-200 opacity-0 group-hover:opacity-100"
+          title="Delete Task"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+      
+    </div>
   );
 });
 
@@ -725,116 +746,136 @@ export default function MVPDashboard() {
           backgroundSize: '20px 20px'
         }}
       />
-      {/* Premium Cursor-style header */}
-      <header className="border-b border-white/10 bg-black/50 backdrop-blur-xl sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Image
-              src="/teyra-logo-64kb.png"
-              alt="Teyra"
-              width={40}
-              height={40}
-              className="w-10 h-10"
+      {/* Clean Header with dark theme - Mobile optimized */}
+      <header className="glass-dark-modern border-b border-precise px-3 sm:px-4 py-3 sm:py-4 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <Image 
+              src="/teyra-logo-64kb.png" 
+              alt="Teyra" 
+              width={32} 
+              height={32}
+              className="w-8 h-8"
             />
-            <div className="hidden sm:flex items-center gap-6 text-base">
-              <button
-                onClick={() => setShowAllTasks(true)}
-                className="text-white/60 hover:text-white transition-colors font-medium"
-              >
-                All Tasks
-              </button>
-              {currentMood && (
-                <div className="text-white/50 text-sm">
-                  {currentMood.emoji} {currentMood.label}
-                </div>
-              )}
-            </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowNotificationSettings(true)}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {currentMood && (
+              <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-white/10 rounded-lg">
+                <div className={`w-5 h-5 rounded-full bg-gradient-to-r ${currentMood.color} flex items-center justify-center text-white text-xs`}>
+                  {currentMood.emoji}
+                </div>
+                <span className="text-xs font-medium text-white/80">{currentMood.label}</span>
+              </div>
+            )}
+            <button 
+              onClick={() => setShowAllTasks(true)}
+              className="hidden md:flex items-center space-x-2 px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              title="View all tasks"
             >
-              <Settings className="w-5 h-5" />
+              <List className="w-4 h-4" />
+              <span>All Tasks ({tasks.filter(t => t?.completed).length})</span>
             </button>
-            <button
-              onClick={() => setShowOnboardingTour(true)}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+            <button 
+              onClick={() => setShowAllTasks(true)}
+              className="md:hidden flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
+              title="View all tasks"
             >
-              <HelpCircle className="w-5 h-5" />
+              <List className="w-4 h-4" />
             </button>
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-9 h-9 rounded-full",
-                  userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                  userButtonTrigger: "rounded-full"
-                }
-              }}
-            >
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Delete Account"
-                  labelIcon={<Trash2 className="w-4 h-4" />}
-                  onClick={async () => {
-                    const confirmed = window.confirm(
-                      "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
-                    );
+            <div className="text-xs text-white/60 font-mono hidden lg:block">
+              {new Date().toLocaleTimeString([], { hour12: false })}
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotificationSettings(true)}
+                className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
+                title="Notification Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowOnboardingTour(true)}
+                className="flex items-center justify-center w-8 h-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 relative"
+                title="Redo Demo"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative">
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-8 h-8 rounded-full",
+                    userButtonPopover: "glass-dark-modern border-precise shadow-xl rounded-xl",
+                    userButtonTrigger: "rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                  }
+                }}
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Action
+                    label="Delete Account"
+                    labelIcon={<Trash2 className="w-4 h-4" />}
+                    onClick={async () => {
+                      const confirmed = window.confirm(
+                        "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
+                      );
 
-                    if (confirmed) {
-                      console.log('🗑️ User confirmed account deletion');
+                      if (confirmed) {
+                        console.log('🗑️ User confirmed account deletion');
 
-                      try {
-                        const response = await fetch('/api/user/delete', {
-                          method: 'DELETE',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          }
-                        });
+                        try {
+                          const response = await fetch('/api/user/delete', {
+                            method: 'DELETE',
+                            headers: {
+                              'Content-Type': 'application/json'
+                            }
+                          });
 
-                        console.log('📡 Delete response:', {
-                          status: response.status,
-                          statusText: response.statusText,
-                          ok: response.ok
-                        });
+                          console.log('📡 Delete response:', {
+                            status: response.status,
+                            statusText: response.statusText,
+                            ok: response.ok
+                          });
 
-                        if (response.ok) {
-                          const result = await response.json();
-                          console.log('✅ Account deleted successfully:', result);
-                          toast.success('Account deleted successfully');
-                          // User will be redirected by Clerk after deletion
-                        } else {
-                          const error = await response.json().catch(() => ({}));
-                          console.error('❌ Account deletion failed:', error);
-
-                          if (error.code === 'VERIFICATION_REQUIRED') {
-                            toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
+                          if (response.ok) {
+                            const result = await response.json();
+                            console.log('✅ Account deleted successfully:', result);
+                            toast.success('Account deleted successfully');
+                            // User will be redirected by Clerk after deletion
                           } else {
-                            toast.error(error.error || 'Failed to delete account');
+                            const error = await response.json().catch(() => ({}));
+                            console.error('❌ Account deletion failed:', error);
+
+                            if (error.code === 'VERIFICATION_REQUIRED') {
+                              toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
+                            } else {
+                              toast.error(error.error || 'Failed to delete account');
+                            }
                           }
+                        } catch (error) {
+                          console.error('❌ Error during account deletion:', error);
+                          toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
                         }
-                      } catch (error) {
-                        console.error('❌ Error during account deletion:', error);
-                        toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
                       }
-                    }
-                  }}
-                />
-              </UserButton.MenuItems>
-            </UserButton>
+                    }}
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
-
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          
           {/* Left Column: Task Management */}
-          <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
             {/* Mood-based Task Generator */}
-            <MoodTaskGenerator
+            <MoodTaskGenerator 
               currentTasks={tasks}
               onTaskAdded={handleMoodTaskAdded}
               onMoodSelected={(mood) => {
@@ -849,113 +890,105 @@ export default function MVPDashboard() {
             />
 
             {/* Sustainable Task Generator */}
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="border border-white/10 bg-white/5 rounded-lg p-4 hover:bg-white/[0.07] transition-all duration-200"
-            >
+            <div className="glass-dark-modern border-precise rounded-xl p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-2xl">🌱</span>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center">
+                    <span className="text-white text-sm">🌱</span>
+                  </div>
                   <div>
-                    <span className="text-base font-semibold text-white">Sustainable Action</span>
-                    <p className="text-sm text-white/60">Complete eco-friendly tasks for 20 points</p>
+                    <span className="text-sm font-medium text-white">Sustainable Action</span>
+                    <p className="text-xs text-white/60">Complete eco-friendly tasks for 20 points</p>
                   </div>
                 </div>
                 <button
                   onClick={handleAddSustainableTask}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
+                  className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-xs font-medium"
                 >
                   Add Task
                 </button>
               </div>
-            </motion.div>
-
+            </div>
+            
             {/* Task Input */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
+            <div className="glass-dark-modern border-precise rounded-xl sm:rounded-2xl p-4 sm:p-6">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <input
                   type="text"
                   value={newTask}
                   onChange={(e) => setNewTask(e.target.value)}
                   placeholder="What needs to be done?"
-                  className="flex-1 px-4 py-3 border border-white/20 rounded-lg bg-black/30 text-white placeholder:text-white/40 text-base focus:outline-none focus:border-white/50 focus:bg-black/40 transition-all duration-200"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 border border-white/20 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/40 bg-white/5 text-white placeholder:text-white/40 text-base sm:text-lg transition-all duration-200"
                   onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
                 />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={handleAddTask}
                   disabled={!newTask.trim()}
-                  className="w-11 h-11 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-white hover:bg-white/90 text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
               </div>
-
+              
               {dailyTasksCount >= 8 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center"
-                >
-                  <span className={`text-sm px-3 py-1.5 rounded-lg ${
-                    dailyTasksCount >= 10
+                <div className="mt-3 text-center">
+                  <span className={`text-sm px-3 py-1 rounded-full ${
+                    dailyTasksCount >= 10 
                       ? 'bg-red-500/20 text-red-400 border border-red-400/30'
                       : 'bg-orange-500/20 text-orange-400 border border-orange-400/30'
                   }`}>
                     {dailyTasksCount >= 10 ? 'Daily limit reached (10/10)' : `${dailyTasksCount}/10 tasks today`}
                   </span>
-                </motion.div>
+                </div>
               )}
             </div>
 
-            {/* Task List */}
-            <div className="border border-white/10 bg-black/20 backdrop-blur-sm rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-white">Today's Tasks</h2>
-                  <div className="text-sm text-white/50 font-mono">
+            {/* Task List - Directly under input */}
+            <div className="glass-dark-modern border-precise rounded-xl sm:rounded-2xl p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <h2 className="text-lg sm:text-xl font-bold text-white">Today's Tasks</h2>
+                  <div className="text-xs text-white/60 font-mono bg-white/10 px-2 sm:px-3 py-1 rounded-full hidden sm:block">
                     {new Date().toLocaleDateString()}
                   </div>
                 </div>
-                <div className="text-base text-white/60 font-mono font-semibold bg-white/5 px-3 py-1.5 rounded-lg">
+                <div className="text-sm text-white/60 font-mono bg-white/5 px-2 sm:px-3 py-1 rounded-full">
                   {completedTasksCount}/{totalTasksCount}
                 </div>
               </div>
-
-              <div className="min-h-[240px]">
+              
+              <div className="min-h-[200px]">
                 {tasks.filter(t => !t.title.includes('[COMPLETED]')).length === 0 ? (
-                  <div className="text-center py-16">
-                    <motion.div
-                      className="w-16 h-16 bg-white/5 rounded-full mx-auto mb-4 flex items-center justify-center"
-                      animate={{
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 3, -3, 0]
+                  <div className="text-center py-12">
+                    <motion.div 
+                      className="w-16 h-16 bg-white/10 rounded-full mx-auto mb-4 flex items-center justify-center"
+                      animate={{ 
+                        scale: [1, 1.05, 1],
+                        rotate: [0, 2, -2, 0]
                       }}
-                      transition={{
+                      transition={{ 
                         duration: 3,
                         repeat: Infinity,
                         ease: "easeInOut"
                       }}
                     >
-                      <Plus className="w-7 h-7 text-white/40" />
+                      <Plus className="w-8 h-8 text-white/40" />
                     </motion.div>
-                    <p className="text-white/60 text-lg font-semibold">No tasks yet</p>
-                    <p className="text-white/40 text-sm mt-2">Add your first task above to get started</p>
+                    <p className="text-white/60 text-lg font-medium">No tasks yet</p>
+                    <p className="text-white/40 text-sm mt-1">Add your first task above to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <AnimatePresence>
-                      {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onToggle={handleToggleTask}
-                          onDelete={handleDeleteTask}
-                          isSustainable={sustainableTasks.includes(task.title)}
-                        />
-                      ))}
-                    </AnimatePresence>
+                  <div className="space-y-3">
+                    {/* Show all current session tasks (both completed and incomplete) */}
+                    {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onToggle={handleToggleTask}
+                        onDelete={handleDeleteTask}
+                        isSustainable={sustainableTasks.includes(task.title)}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
@@ -964,54 +997,50 @@ export default function MVPDashboard() {
 
           {/* Right Column: Progress & Motivation */}
           <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="border border-white/10 bg-black/20 backdrop-blur-sm rounded-lg p-6 lg:sticky lg:top-24">
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-white">Progress</h2>
-
-                {/* Mike the Cactus */}
-                <motion.div
-                  className="flex justify-center"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <div className="bg-white/5 rounded-xl p-8 border border-white/10">
-                    <Cactus mood={milestoneData.cactusState} size="xl" />
-                  </div>
-                </motion.div>
-
-                {/* Progress Circle */}
-                <div className="flex justify-center">
-                  <AnimatedCircularProgressBar
-                    max={milestoneData.maxPoints}
-                    value={milestoneData.currentPoints}
-                    gaugePrimaryColor="#22c55e"
-                    gaugeSecondaryColor="rgba(255,255,255,0.2)"
-                    className="size-28"
-                  />
-                </div>
-
-                {/* Stats */}
-                <div className="bg-white/5 rounded-lg p-4 border border-white/10 space-y-2">
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-3xl font-bold text-white font-mono">
-                      {milestoneData.currentPoints.toString().padStart(2, '0')}
-                    </div>
-                    <div className="text-sm text-white/60 font-mono">
-                      / {milestoneData.maxPoints}
+            <div className="glass-dark-modern border-precise rounded-2xl p-3 sm:p-4 lg:p-6 lg:sticky lg:top-24">
+              <div className="text-center mb-3 sm:mb-4 lg:mb-6">
+                <h2 className="text-lg font-bold text-white mb-2 sm:mb-3 lg:mb-4">Progress</h2>
+                
+                {/* Mobile: Horizontal layout for smaller screens */}
+                <div className="flex flex-col sm:flex-row lg:block">
+                  {/* Mike the Cactus */}
+                  <div className="flex justify-center mb-3 sm:mb-4 lg:mb-6 flex-shrink-0">
+                    <div className="bg-white/10 rounded-full p-4 sm:p-6 lg:p-8">
+                      <Cactus mood={milestoneData.cactusState} size="xl" />
                     </div>
                   </div>
-                  <div className="text-sm text-white/60 font-medium">
-                    Total earned: {milestoneData.totalPointsEarned}
+                  
+                  {/* Progress Circle and Stats */}
+                  <div className="flex-1 lg:block sm:ml-4 lg:ml-0">
+                    {/* Progress Circle */}
+                    <div className="flex justify-center mb-3 sm:mb-4 lg:mb-6">
+                      <AnimatedCircularProgressBar
+                        max={milestoneData.maxPoints}
+                        value={milestoneData.currentPoints}
+                        gaugePrimaryColor="#22c55e"
+                        gaugeSecondaryColor="rgba(255,255,255,0.2)"
+                        className="size-16 sm:size-20 lg:size-24"
+                      />
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="bg-white/5 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 lg:p-4 border border-white/20">
+                      <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white font-mono">
+                        {milestoneData.currentPoints.toString().padStart(2, '0')}
+                      </div>
+                      <div className="text-white/60 text-xs font-mono uppercase tracking-wide">
+                        progress / {milestoneData.maxPoints}
+                      </div>
+                      <div className="text-xs text-green-400 font-medium mt-1">
+                        Total earned: {milestoneData.totalPointsEarned}
+                      </div>
+                      {completedSustainableTasksCount > 0 && (
+                        <div className="text-xs text-green-400 font-medium">
+                          +{completedSustainableTasksCount * 10} bonus from eco tasks (20pts each)
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {completedSustainableTasksCount > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="text-sm text-green-400 font-semibold"
-                    >
-                      +{completedSustainableTasksCount * 10} bonus from eco tasks
-                    </motion.div>
-                  )}
                 </div>
               </div>
             </div>
