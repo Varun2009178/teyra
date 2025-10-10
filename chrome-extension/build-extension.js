@@ -41,9 +41,17 @@ if (!fs.existsSync(buildDir)) {
 const filesToCopy = [
   'manifest.json',
   'popup.html',
+  'popup.css',
   'background.js',
   'bridge-listener.js',
-  'supabase.js'
+  'content-detector.js',
+  'content.js',
+  'calendar.js',
+  'supabase.js',
+  'teyra-logo-64kb.png',
+  'Happy.gif',
+  'Neutral Calm.gif',
+  'Sad With Tears 2.gif'
 ];
 
 filesToCopy.forEach(file => {

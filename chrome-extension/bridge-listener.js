@@ -18,16 +18,29 @@
       console.log('✅ Received user sign-in from main app:', event.data.user);
       console.log('✅ Received tasks from main app:', event.data.tasks);
 
-      // Send to background script (no callback to avoid port closure issues)
+      // Send to background script with proper error handling
       try {
-        chrome.runtime.sendMessage({
-          action: 'userSignedIn',
-          user: event.data.user,
-          tasks: event.data.tasks || []
-        });
-        console.log('✅ Message sent to background script');
+        if (chrome.runtime && chrome.runtime.sendMessage) {
+          chrome.runtime.sendMessage({
+            action: 'userSignedIn',
+            user: event.data.user,
+            tasks: event.data.tasks || []
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log('Extension context invalidated, this is normal during development:', chrome.runtime.lastError.message);
+            } else {
+              console.log('✅ Message sent to background script successfully');
+            }
+          });
+        } else {
+          console.log('Chrome runtime not available, extension may need to be reloaded');
+        }
       } catch (error) {
-        console.error('Error sending to background:', error);
+        if (error.message.includes('Extension context invalidated')) {
+          console.log('Extension context invalidated - this happens when extension is reloaded. Please refresh the page.');
+        } else {
+          console.error('Error sending to background:', error);
+        }
       }
     }
   });

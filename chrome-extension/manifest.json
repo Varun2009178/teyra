@@ -3,9 +3,27 @@
   "name": "Teyra - Productivity Companion",
   "version": "1.0.0",
   "description": "Your AI productivity companion that lives in your browser. Stay focused, complete tasks, and build better habits.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7bBuZ+7yF2LqpbzU8fATrS7sM8Wf//MBUwWH6qxMDT24JMFoL4qBTgF/Q3eLD+XdFuv5SrnswmYKblevJ4gG2yxceiias0UOTO7ReHH2JesA+X8/B4PONES5r6gcLVldVGFLwib1XVk0CHohmqIDcpLOtF4RTAF06NzsnHSkpvsCkT2Khnu5kzJa/blHrlRTH5Eh7KVSgsjNbkHJu8jjWMGiQgo0q8JmkqwIi6Hcvmi6XqSgos8+9hBxkSY3IWks7fscq/abkxwMATb091E8WJjmhbXVMHAqRRWuf6GflASwF538G7aPj+Cx7MX5w9q+G6cCc33QxQqX/kmrZEz8RQIDAQAB",
+
+  "icons": {
+    "16": "teyra-logo-64kb.png",
+    "48": "teyra-logo-64kb.png",
+    "128": "teyra-logo-64kb.png"
+  },
 
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab",
+    "tabs",
+    "declarativeNetRequest",
+    "contextMenus",
+    "notifications",
+    "scripting",
+    "identity"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
   ],
 
   "externally_connectable": {
@@ -18,15 +36,58 @@
 
   "action": {
     "default_title": "Teyra - Your Productivity Companion",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "teyra-logo-64kb.png",
+      "48": "teyra-logo-64kb.png",
+      "128": "teyra-logo-64kb.png"
+    }
   },
 
   "content_scripts": [
     {
       "matches": ["https://teyra.app/*", "https://www.teyra.app/*", "http://localhost:3000/*"],
       "js": ["bridge-listener.js"],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["calendar.js", "content-detector.js", "content.js"],
+      "run_at": "document_end",
+      "all_frames": true
     }
-  ]
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["*.gif", "*.png", "*.jpg", "*.jpeg"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "commands": {
+    "add-task": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Q",
+        "mac": "Command+Shift+Q"
+      },
+      "description": "Add selected text as task to Teyra"
+    },
+    "highlight-mode": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Toggle highlight mode for text selection"
+    },
+    "quick-add-task": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Quick add task - type and send instantly"
+    }
+  }
 
 }

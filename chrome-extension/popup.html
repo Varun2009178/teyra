@@ -1,313 +1,289 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <script src="supabase.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
   <style>
-    body {
-      width: 350px;
-      height: 500px;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-      color: white;
-      overflow: hidden;
-    }
-
-    .teyra-popup {
-      padding: 20px;
-      height: 100%;
-      box-sizing: border-box;
-    }
-
-    .teyra-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .teyra-logo-section {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .teyra-logo {
-      font-size: 18px;
-    }
-
-    .teyra-app-name {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .teyra-toggle-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .teyra-toggle-input {
-      display: none;
-    }
-
-    .teyra-toggle-label {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 24px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .teyra-toggle-input:checked + .teyra-toggle-label {
-      background: #22c55e;
-    }
-
-    .teyra-toggle-slider {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 20px;
-      height: 20px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.3s;
-    }
-
-    .teyra-toggle-input:checked + .teyra-toggle-label .teyra-toggle-slider {
-      transform: translateX(20px);
-    }
-
-    .teyra-toggle-text {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .teyra-stats-card {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-
-    .teyra-stat-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .teyra-stat-emoji {
-      font-size: 16px;
-    }
-
-    .teyra-stat-text {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .teyra-progress-bar {
-      width: 100%;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .teyra-progress-fill {
-      height: 100%;
-      background: #22c55e;
-      width: 43%;
-      border-radius: 3px;
-      transition: width 0.3s;
-    }
-
-    .teyra-view-all-btn {
-      width: 100%;
-      background: rgba(34, 197, 94, 0.2);
-      border: 1px solid rgba(34, 197, 94, 0.3);
-      color: #22c55e;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.3s;
-    }
-
-    .teyra-view-all-btn:hover {
-      background: rgba(34, 197, 94, 0.3);
-    }
-
-    /* Auth styles */
-    .auth-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      text-align: center;
-    }
-
-    .auth-logo {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-
-    .auth-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .auth-subtitle {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 30px;
-    }
-
-    .google-signin-btn {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: white;
-      color: #333;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s;
-      width: 240px;
-      justify-content: center;
-    }
-
-    .google-signin-btn:hover {
-      background: #f5f5f5;
-      transform: translateY(-1px);
-    }
-
-    .task-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .task-checkbox {
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #22c55e;
-      font-size: 12px;
-    }
-
-    .task-checkbox.completed {
-      background: #22c55e;
-      border-color: #22c55e;
-    }
-
-    .task-text {
-      flex: 1;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .task-text.completed {
-      text-decoration: line-through;
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .add-task-input {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
-    .add-task-input::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    .hidden {
-      display: none !important;
+    html, body {
+      width: 420px !important;
+      min-width: 420px !important;
+      max-width: 420px !important;
     }
   </style>
 </head>
 <body>
+  <div class="extension-container">
   <!-- Auth Screen -->
-  <div id="auth-screen" class="auth-container">
-    <div class="auth-logo">🌵</div>
-    <div class="auth-title">teyra</div>
-    <div class="auth-subtitle">your productivity companion</div>
-    <button class="google-signin-btn" id="google-signin">
-      <svg width="18" height="18" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-      Sign in with Google
-    </button>
+  <div id="auth-screen" class="screen">
+    <div class="auth-content">
+      <div class="logo">
+        <div class="cursor-logo">
+          <div class="mike-container">
+            <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar">
+          </div>
+          <div class="logo-text">
+            <h1>Teyra</h1>
+            <p>Cursor for Productivity</p>
+          </div>
+        </div>
+      </div>
+      <button id="google-signin" class="cursor-btn cursor-btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" class="btn-icon">
+          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
+    </div>
   </div>
 
-  <!-- Dashboard Screen -->
-  <div id="dashboard-screen" class="teyra-popup hidden">
+  <!-- Main Dashboard -->
+  <div id="dashboard-screen" class="screen hidden">
+
     <!-- Header -->
-    <div class="teyra-header">
-      <div class="teyra-logo-section">
-        <div class="teyra-logo">🌵</div>
-        <span class="teyra-app-name">teyra</span>
+    <div class="cursor-header">
+      <div class="header-content">
+        <div class="cursor-brand">
+          <div class="mike-section">
+            <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar" id="mike-avatar">
+            <div class="mike-info">
+              <h1 id="header-title">Teyra</h1>
+              <p id="mike-status">Ready to focus</p>
+            </div>
+          </div>
+        </div>
+        <button class="cursor-btn cursor-btn-ghost cursor-btn-sm" id="settings-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       </div>
-      <button id="sign-out" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer;">
-        sign out
+    </div>
+
+    <!-- Focus Toggle with Timer -->
+    <div class="cursor-focus-toggle">
+      <div class="focus-content">
+        <div class="focus-info">
+          <h3 id="focus-title">Focus Mode</h3>
+          <p id="focus-description">25-minute focused sessions with breaks</p>
+        </div>
+        <label class="cursor-toggle">
+          <input type="checkbox" id="focus-toggle">
+          <span class="cursor-toggle-slider"></span>
+        </label>
+      </div>
+      <!-- Timer Display (shows when focus is on) -->
+      <div class="focus-timer-display hidden" id="focus-timer-display">
+        <div class="focus-timer-row">
+          <div class="focus-timer-info">
+            <div class="focus-timer-large" id="focus-timer-large">25:00</div>
+            <div class="focus-session-text" id="focus-session-text">Session 1 of 4</div>
+          </div>
+          <div class="focus-timer-controls">
+            <button id="focus-timer-pause" class="icon-btn-focus">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"/>
+                <rect x="14" y="4" width="4" height="16"/>
+              </svg>
+            </button>
+            <button id="focus-timer-reset" class="icon-btn-focus">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="cursor-main-content">
+
+      <!-- Regular Mode: Tasks View -->
+      <div id="tasks-view" class="cursor-view">
+        <div class="cursor-tasks-container">
+          <!-- Progress Hero Section -->
+          <div class="cursor-progress-hero">
+            <div class="mike-progress-container">
+              <div class="mike-main-avatar">
+                <img src="Neutral Calm.gif" alt="Mike" class="mike-cactus" id="mike-cactus">
+                <div class="mike-sparkles hidden" id="mike-sparkles">✨</div>
+              </div>
+              <div class="mike-progress-info">
+                <h3 id="mike-greeting">Hey there!</h3>
+                <p id="mike-motivation">Let's get some tasks done today</p>
+              </div>
+            </div>
+            <div class="cursor-progress-bar">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-stats">
+              <span class="stat"><span id="completed-tasks">0</span>/<span id="total-tasks">0</span> completed</span>
+              <span class="stat-percent" id="progress-percent">0%</span>
+            </div>
+          </div>
+
+          <div class="cursor-add-task">
+            <div class="input-container">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="input-icon">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              <input type="text" id="task-input" placeholder="What would you like to accomplish?" class="cursor-input" />
+            </div>
+          </div>
+
+          <div class="cursor-tasks-list" id="tasks-list">
+            <!-- Tasks rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Focus Mode: Clean Linear-Style View -->
+      <div id="focus-view" class="cursor-view hidden">
+        <div class="focus-container">
+          <!-- Focus Header -->
+          <div class="focus-header">
+            <div class="focus-status">
+              <div class="status-indicator"></div>
+              <span class="status-text">Focus Mode</span>
+            </div>
+            <div class="focus-timer" id="focus-time">00:00</div>
+          </div>
+
+          <!-- Focus Content -->
+          <div class="focus-content">
+            <div class="focus-message">
+              <h3>Stay focused</h3>
+              <p>Distractions are blocked while you work</p>
+            </div>
+
+            <!-- Focus Stats -->
+            <div class="focus-stats">
+              <div class="stat-item">
+                <div class="stat-value" id="sites-blocked">0</div>
+                <div class="stat-label">sites blocked</div>
+              </div>
+            </div>
+
+            <!-- Focus Actions -->
+            <div class="focus-actions">
+              <button id="end-focus" class="focus-end-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+                End Focus
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings View -->
+      <div id="settings-view" class="cursor-view hidden">
+        <div class="cursor-settings-container">
+          <h3>Blocking Settings</h3>
+
+          <div class="cursor-setting-group">
+            <div class="cursor-setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Social Media</span>
+                <span class="setting-desc">Block distracting social platforms</span>
+              </div>
+              <label class="cursor-toggle">
+                <input type="checkbox" id="block-social" checked>
+                <span class="cursor-toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="cursor-setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Entertainment</span>
+                <span class="setting-desc">Block entertainment sites</span>
+              </div>
+              <label class="cursor-toggle">
+                <input type="checkbox" id="block-entertainment" checked>
+                <span class="cursor-toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="cursor-setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Shopping</span>
+                <span class="setting-desc">Block shopping websites</span>
+              </div>
+              <label class="cursor-toggle">
+                <input type="checkbox" id="block-shopping" checked>
+                <span class="cursor-toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <h3 style="margin-top: 24px;">Keyboard Shortcuts</h3>
+          <div class="cursor-setting-group">
+            <div class="shortcut-item">
+              <span class="shortcut-label">Quick Add Task</span>
+              <kbd class="shortcut-key">Ctrl+Shift+A</kbd>
+            </div>
+            <div class="shortcut-item">
+              <span class="shortcut-label">Add Selected Text</span>
+              <kbd class="shortcut-key">Ctrl+Shift+Q</kbd>
+            </div>
+            <div class="shortcut-item">
+              <span class="shortcut-label">Toggle Highlight Mode</span>
+              <kbd class="shortcut-key">Ctrl+Shift+E</kbd>
+            </div>
+          </div>
+
+          <h3 style="margin-top: 24px;">How It Works</h3>
+          <div class="cursor-setting-group">
+            <div class="help-item">
+              <div class="help-icon">⚡</div>
+              <div class="help-text">
+                <strong>Quick Add (Ctrl+Shift+A)</strong>
+                <p>Press the shortcut anywhere to instantly type and add a task</p>
+              </div>
+            </div>
+            <div class="help-item">
+              <div class="help-icon">✨</div>
+              <div class="help-text">
+                <strong>Highlight Mode (Ctrl+Shift+E)</strong>
+                <p>Select text on any page to add as task or break it down with AI</p>
+              </div>
+            </div>
+            <div class="help-item">
+              <div class="help-icon">📅</div>
+              <div class="help-text">
+                <strong>Google Calendar Sync</strong>
+                <p>Add tasks with deadlines directly to your Google Calendar</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="cursor-footer">
+      <button id="view-all-tasks" class="cursor-btn cursor-btn-ghost cursor-btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3h18v18H3zM9 9h6v6H9z"/>
+        </svg>
+        Open Dashboard
+      </button>
+      <button id="sign-out" class="cursor-btn cursor-btn-ghost cursor-btn-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+        Sign out
       </button>
     </div>
-
-    <!-- Stats -->
-    <div class="teyra-stats-card">
-      <div class="teyra-stat-item">
-        <span class="teyra-stat-emoji">📊</span>
-        <span class="teyra-stat-text">today: <span id="task-progress">0/0</span> tasks</span>
-      </div>
-      <div class="teyra-progress-bar">
-        <div class="teyra-progress-fill" id="progress-fill"></div>
-      </div>
-    </div>
-
-    <!-- Today's Tasks -->
-    <div style="margin-bottom: 20px;">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-        <span style="font-size: 16px;">✅</span>
-        <span style="font-size: 14px; font-weight: 600;">today's tasks</span>
-      </div>
-      <div id="tasks-list"></div>
-      <input type="text" id="add-task-input" class="add-task-input" placeholder="add a task..." style="display: none;">
-      <button id="add-task-btn" style="width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); padding: 8px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-top: 8px;">
-        + add task
-      </button>
-    </div>
-
-    <!-- View All Button -->
-    <button class="teyra-view-all-btn" id="view-all-tasks">
-      open full dashboard →
-    </button>
+  </div>
   </div>
 
   <script src="popup.js"></script>
