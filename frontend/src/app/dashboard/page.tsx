@@ -19,9 +19,6 @@ import { NotificationSettings } from '@/components/NotificationSettings';
 import DailyNotificationPrompt from '@/components/DailyNotificationPrompt';
 import * as gtag from '@/lib/gtag';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 interface Task {
   id: number;
   title: string;
