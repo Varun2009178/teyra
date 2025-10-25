@@ -21,13 +21,13 @@ export default function UpgradePage() {
       console.log('✅ Referral code stored:', referralCode);
     }
 
-    // Redirect to dashboard (where they can upgrade)
+    // Redirect to dashboard with hash to scroll to upgrade section
     if (isSignedIn) {
-      // User is signed in - go to dashboard
-      router.push('/dashboard');
+      // User is signed in - go to dashboard upgrade section
+      router.push('/dashboard#upgrade');
     } else {
-      // User not signed in - go to sign in page
-      router.push('/sign-in');
+      // User not signed in - go to sign in page, then they'll come back
+      router.push('/sign-in?redirect=/dashboard#upgrade');
     }
   }, [isSignedIn, isLoaded, searchParams, router]);
 
@@ -35,7 +35,7 @@ export default function UpgradePage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-        <p className="text-white/60">redirecting to teyra...</p>
+        <p className="text-white/60">redirecting to upgrade...</p>
       </div>
     </div>
   );

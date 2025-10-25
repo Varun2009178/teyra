@@ -1471,14 +1471,13 @@ export default function MVPDashboard() {
                 className="flex flex-col items-center gap-3 w-full sm:w-auto lg:min-w-[180px]"
               >
                 <motion.button
-                  onClick={() => toast.info('pro upgrades temporarily paused while we complete google calendar verification. coming soon!')}
-                  disabled={true}
-                  className="w-full px-6 sm:px-8 py-3 bg-white/20 text-white/40 font-semibold rounded-lg text-base transition-all duration-200 cursor-not-allowed relative overflow-hidden"
+                  onClick={(e) => handleUpgrade(e)}
+                  disabled={isUpgrading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="flex items-center justify-between w-full relative z-10">
-                    <span className="line-through">upgrade to pro — $10/month</span>
-                    <span className="text-[10px] text-white/30 font-normal ml-2">coming soon</span>
-                  </div>
+                  {isUpgrading ? 'loading...' : 'upgrade to pro — $10/month'}
                 </motion.button>
               </motion.div>
             </div>
@@ -2219,14 +2218,18 @@ export default function MVPDashboard() {
 
               {!isPro && (
                 <button
-                  onClick={() => toast.info('pro upgrades temporarily paused while we complete google calendar verification. coming soon!')}
-                  disabled={true}
-                  className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold mb-3 cursor-not-allowed"
+                  onClick={() => {
+                    setShowAccountModal(false);
+                    setTimeout(() => {
+                      const upgradeSection = document.getElementById('upgrade');
+                      if (upgradeSection) {
+                        upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }, 300);
+                  }}
+                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold mb-3"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="line-through">upgrade to pro — $10/month</span>
-                    <span className="text-[10px] text-white/30 font-normal ml-2">coming soon</span>
-                  </div>
+                  upgrade to pro — $10/month
                 </button>
               )}
 
