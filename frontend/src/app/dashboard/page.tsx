@@ -249,21 +249,21 @@ const TaskCard = React.memo(({
               <span>delete</span>
             </button>
 
-            {/* Calendar scheduling temporarily disabled - pending Google verification
             <div className="border-t border-white/10 my-1" />
 
             {onAISchedule && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onAISchedule(task.id);
+                  toast.info('calendar feature coming soon! completing google verification.');
                   setShowContextMenu(false);
                 }}
-                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
+                disabled={true}
+                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/30 text-sm cursor-not-allowed opacity-50"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>ai schedule</span>
-                {!isPro && <span className="ml-auto text-xs text-white/40">pro</span>}
+                <span className="ml-auto text-xs text-white/20">coming soon</span>
               </button>
             )}
 
@@ -271,16 +271,17 @@ const TaskCard = React.memo(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onManualSchedule(task.id);
+                  toast.info('calendar feature coming soon! completing google verification.');
                   setShowContextMenu(false);
                 }}
-                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
+                disabled={true}
+                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/30 text-sm cursor-not-allowed opacity-50"
               >
                 <Clock className="w-4 h-4" />
                 <span>schedule</span>
+                <span className="ml-auto text-xs text-white/20">coming soon</span>
               </button>
             )}
-            */}
           </div>
         </motion.div>
       )}
@@ -1420,9 +1421,10 @@ export default function MVPDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   {[
                     { title: "unlimited AI text → task", desc: "limited time only! (vs 5 per day free)", highlight: true },
+                    { title: "ai calendar scheduling", desc: "schedule tasks automatically with ai", highlight: false },
                     { title: "focus mode customization", desc: "block any websites you choose", highlight: false },
-                    { title: "pomodoro timer", desc: "built-in focus sessions" },
-                    { title: "priority support", desc: "faster response times" }
+                    { title: "pomodoro timer", desc: "built-in focus sessions", highlight: false },
+                    { title: "priority support", desc: "faster response times", highlight: false }
                   ].map((feature, i) => (
                     <motion.div
                       key={i}
@@ -1462,13 +1464,17 @@ export default function MVPDashboard() {
                 className="flex flex-col items-center gap-3 w-full sm:w-auto lg:min-w-[180px]"
               >
                 <motion.button
-                  onClick={(e) => handleUpgrade(e)}
-                  disabled={isUpgrading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => toast.info('pro upgrades temporarily paused while we complete google calendar verification. coming soon!')}
+                  disabled={true}
+                  className="w-full px-6 sm:px-8 py-3 bg-white/20 text-white/40 font-semibold rounded-lg text-base transition-all duration-200 cursor-not-allowed relative overflow-hidden"
                 >
-                  {isUpgrading ? 'loading...' : 'upgrade to pro — $10/month'}
+                  <span className="relative z-10">upgrade to pro — $10/month</span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-0.5 bg-white/40 rotate-12 transform scale-150"></div>
+                  </div>
+                  <div className="absolute bottom-1 right-2 text-[10px] text-white/30 font-normal">
+                    coming soon
+                  </div>
                 </motion.button>
               </motion.div>
             </div>
@@ -2209,18 +2215,17 @@ export default function MVPDashboard() {
 
               {!isPro && (
                 <button
-                  onClick={() => {
-                    setShowAccountModal(false);
-                    setTimeout(() => {
-                      const upgradeSection = document.getElementById('upgrade');
-                      if (upgradeSection) {
-                        upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }, 300);
-                  }}
-                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold mb-3"
+                  onClick={() => toast.info('pro upgrades temporarily paused while we complete google calendar verification. coming soon!')}
+                  disabled={true}
+                  className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold mb-3 cursor-not-allowed relative overflow-hidden"
                 >
-                  upgrade to pro — $10/month
+                  <span className="relative z-10">upgrade to pro — $10/month</span>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-0.5 bg-white/40 rotate-12 transform scale-150"></div>
+                  </div>
+                  <div className="absolute bottom-1 right-2 text-[10px] text-white/30 font-normal">
+                    coming soon
+                  </div>
                 </button>
               )}
 
