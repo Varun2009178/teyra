@@ -104,17 +104,11 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-center items-center mb-6">
             <div className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-white" />
               <h2 className="text-xl font-bold text-white">Notification Settings</h2>
             </div>
-            <button
-              onClick={onClose}
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Settings */}

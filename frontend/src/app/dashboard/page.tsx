@@ -1051,6 +1051,12 @@ export default function MVPDashboard() {
       // Get referral code from sessionStorage if present
       const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('teyra_referral') : null;
 
+      if (referralCode) {
+        console.log('🎯 Sending referral code to checkout:', referralCode);
+      } else {
+        console.log('ℹ️ No referral code found in sessionStorage');
+      }
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {
@@ -1470,15 +1476,17 @@ export default function MVPDashboard() {
                 transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
                 className="flex flex-col items-center gap-3 w-full sm:w-auto lg:min-w-[180px]"
               >
-                <motion.button
-                  onClick={(e) => handleUpgrade(e)}
-                  disabled={isUpgrading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUpgrading ? 'loading...' : 'upgrade to pro — $10/month'}
-                </motion.button>
+                <div className="relative w-full">
+                  <motion.button
+                    disabled={true}
+                    className="w-full px-6 sm:px-8 py-3 bg-white/20 text-white/40 font-semibold rounded-lg text-base transition-all duration-200 cursor-not-allowed relative"
+                  >
+                    <span className="line-through">upgrade to pro — $10/month</span>
+                  </motion.button>
+                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    coming soon
+                  </span>
+                </div>
               </motion.div>
             </div>
             </div>
@@ -2217,20 +2225,17 @@ export default function MVPDashboard() {
               </div>
 
               {!isPro && (
-                <button
-                  onClick={() => {
-                    setShowAccountModal(false);
-                    setTimeout(() => {
-                      const upgradeSection = document.getElementById('upgrade');
-                      if (upgradeSection) {
-                        upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
-                    }, 300);
-                  }}
-                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold mb-3"
-                >
-                  upgrade to pro — $10/month
-                </button>
+                <div className="relative mb-3">
+                  <button
+                    disabled={true}
+                    className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    <span className="line-through">upgrade to pro — $10/month</span>
+                  </button>
+                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    coming soon
+                  </span>
+                </div>
               )}
 
               {isPro && !cancelAtPeriodEnd && (

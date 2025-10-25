@@ -109,8 +109,11 @@ export default function ProBadgeDropdown() {
 
               {/* Footer */}
               <div className="mt-4 pt-3 border-t border-white/10">
-                <p className="text-white/40 text-xs text-center">
+                <p className="text-white/40 text-xs text-center mb-2">
                   Thank you for supporting teyra! 💜
+                </p>
+                <p className="text-white/50 text-xs text-center">
+                  ✨ Many Pro features available in Chrome extension (coming soon)
                 </p>
               </div>
             </div>

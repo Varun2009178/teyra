@@ -14,20 +14,33 @@ function UpgradeContent() {
 
     // Get referral code from URL
     const referralCode = searchParams.get('ref');
+    console.log('🔍 URL referral code:', referralCode);
 
     // Store referral code in sessionStorage
     if (referralCode) {
-      sessionStorage.setItem('teyra_referral', referralCode);
-      console.log('✅ Referral code stored:', referralCode);
+      try {
+        sessionStorage.setItem('teyra_referral', referralCode);
+        console.log('✅ Referral code stored:', referralCode);
+
+        // Verify it was stored
+        const stored = sessionStorage.getItem('teyra_referral');
+        console.log('✅ Verified stored value:', stored);
+      } catch (e) {
+        console.error('❌ Failed to store referral code:', e);
+      }
+    } else {
+      console.warn('⚠️ No referral code found in URL');
     }
 
     // Redirect to dashboard with hash to scroll to upgrade section
     if (isSignedIn) {
       // User is signed in - go to dashboard upgrade section
+      console.log('→ Redirecting signed-in user to dashboard');
       router.push('/dashboard#upgrade');
     } else {
-      // User not signed in - go to sign in page, then they'll come back
-      router.push('/sign-in?redirect=/dashboard#upgrade');
+      // User not signed in - go to sign in page
+      console.log('→ Redirecting to sign-in');
+      router.push('/sign-in');
     }
   }, [isSignedIn, isLoaded, searchParams, router]);
 

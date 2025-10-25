@@ -81,18 +81,10 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
           className="bg-black/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl"
         >
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center space-x-2">
-              <div className="text-sm font-medium text-white/60">
-                {currentStep + 1} of {tourSteps.length}
-              </div>
+          <div className="flex justify-center items-center mb-6">
+            <div className="text-sm font-medium text-white/60">
+              {currentStep + 1} of {tourSteps.length}
             </div>
-            <button
-              onClick={handleSkip}
-              className="text-white/60 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Progress Bar */}
