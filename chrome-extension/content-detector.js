@@ -12,6 +12,32 @@ setTimeout(() => {
   console.log('🌵 Document ready state:', document.readyState);
 }, 1000);
 
+// Safe sessionStorage wrapper to handle sandboxed contexts
+const safeSessionStorage = {
+  getItem: (key) => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      console.log('🌵 sessionStorage not available (sandboxed context)');
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {
+      console.log('🌵 sessionStorage not available (sandboxed context)');
+    }
+  },
+  removeItem: (key) => {
+    try {
+      sessionStorage.removeItem(key);
+    } catch (e) {
+      console.log('🌵 sessionStorage not available (sandboxed context)');
+    }
+  }
+};
+
 // Categories of distracting websites
 const DISTRACTING_CATEGORIES = {
   social: {
@@ -315,7 +341,7 @@ async function showFocusNudge(category) {
 
     // Set 5-minute timer before showing nudge again
     const continueUntil = Date.now() + (5 * 60 * 1000); // 5 minutes
-    sessionStorage.setItem('teyra-continue-' + window.location.hostname, continueUntil.toString());
+    safeSessionStorage.setItem('teyra-continue-' + window.location.hostname, continueUntil.toString());
 
     // Show countdown timer in top right
     showContinueTimer(continueUntil);
@@ -398,7 +424,7 @@ function showContinueTimer(continueUntil) {
           clearTimeout(timerInterval);
         }
         timer.remove();
-        sessionStorage.removeItem('teyra-continue-' + window.location.hostname);
+        safeSessionStorage.removeItem('teyra-continue-' + window.location.hostname);
         // Remove this listener since timer is done
         chrome.storage.onChanged.removeListener(focusModeListener);
       }
@@ -417,7 +443,7 @@ function showContinueTimer(continueUntil) {
         // Focus mode was turned off, remove timer
         console.log('🌵 Focus mode disabled, stopping continue timer');
         timer.remove();
-        sessionStorage.removeItem('teyra-continue-' + window.location.hostname);
+        safeSessionStorage.removeItem('teyra-continue-' + window.location.hostname);
         chrome.storage.onChanged.removeListener(focusModeListener);
         return;
       }
@@ -426,7 +452,7 @@ function showContinueTimer(continueUntil) {
 
       if (timeLeft <= 0) {
         timer.remove();
-        sessionStorage.removeItem('teyra-continue-' + window.location.hostname);
+        safeSessionStorage.removeItem('teyra-continue-' + window.location.hostname);
         chrome.storage.onChanged.removeListener(focusModeListener);
         console.log('🌵 Continue timer expired');
         return;
@@ -710,14 +736,14 @@ function setupNudgeEventListeners(nudgeOverlay, suggestedTask) {
     nudgeOverlay.style.opacity = '0';
     setTimeout(() => nudgeOverlay.remove(), 200);
     // Store that user chose to continue on this site for this session
-    sessionStorage.setItem('teyra-continue-' + window.location.hostname, 'true');
+    safeSessionStorage.setItem('teyra-continue-' + window.location.hostname, 'true');
   };
 
   // Close button
   document.getElementById('teyra-close-nudge').onclick = () => {
     nudgeOverlay.style.opacity = '0';
     setTimeout(() => nudgeOverlay.remove(), 200);
-    sessionStorage.setItem('teyra-continue-' + window.location.hostname, 'true');
+    safeSessionStorage.setItem('teyra-continue-' + window.location.hostname, 'true');
   };
 
   // Add hover effects
@@ -775,7 +801,7 @@ async function initContentDetection() {
 
   // Check if user already chose to continue on this site and timer hasn't expired
   const continueKey = 'teyra-continue-' + window.location.hostname;
-  const continueUntil = sessionStorage.getItem(continueKey);
+  const continueUntil = safeSessionStorage.getItem(continueKey);
   if (continueUntil && Date.now() < parseInt(continueUntil)) {
     console.log('🌵 Skipping nudge - user chose to continue, timer still active');
     // Show the existing timer if it's still running
@@ -783,7 +809,7 @@ async function initContentDetection() {
     return;
   } else if (continueUntil) {
     // Timer expired, remove the session storage
-    sessionStorage.removeItem(continueKey);
+    safeSessionStorage.removeItem(continueKey);
     console.log('🌵 Continue timer expired, showing nudge again');
   }
 

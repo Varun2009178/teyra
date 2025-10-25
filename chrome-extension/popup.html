@@ -4,53 +4,113 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
-  <style>
-    html, body {
-      width: 420px !important;
-      min-width: 420px !important;
-      max-width: 420px !important;
-    }
-  </style>
 </head>
 <body>
   <div class="extension-container">
   <!-- Auth Screen -->
   <div id="auth-screen" class="screen">
     <div class="auth-content">
-      <div class="logo">
-        <div class="cursor-logo">
-          <div class="mike-container">
-            <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar">
-          </div>
-          <div class="logo-text">
-            <h1>Teyra</h1>
-            <p>Cursor for Productivity</p>
-          </div>
-        </div>
+      <!-- Logo Section -->
+      <div class="auth-logo">
+        <img src="Neutral Calm.gif" alt="Mike" class="auth-mike">
+        <h1 class="auth-title">Welcome to Teyra</h1>
+        <p class="auth-subtitle">making productivity productive</p>
       </div>
-      <button id="google-signin" class="cursor-btn cursor-btn-primary">
-        <svg width="18" height="18" viewBox="0 0 24 24" class="btn-icon">
-          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Continue with Google
-      </button>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="signin" id="tab-signin">Sign In</button>
+        <button class="auth-tab" data-tab="signup" id="tab-signup">Sign Up</button>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="signin-form" class="auth-form active">
+        <div class="form-group">
+          <label for="signin-email">Email</label>
+          <input type="email" id="signin-email" class="auth-input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signin-password">Password</label>
+          <input type="password" id="signin-password" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <button id="email-signin" class="auth-btn auth-btn-primary">
+          Sign In
+        </button>
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+        <button id="google-signin" class="auth-btn auth-btn-google">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <!-- Sign Up Form -->
+      <div id="signup-form" class="auth-form">
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" class="auth-input" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-confirm">Confirm Password</label>
+          <input type="password" id="signup-confirm" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <button id="email-signup" class="auth-btn auth-btn-primary">
+          Create Account
+        </button>
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
+        <button id="google-signup" class="auth-btn auth-btn-google">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Sign up with Google
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Main Dashboard -->
   <div id="dashboard-screen" class="screen hidden">
 
+    <!-- Lock In Overlay - Shows when Focus Mode activates -->
+    <div id="lock-in-overlay" class="lock-in-overlay hidden">
+      <div class="lock-in-content">
+        <div class="lock-in-icon">🔒</div>
+        <h1 class="lock-in-text">LOCK IN</h1>
+        <p class="lock-in-subtext">distractions blocked</p>
+      </div>
+    </div>
+
     <!-- Header -->
     <div class="cursor-header">
       <div class="header-content">
         <div class="cursor-brand">
           <div class="mike-section">
-            <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar" id="mike-avatar">
+            <div class="mike-avatar-wrapper">
+              <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar" id="mike-avatar">
+            </div>
             <div class="mike-info">
-              <h1 id="header-title">Teyra</h1>
+              <div class="mike-name-level">
+                <h1 id="header-title">Mike</h1>
+                <span class="mike-level" id="mike-level">Level 1</span>
+              </div>
+              <div class="mike-xp-bar">
+                <div class="xp-progress" id="xp-progress" style="width: 0%"></div>
+              </div>
               <p id="mike-status">Ready to focus</p>
             </div>
           </div>
@@ -64,82 +124,244 @@
       </div>
     </div>
 
-    <!-- Focus Toggle with Timer -->
-    <div class="cursor-focus-toggle">
-      <div class="focus-content">
-        <div class="focus-info">
-          <h3 id="focus-title">Focus Mode</h3>
-          <p id="focus-description">25-minute focused sessions with breaks</p>
+    <!-- Top Status Bar - Clean & Minimal -->
+    <div class="top-status-bar">
+      <div class="status-left">
+        <div id="pro-status-badge" class="hidden pro-badge-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>Pro</span>
         </div>
-        <label class="cursor-toggle">
-          <input type="checkbox" id="focus-toggle">
-          <span class="cursor-toggle-slider"></span>
-        </label>
+        <div class="ai-limit-pill">
+          <span id="ai-limit-text">5/5</span>
+          <span class="ai-limit-label">AI tasks today</span>
+        </div>
       </div>
-      <!-- Timer Display (shows when focus is on) -->
-      <div class="focus-timer-display hidden" id="focus-timer-display">
-        <div class="focus-timer-row">
-          <div class="focus-timer-info">
-            <div class="focus-timer-large" id="focus-timer-large">25:00</div>
-            <div class="focus-session-text" id="focus-session-text">Session 1 of 4</div>
-          </div>
-          <div class="focus-timer-controls">
-            <button id="focus-timer-pause" class="icon-btn-focus">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16"/>
-                <rect x="14" y="4" width="4" height="16"/>
-              </svg>
-            </button>
-            <button id="focus-timer-reset" class="icon-btn-focus">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-              </svg>
-            </button>
-          </div>
+      <label class="focus-toggle-pill" title="Block distractions and stay focused">
+        <input type="checkbox" id="focus-toggle">
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Focus Mode</span>
+      </label>
+      <button id="demo-toggle" class="cursor-btn cursor-btn-ghost cursor-btn-sm" title="Show highlight demo">Demo</button>
+    </div>
+
+    <!-- Pro Upgrade Banner (Free Users Only) -->
+    <div id="pro-upgrade-promo" class="hidden upgrade-banner-glass">
+      <div class="upgrade-content">
+        <div class="upgrade-icon">⚡</div>
+        <div class="upgrade-text">
+          <strong>Upgrade to Pro</strong>
+          <span>Unlimited AI tasks + Pomodoro timer</span>
         </div>
+        <button id="upgrade-promo-btn" class="upgrade-btn-glass">
+          $10/mo
+        </button>
       </div>
     </div>
 
     <!-- Main Content -->
     <div class="cursor-main-content">
 
-      <!-- Regular Mode: Tasks View -->
-      <div id="tasks-view" class="cursor-view">
-        <div class="cursor-tasks-container">
-          <!-- Progress Hero Section -->
-          <div class="cursor-progress-hero">
-            <div class="mike-progress-container">
-              <div class="mike-main-avatar">
-                <img src="Neutral Calm.gif" alt="Mike" class="mike-cactus" id="mike-cactus">
-                <div class="mike-sparkles hidden" id="mike-sparkles">✨</div>
-              </div>
-              <div class="mike-progress-info">
-                <h3 id="mike-greeting">Hey there!</h3>
-                <p id="mike-motivation">Let's get some tasks done today</p>
-              </div>
-            </div>
-            <div class="cursor-progress-bar">
-              <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <div class="progress-stats">
-              <span class="stat"><span id="completed-tasks">0</span>/<span id="total-tasks">0</span> completed</span>
-              <span class="stat-percent" id="progress-percent">0%</span>
+      <!-- Regular Mode: Simple Centered Layout -->
+      <div id="tasks-view" class="cursor-view-simple cursor-grid">
+        <!-- Left Column -->
+        <div class="tasks-column">
+          <!-- Demo removed per request -->
+          <!-- Add Task Input - Prominent -->
+          <div class="cursor-add-task-hero">
+          <div class="input-container-large">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="input-icon-large">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <input type="text" id="task-input" placeholder="Add a task or try /morning…" class="cursor-input-large" />
+          </div>
+          </div>
+
+          <!-- Compact Group Header -->
+          <div class="task-group">
+            <div class="task-group-header">
+              <div class="task-group-title">Today</div>
+              <div class="task-group-meta"><span id="header-completed-tasks">0</span>/<span id="header-total-tasks">0</span></div>
             </div>
           </div>
 
-          <div class="cursor-add-task">
-            <div class="input-container">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="input-icon">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-              <input type="text" id="task-input" placeholder="What would you like to accomplish?" class="cursor-input" />
-            </div>
-          </div>
-
-          <div class="cursor-tasks-list" id="tasks-list">
+          <!-- Tasks List - Clean -->
+          <div class="cursor-tasks-list-clean cursor-section" id="tasks-list">
             <!-- Tasks rendered here -->
           </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="stats-column">
+
+          <!-- Highlight Feature Demo -->
+          <div class="highlight-demo-card cursor-section" id="highlight-demo">
+            <div class="demo-header">
+              <span class="demo-badge">✨ Core Feature</span>
+              <button class="showcase-dismiss" id="dismiss-demo" title="Hide">×</button>
+            </div>
+            <h3 class="demo-title">Highlight → Task</h3>
+
+            <!-- Animated Demo -->
+            <div class="highlight-animation">
+              <!-- Email Preview -->
+              <div class="demo-email-preview">
+                <div class="email-header">
+                  <span class="email-from">From: Boss</span>
+                  <span class="email-time">2m ago</span>
+                </div>
+                <p class="demo-email-text">
+                  Hey, I need you to <span class="demo-highlight" id="animated-highlight">finish the Q4 presentation slides, send the updated client proposal by EOD, and schedule the team standup for next Monday at 10am</span>. Thanks!
+                </p>
+              </div>
+
+              <div class="demo-ai-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                AI extracting tasks...
+              </div>
+
+              <!-- Extracted Tasks -->
+              <div class="demo-tasks-list" id="demo-tasks-result">
+                <div class="demo-task-item" style="animation-delay: 0s">
+                  <div class="demo-task-checkbox"></div>
+                  <span class="demo-task-text">Finish Q4 presentation slides</span>
+                </div>
+                <div class="demo-task-item" style="animation-delay: 0.2s">
+                  <div class="demo-task-checkbox"></div>
+                  <span class="demo-task-text">Send updated client proposal by EOD</span>
+                </div>
+                <div class="demo-task-item" style="animation-delay: 0.4s">
+                  <div class="demo-task-checkbox"></div>
+                  <span class="demo-task-text">Schedule team standup for Monday 10am</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="demo-instructions">
+              <p>Press <kbd>Ctrl+Shift+E</kbd> on any website</p>
+            </div>
+          </div>
+
+          <!-- Progress Card -->
+          <div class="cursor-progress-inline cursor-section">
+            <div class="progress-left">
+              <img src="Neutral Calm.gif" alt="Mike" class="mike-avatar-small" id="mike-cactus">
+              <div class="progress-text">
+                <h3 id="mike-greeting">Ready to focus</h3>
+                <p class="progress-summary"><span id="completed-tasks">0</span>/<span id="total-tasks">0</span> tasks · <span id="progress-percent">0%</span> complete</p>
+              </div>
+            </div>
+            <div class="cursor-progress-bar-inline">
+              <div class="progress-fill-inline" id="progress-fill"></div>
+            </div>
+          </div>
+
+          <!-- Pro Features Section -->
+          <div class="pro-features-section">
+            <div class="pro-section-header">
+              <span class="pro-badge-header">⚡ Pro Features</span>
+            </div>
+
+            <!-- Pomodoro Timer (Pro only) -->
+            <div class="pomodoro-section-inline cursor-section hidden" id="pomodoro-timer-section">
+              <div class="pomodoro-header-inline">
+                <span class="feature-icon">⏱️</span>
+                <h4>Pomodoro Timer</h4>
+              </div>
+              <div class="pomodoro-inline-content">
+                <div class="pomodoro-timer-compact" id="focus-timer-large">25:00</div>
+                <div class="pomodoro-info">
+                  <p class="pomodoro-session-text" id="focus-session-text">Ready to focus</p>
+                </div>
+                <div class="pomodoro-controls-inline">
+                  <button id="focus-timer-start" class="pomodoro-btn-inline pomodoro-start-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </button>
+                  <button id="focus-timer-pause" class="pomodoro-btn-inline hidden">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="6" y="4" width="4" height="16" rx="2"/>
+                      <rect x="14" y="4" width="4" height="16" rx="2"/>
+                    </svg>
+                  </button>
+                  <button id="focus-timer-reset" class="pomodoro-btn-inline">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pomodoro Locked (Free users) -->
+            <div class="pro-feature-locked cursor-section" id="pomodoro-locked">
+              <div class="locked-content">
+                <span class="locked-icon">⏱️</span>
+                <div class="locked-text">
+                  <h4>Pomodoro Timer</h4>
+                  <p>Built-in focus sessions</p>
+                </div>
+                <button class="upgrade-btn-small" id="upgrade-pomodoro-btn">Pro</button>
+              </div>
+            </div>
+
+            <!-- Unlimited AI Tasks (Pro only) -->
+            <div class="pro-feature-unlocked cursor-section hidden" id="unlimited-ai-section">
+              <div class="locked-content">
+                <span class="locked-icon">✨</span>
+                <div class="locked-text">
+                  <h4>Unlimited AI Tasks</h4>
+                  <p>Convert text to tasks without limits</p>
+                </div>
+                <span class="pro-active-badge">Active</span>
+              </div>
+            </div>
+
+            <!-- Unlimited AI Locked (Free users) -->
+            <div class="pro-feature-locked cursor-section" id="unlimited-ai-locked">
+              <div class="locked-content">
+                <span class="locked-icon">✨</span>
+                <div class="locked-text">
+                  <h4>Unlimited AI Tasks</h4>
+                  <p>Convert text to tasks without limits</p>
+                </div>
+                <button class="upgrade-btn-small" id="upgrade-ai-btn">Pro</button>
+              </div>
+            </div>
+
+            <!-- Custom Site Blocking (Pro only) -->
+            <div class="custom-sites-section cursor-section hidden" id="custom-sites-section">
+              <div class="templates-header">
+                <div>
+                  <span class="feature-icon">🎯</span>
+                  <h4 style="display: inline; margin-left: 8px;">Custom Site Blocking</h4>
+                </div>
+                <button id="add-blocked-site-btn" class="create-template-btn">+ Add Site</button>
+              </div>
+              <div id="custom-sites-list" class="custom-templates-list">
+                <!-- Custom blocked sites rendered here -->
+                <p class="empty-templates">Add websites to block during focus mode</p>
+              </div>
+            </div>
+
+            <!-- Custom Sites Locked (Free users) -->
+            <div class="pro-feature-locked cursor-section" id="custom-sites-locked">
+              <div class="locked-content">
+                <span class="locked-icon">🎯</span>
+                <div class="locked-text">
+                  <h4>Custom Site Blocking</h4>
+                  <p>Block any website you choose</p>
+                </div>
+                <button class="upgrade-btn-small" id="upgrade-sites-btn">Pro</button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -186,41 +408,59 @@
       <!-- Settings View -->
       <div id="settings-view" class="cursor-view hidden">
         <div class="cursor-settings-container">
-          <h3>Blocking Settings</h3>
+          <h3>Focus Mode - Blocked Websites</h3>
+          <p style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 16px;">Select which websites to block during focus mode</p>
 
-          <div class="cursor-setting-group">
-            <div class="cursor-setting-item">
-              <div class="setting-info">
-                <span class="setting-label">Social Media</span>
-                <span class="setting-desc">Block distracting social platforms</span>
-              </div>
-              <label class="cursor-toggle">
-                <input type="checkbox" id="block-social" checked>
-                <span class="cursor-toggle-slider"></span>
-              </label>
+          <!-- Default Blocked Sites -->
+          <div class="cursor-setting-group" id="default-blocked-sites">
+            <!-- Will be populated by JavaScript -->
+          </div>
+
+          <!-- Custom Blocked Sites (Pro Feature) -->
+          <div style="margin-top: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <h3 style="margin: 0;">Custom Websites</h3>
+              <span id="pro-badge-custom" class="pro-badge" style="display: none;">PRO</span>
+            </div>
+            <div id="custom-sites-container" class="cursor-setting-group">
+              <!-- Custom sites will be populated here -->
             </div>
 
-            <div class="cursor-setting-item">
-              <div class="setting-info">
-                <span class="setting-label">Entertainment</span>
-                <span class="setting-desc">Block entertainment sites</span>
+            <!-- Add Custom Site Input -->
+            <div id="add-custom-site-section" style="margin-top: 12px;">
+              <div class="liquid-glass-input-group">
+                <input
+                  type="text"
+                  id="custom-site-input"
+                  placeholder="youtube.com"
+                  style="flex: 1; padding: 10px 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: white; font-size: 13px;"
+                />
+                <button
+                  id="add-custom-site-btn"
+                  style="padding: 10px 16px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+                >
+                  Add
+                </button>
               </div>
-              <label class="cursor-toggle">
-                <input type="checkbox" id="block-entertainment" checked>
-                <span class="cursor-toggle-slider"></span>
-              </label>
+              <div id="pro-overlay-custom" class="pro-overlay hidden" style="margin-top: 8px; padding: 12px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; text-align: center;">
+                <div style="font-size: 20px; margin-bottom: 6px;">🔒</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.8); margin-bottom: 8px;">Custom websites are a <strong>Pro feature</strong></div>
+                <button id="upgrade-custom-sites-btn" style="padding: 6px 12px; background: white; color: black; border: none; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                  Upgrade to Pro
+                </button>
+              </div>
             </div>
+          </div>
 
-            <div class="cursor-setting-item">
-              <div class="setting-info">
-                <span class="setting-label">Shopping</span>
-                <span class="setting-desc">Block shopping websites</span>
-              </div>
-              <label class="cursor-toggle">
-                <input type="checkbox" id="block-shopping" checked>
-                <span class="cursor-toggle-slider"></span>
-              </label>
-            </div>
+          <!-- Clear All Button (Pro Only for custom sites) -->
+          <div style="margin-top: 16px;">
+            <button
+              id="clear-custom-sites-btn"
+              class="hidden"
+              style="width: 100%; padding: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: rgba(239, 68, 68, 0.9); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;"
+            >
+              Clear All Custom Sites
+            </button>
           </div>
 
           <h3 style="margin-top: 24px;">Keyboard Shortcuts</h3>
@@ -286,6 +526,7 @@
   </div>
   </div>
 
+  <script src="pro-integration.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -538,53 +538,80 @@ console.log('Teyra content script loading...');
 
       menu.appendChild(addButton);
 
-      // Google Calendar button (only if has deadline)
-      if (hasDeadline) {
-        const calendarButton = document.createElement('button');
-        calendarButton.innerHTML = `
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right: 5px; flex-shrink: 0;">
-            <rect x="4" y="5" width="16" height="16" rx="2" stroke="#4285f4" stroke-width="2" fill="none"/>
-            <path d="M8 3v4M16 3v4" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
-            <path d="M4 10h16" stroke="#4285f4" stroke-width="2"/>
-            <circle cx="12" cy="14" r="1.5" fill="#4285f4"/>
-          </svg>
-          Google Calendar
-        `;
-        calendarButton.style.cssText = `
-          background: transparent;
-          border: none;
-          color: #aaa;
-          font-size: 12px;
-          font-weight: 400;
-          cursor: pointer;
-          padding: 6px 10px;
-          border-radius: 4px;
-          transition: all 0.12s;
-          display: flex;
-          align-items: center;
-          white-space: nowrap;
-        `;
+      // Google Calendar button - ALWAYS show (smart scheduling when time detected)
+      const calendarButton = document.createElement('button');
+      const dateTimeResult = window.parseDateTime ? window.parseDateTime(selectedText) : null;
+      const hasSmartTime = dateTimeResult && dateTimeResult.hasDeadline;
 
-        calendarButton.addEventListener('mouseenter', function() {
-          this.style.background = '#2a2a2a';
-          this.style.color = '#fff';
-        });
+      calendarButton.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="margin-right: 5px;">
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/>
+          <line x1="16" y1="2" x2="16" y2="6" stroke-width="2" stroke-linecap="round"/>
+          <line x1="8" y1="2" x2="8" y2="6" stroke-width="2" stroke-linecap="round"/>
+          <line x1="3" y1="10" x2="21" y2="10" stroke-width="2"/>
+          ${hasSmartTime ? '<path d="M12 14l2 2 4-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : ''}
+        </svg>
+        ${hasSmartTime ? 'Add to Calendar (Smart)' : 'Add to Calendar'}
+      `;
+      calendarButton.style.cssText = `
+        background: transparent;
+        border: none;
+        color: ${hasSmartTime ? '#4ade80' : '#aaa'};
+        font-size: 12px;
+        font-weight: 400;
+        cursor: pointer;
+        padding: 6px 10px;
+        border-radius: 4px;
+        transition: all 0.12s;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+      `;
 
-        calendarButton.addEventListener('mouseleave', function() {
-          this.style.background = 'transparent';
-          this.style.color = '#aaa';
-        });
+      calendarButton.addEventListener('mouseenter', function() {
+        this.style.background = '#2a2a2a';
+        this.style.color = hasSmartTime ? '#4ade80' : '#fff';
+      });
 
-        calendarButton.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
+      calendarButton.addEventListener('mouseleave', function() {
+        this.style.background = 'transparent';
+        this.style.color = hasSmartTime ? '#4ade80' : '#aaa';
+      });
 
-          // Show time picker for floating menu calendar button
-          showTimePickerForFloatingMenu(selectedText, dateTime, calendarButton, menu);
-        });
+      calendarButton.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        menu.remove();
 
-        menu.appendChild(calendarButton);
-      }
+        try {
+          // Check if calendar is connected
+          const connected = window.isCalendarConnected ? await window.isCalendarConnected() : false;
+
+          if (!connected) {
+            // Authenticate first
+            window.showInfoToast('Connecting to Google Calendar...');
+            await window.authenticateGoogle();
+          }
+
+          if (hasSmartTime) {
+            // Smart scheduling - automatically use detected time
+            window.showInfoToast('Adding to calendar with smart scheduling...');
+            await window.createCalendarEvent(selectedText, dateTimeResult);
+            window.showSuccessToast(`✓ Added to Calendar! ${dateTimeResult.date ? new Date(dateTimeResult.date).toLocaleDateString() : ''} ${dateTimeResult.time ? `at ${dateTimeResult.time.hours}:${String(dateTimeResult.time.minutes).padStart(2, '0')}` : ''}`);
+
+            // Also add as task to Teyra
+            addSelectedTextAsTask(selectedText);
+          } else {
+            // No time detected - show time picker modal
+            showCalendarTimePicker(selectedText, dateTimeResult);
+          }
+        } catch (error) {
+          console.error('Calendar error:', error);
+          window.showErrorToast('Failed to add to calendar');
+        }
+      });
+
+      menu.appendChild(calendarButton);
 
       // AI Refine button
       const aiButton = document.createElement('button');
@@ -710,6 +737,283 @@ console.log('Teyra content script loading...');
 
     // Expose to window for modal access
     window.showSuccessToast = showSuccessToast;
+
+    function showInfoToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #3b82f6;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        z-index: 2147483647;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        animation: slideInRight 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `;
+      toast.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        ${message}
+      `;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.remove();
+          }
+        }, 300);
+      }, 2000);
+    }
+
+    window.showInfoToast = showInfoToast;
+
+    function showErrorToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ef4444;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        z-index: 2147483647;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+        animation: slideInRight 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      `;
+      toast.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        ${message}
+      `;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.remove();
+          }
+        }, 300);
+      }, 3000); // Error toasts stay longer
+    }
+
+    window.showErrorToast = showErrorToast;
+
+    // Calendar Time Picker Modal - for when no time is detected
+    function showCalendarTimePicker(taskText, partialDateTime) {
+      // Remove any existing time picker
+      const existing = document.getElementById('teyra-calendar-time-picker');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'teyra-calendar-time-picker';
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 2147483646;
+        display: flex;
+        align-items: center;
+        justify-center;
+        animation: fadeIn 0.2s ease;
+      `;
+
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Default date: tomorrow if partial date exists, otherwise today
+      const defaultDate = partialDateTime && partialDateTime.date ? new Date(partialDateTime.date) : now;
+      const dateString = defaultDate.toISOString().split('T')[0];
+
+      // Default time: 9 AM
+      const defaultTime = '09:00';
+
+      modal.innerHTML = `
+        <div style="
+          background: #1e1e1e;
+          border: 1px solid #3e3e3e;
+          border-radius: 12px;
+          padding: 24px;
+          max-width: 400px;
+          width: 90%;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+          font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', system-ui, sans-serif;
+        ">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #fff; font-size: 18px; font-weight: 600;">Add to Google Calendar</h3>
+            <button id="close-picker" style="
+              background: transparent;
+              border: none;
+              color: #aaa;
+              font-size: 24px;
+              cursor: pointer;
+              padding: 0;
+              width: 28px;
+              height: 28px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 4px;
+              transition: all 0.15s;
+            " onmouseover="this.style.background='#2a2a2a'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.color='#aaa'">×</button>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; color: #aaa; font-size: 12px; margin-bottom: 6px; font-weight: 500;">Task</label>
+            <input type="text" id="task-title" value="${taskText.replace(/"/g, '&quot;')}" style="
+              width: 100%;
+              padding: 10px 12px;
+              background: #2a2a2a;
+              border: 1px solid #3e3e3e;
+              border-radius: 6px;
+              color: #fff;
+              font-size: 14px;
+              font-family: inherit;
+              box-sizing: border-box;
+            ">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div>
+              <label style="display: block; color: #aaa; font-size: 12px; margin-bottom: 6px; font-weight: 500;">Date</label>
+              <input type="date" id="event-date" value="${dateString}" style="
+                width: 100%;
+                padding: 10px 12px;
+                background: #2a2a2a;
+                border: 1px solid #3e3e3e;
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+                font-family: inherit;
+                box-sizing: border-box;
+              ">
+            </div>
+            <div>
+              <label style="display: block; color: #aaa; font-size: 12px; margin-bottom: 6px; font-weight: 500;">Time</label>
+              <input type="time" id="event-time" value="${defaultTime}" style="
+                width: 100%;
+                padding: 10px 12px;
+                background: #2a2a2a;
+                border: 1px solid #3e3e3e;
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+                font-family: inherit;
+                box-sizing: border-box;
+              ">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button id="cancel-picker" style="
+              flex: 1;
+              padding: 10px 16px;
+              background: transparent;
+              border: 1px solid #3e3e3e;
+              border-radius: 6px;
+              color: #aaa;
+              font-size: 14px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.15s;
+            " onmouseover="this.style.background='#2a2a2a'; this.style.borderColor='#4e4e4e'; this.style.color='#fff'" onmouseout="this.style.background='transparent'; this.style.borderColor='#3e3e3e'; this.style.color='#aaa'">Cancel</button>
+            <button id="add-to-calendar" style="
+              flex: 1;
+              padding: 10px 16px;
+              background: #4ade80;
+              border: none;
+              border-radius: 6px;
+              color: #000;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.15s;
+            " onmouseover="this.style.background='#22c55e'" onmouseout="this.style.background='#4ade80'">Add to Calendar</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+
+      // Event listeners
+      document.getElementById('close-picker').addEventListener('click', () => modal.remove());
+      document.getElementById('cancel-picker').addEventListener('click', () => modal.remove());
+
+      document.getElementById('add-to-calendar').addEventListener('click', async () => {
+        const title = document.getElementById('task-title').value;
+        const date = document.getElementById('event-date').value;
+        const time = document.getElementById('event-time').value;
+
+        if (!title || !date || !time) {
+          window.showErrorToast('Please fill in all fields');
+          return;
+        }
+
+        try {
+          // Parse the date and time
+          const eventDate = new Date(date);
+          const [hours, minutes] = time.split(':').map(Number);
+
+          const dateTimeObj = {
+            date: eventDate,
+            time: { hours, minutes },
+            hasDeadline: true
+          };
+
+          window.showInfoToast('Adding to Google Calendar...');
+          await window.createCalendarEvent(title, dateTimeObj);
+          window.showSuccessToast(`✓ Added to Calendar! ${eventDate.toLocaleDateString()} at ${time}`);
+
+          // Also add as task to Teyra
+          addSelectedTextAsTask(title);
+
+          modal.remove();
+        } catch (error) {
+          console.error('Failed to add to calendar:', error);
+          window.showErrorToast('Failed to add to calendar');
+        }
+      });
+
+      // Close on background click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.remove();
+        }
+      });
+    }
+
+    window.showCalendarTimePicker = showCalendarTimePicker;
 
     function handleClickOutside(e) {
       // Check if click is outside any highlighted element
@@ -964,7 +1268,7 @@ console.log('Teyra content script loading...');
   let isAnyElementHovered = false;
   
   // AI usage tracking
-  const maxFreeUses = 3;
+  const maxFreeUses = 5;
 
   // Get AI usage count for today
   // Check if user has premium subscription
@@ -980,54 +1284,163 @@ console.log('Teyra content script loading...');
     });
   }
 
+  // Get AI usage count from backend API
   async function getAIUsageCount() {
+    try {
+      const response = await fetch('APP_URL_PLACEHOLDER/api/extension/ai-limit', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // data = { isPro: boolean, remaining: number, limit: number, used: number }
+        return {
+          count: data.used || 0,
+          remaining: data.remaining || 0,
+          limit: data.limit || 5,
+          isPremium: data.isPro || false
+        };
+      } else {
+        // Fallback to local storage if API fails (silent fallback)
+        return await getAIUsageCountLocal();
+      }
+    } catch (error) {
+      // Silent fallback to local storage - this is expected when server is unreachable
+      return await getAIUsageCountLocal();
+    }
+  }
+
+  // Fallback local storage method (for offline use)
+  async function getAIUsageCountLocal() {
     const now = new Date();
     const today = now.toDateString();
     const currentMonth = `${now.getFullYear()}-${now.getMonth() + 1}`;
 
     return new Promise((resolve) => {
       if (!chrome.storage || !chrome.storage.local) {
-        resolve({ count: 0, date: today, month: currentMonth, isPremium: false });
+        resolve({ count: 0, remaining: 5, limit: 5, date: today, month: currentMonth, isPremium: false });
         return;
       }
-      chrome.storage.local.get(['teyra_ai_usage', 'teyra_premium'], (result) => {
+      chrome.storage.local.get(['teyra_ai_usage', 'teyra_premium', 'teyra_is_pro'], (result) => {
         const stored = result.teyra_ai_usage;
-        const isPremium = result.teyra_premium === true;
+        // Check both teyra_is_pro (new) and teyra_premium (legacy)
+        const isPremium = result.teyra_is_pro === true || result.teyra_premium === true;
+        console.log('🔍 Pro status check:', { teyra_is_pro: result.teyra_is_pro, teyra_premium: result.teyra_premium, isPremium });
 
-        if (!stored) {
-          resolve({ count: 0, date: today, month: currentMonth, isPremium });
+        // If user is Pro, reset their usage to unlimited
+        if (isPremium) {
+          const unlimitedUsage = { count: 0, remaining: 999999, limit: 999999, date: today, month: currentMonth, isPremium: true };
+          chrome.storage.local.set({ teyra_ai_usage: unlimitedUsage }, () => {
+            resolve(unlimitedUsage);
+          });
           return;
         }
 
-        // For free users, reset daily. For premium, reset monthly
-        const needsReset = isPremium
-          ? stored.month !== currentMonth
-          : stored.date !== today;
+        if (!stored) {
+          resolve({ count: 0, remaining: 5, limit: 5, date: today, month: currentMonth, isPremium: false });
+          return;
+        }
+
+        // For free users, reset daily
+        const needsReset = stored.date !== today;
 
         if (needsReset) {
-          const resetUsage = { count: 0, date: today, month: currentMonth, isPremium };
+          const resetUsage = { count: 0, remaining: 5, limit: 5, date: today, month: currentMonth, isPremium: false };
           chrome.storage.local.set({ teyra_ai_usage: resetUsage }, () => {
             resolve(resetUsage);
           });
         } else {
-          resolve({ ...stored, isPremium });
+          resolve({ ...stored, remaining: 5 - stored.count, limit: 5, isPremium: false });
         }
       });
     });
   }
 
-  // Increment AI usage count
+  // Check AI limit and increment if allowed (consumes one request)
+  async function checkAndConsumeAILimit() {
+    try {
+      const response = await fetch('APP_URL_PLACEHOLDER/api/extension/ai-limit', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // data = { allowed: boolean, isPro: boolean, remaining: number, limit: number, message?: string }
+        return {
+          allowed: data.allowed,
+          count: (data.limit - data.remaining) || 0,
+          remaining: data.remaining || 0,
+          limit: data.limit || 5,
+          isPremium: data.isPro || false,
+          message: data.message
+        };
+      } else {
+        // Fallback to local increment if API fails (silent fallback)
+        return await incrementAIUsageLocal();
+      }
+    } catch (error) {
+      // Silent fallback to local storage - this is expected when server is unreachable
+      return await incrementAIUsageLocal();
+    }
+  }
+
+  // Legacy function - now just calls checkAndConsumeAILimit
   async function incrementAIUsage() {
-    const usage = await getAIUsageCount();
+    return await checkAndConsumeAILimit();
+  }
+
+  // Fallback local storage increment (for offline use)
+  async function incrementAIUsageLocal() {
+    // Check Pro status from storage first
+    const proStatus = await new Promise((resolve) => {
+      if (!chrome.storage || !chrome.storage.local) {
+        resolve(false);
+        return;
+      }
+      chrome.storage.local.get(['teyra_is_pro'], (result) => {
+        resolve(result.teyra_is_pro || false);
+      });
+    });
+
+    // Pro users get unlimited
+    if (proStatus) {
+      return {
+        allowed: true,
+        count: 0,
+        remaining: 999999,
+        limit: 999999,
+        isPremium: true
+      };
+    }
+
+    const usage = await getAIUsageCountLocal();
+    const limit = usage.isPremium ? 200 : 5;
+
+    if (usage.count >= limit) {
+      return {
+        allowed: false,
+        ...usage
+      };
+    }
+
     usage.count++;
+    usage.remaining = limit - usage.count;
 
     return new Promise((resolve) => {
       if (!chrome.storage || !chrome.storage.local) {
-        resolve(usage);
+        resolve({ allowed: true, ...usage });
         return;
       }
       chrome.storage.local.set({ teyra_ai_usage: usage }, () => {
-        resolve(usage);
+        resolve({ allowed: true, ...usage });
       });
     });
   }
@@ -1158,194 +1571,9 @@ console.log('Teyra content script loading...');
       showSuccessToast('Task added!');
     });
 
-    // Add to Calendar button (only if deadline)
-    if (hasDeadline) {
-      const calendarButton = document.createElement('button');
-      calendarButton.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right: 5px; flex-shrink: 0;">
-          <rect x="4" y="5" width="16" height="16" rx="2" stroke="#4285f4" stroke-width="2" fill="none"/>
-          <path d="M8 3v4M16 3v4" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
-          <path d="M4 10h16" stroke="#4285f4" stroke-width="2"/>
-          <circle cx="12" cy="14" r="1.5" fill="#4285f4"/>
-        </svg>
-        Google Calendar
-      `;
-      calendarButton.style.cssText = `
-        background: transparent;
-        border: none;
-        color: #aaa;
-        font-size: 12px;
-        font-weight: 400;
-        cursor: pointer;
-        padding: 6px 10px;
-        border-radius: 4px;
-        transition: background 0.12s ease, color 0.12s ease;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-        user-select: none;
-      `;
-
-      calendarButton.addEventListener('mouseenter', function() {
-        this.style.background = '#2a2a2a';
-        this.style.color = '#fff';
-      });
-
-      calendarButton.addEventListener('mouseleave', function() {
-        this.style.background = 'transparent';
-        this.style.color = '#aaa';
-      });
-
-      calendarButton.addEventListener('click', async function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Show time picker modal
-        const timePickerModal = document.createElement('div');
-        timePickerModal.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 10002;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        `;
-
-        const pickerContent = document.createElement('div');
-        pickerContent.style.cssText = `
-          background: #FFFFFF;
-          border-radius: 12px;
-          padding: 24px;
-          width: 360px;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        `;
-
-        // Use current time as default
-        const now = new Date();
-        const currentHour = now.getHours() % 12 || 12;
-        const currentMinute = now.getMinutes();
-        const currentPeriod = now.getHours() >= 12 ? 'PM' : 'AM';
-
-        pickerContent.innerHTML = createTimePickerHTML(dateTime.date, currentHour, currentMinute, currentPeriod);
-
-        timePickerModal.appendChild(pickerContent);
-        document.body.appendChild(timePickerModal);
-
-        // Setup slider controls
-        const timeControls = setupTimePickerControls(pickerContent, currentPeriod);
-
-        const cancelBtn = pickerContent.querySelector('.teyra-time-cancel');
-        const confirmBtn = pickerContent.querySelector('.teyra-time-confirm');
-
-        // Cancel button
-        cancelBtn.addEventListener('click', () => {
-          timePickerModal.remove();
-        });
-
-        // Confirm button
-        confirmBtn.addEventListener('click', async () => {
-          let hours = timeControls.getHour();
-          const minutes = timeControls.getMinute();
-          const period = timeControls.getPeriod();
-
-          // Convert to 24-hour format
-          if (period === 'PM' && hours !== 12) {
-            hours += 12;
-          } else if (period === 'AM' && hours === 12) {
-            hours = 0;
-          }
-
-          // Validate: reminder time must be before deadline
-          const reminderTime = new Date(dateTime.date);
-          reminderTime.setHours(hours, minutes, 0, 0);
-
-          // Check if reminder is in the past
-          const now = new Date();
-          if (reminderTime <= now) {
-            window.showSuccessToast('Reminder time must be in the future');
-            return;
-          }
-
-          if (reminderTime >= dateTime.date) {
-            window.showSuccessToast('Reminder time must be before the deadline');
-            return;
-          }
-
-          // Create new dateTime with custom time
-          const customDateTime = {
-            date: dateTime.date,
-            time: { hours, minutes },
-            hasDeadline: true
-          };
-
-          timePickerModal.remove();
-
-          const originalHTML = calendarButton.innerHTML;
-          calendarButton.disabled = true;
-          calendarButton.style.opacity = '0.5';
-          calendarButton.innerHTML = '<span style="margin-left: 14px;">Adding...</span>';
-
-          try {
-            await new Promise((resolve, reject) => {
-              // Check if extension context is still valid
-              if (!chrome.runtime?.id) {
-                reject(new Error('Extension context invalidated'));
-                return;
-              }
-
-              chrome.runtime.sendMessage({
-                type: 'CREATE_CALENDAR_EVENT',
-                taskTitle: selectedText,
-                dateTime: customDateTime
-              }, response => {
-                // Check for runtime errors (extension reloaded)
-                if (chrome.runtime.lastError) {
-                  reject(new Error(chrome.runtime.lastError.message));
-                  return;
-                }
-
-                if (response && response.success) {
-                  resolve(response.event);
-                } else {
-                  reject(new Error(response?.error || 'Calendar sync failed'));
-                }
-              });
-            });
-
-            addSelectedTextAsTask(selectedText);
-            hideCursorHoverMenu();
-            showSuccessToast('Added to Calendar & Tasks!');
-          } catch (error) {
-            console.error('Calendar error:', error);
-
-            // Handle extension reload gracefully
-            if (error.message.includes('Extension context invalidated')) {
-              showSuccessToast('Extension was reloaded. Please try again.');
-              setTimeout(() => window.location.reload(), 1500);
-              return;
-            }
-
-            showSuccessToast('Calendar sync failed');
-            calendarButton.disabled = false;
-            calendarButton.style.opacity = '1';
-            calendarButton.innerHTML = originalHTML;
-          }
-        });
-
-        // Close on backdrop click
-        timePickerModal.addEventListener('click', (e) => {
-          if (e.target === timePickerModal) {
-            timePickerModal.remove();
-          }
-        });
-      });
-
-      menu.appendChild(calendarButton);
-    }
+    // Google Calendar integration removed from hover menu
+    // Users must use "Refine with AI" first to ensure high-quality, researched tasks
+    // This also properly enforces AI usage limits
 
     // AI Refine button
     const aiButton = document.createElement('button');
@@ -1452,6 +1680,25 @@ console.log('Teyra content script loading...');
   
   // Show upgrade modal when user hits free limit
   function showUpgradeModal() {
+    // Check if user dismissed this recently (within last 24 hours)
+    chrome.storage.local.get(['teyra_upgrade_dismissed', 'teyra_upgrade_dismissed_time'], (result) => {
+      const dismissed = result.teyra_upgrade_dismissed;
+      const dismissedTime = result.teyra_upgrade_dismissed_time;
+      const now = Date.now();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      // If dismissed within last 24 hours, don't show
+      if (dismissed && dismissedTime && (now - dismissedTime) < twentyFourHours) {
+        console.log('⏰ Upgrade modal dismissed recently, not showing again');
+        return;
+      }
+
+      // Show the modal
+      showUpgradeModalUI();
+    });
+  }
+
+  function showUpgradeModalUI() {
     // Remove existing modal if any
     const existingModal = document.getElementById('teyra-upgrade-modal');
     if (existingModal) {
@@ -1477,153 +1724,110 @@ console.log('Teyra content script loading...');
 
     modal.innerHTML = `
       <div style="
-        background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #0a0a0a;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
         padding: 0;
-        width: 480px;
+        width: 380px;
         max-width: 90vw;
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', system-ui, sans-serif;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         overflow: hidden;
       ">
-        <!-- Header with gradient -->
-        <div style="
-          padding: 32px 32px 24px 32px;
-          background: linear-gradient(135deg, rgba(66, 133, 244, 0.15) 0%, rgba(66, 133, 244, 0.05) 100%);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          text-align: center;
-        ">
-          <div style="
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-          ">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-          </div>
+        <div style="text-align: center; padding: 32px 32px 24px;">
           <h2 style="
             font-size: 24px;
             font-weight: 700;
             color: #fff;
             margin: 0 0 8px 0;
             letter-spacing: -0.5px;
-          ">You've hit your daily limit</h2>
+          ">teyra pro</h2>
           <p style="
-            font-size: 14px;
-            color: #999;
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
             margin: 0;
-            line-height: 1.5;
-          ">You've used all 3 AI breakdowns today. Upgrade for way more!</p>
+          ">You've reached your daily limit (5/5 today)</p>
         </div>
 
-        <!-- Pricing -->
-        <div style="padding: 28px 32px;">
-          <div style="
-            background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
-            border: 2px solid #2563eb;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            position: relative;
-          ">
-            <div style="
-              position: absolute;
-              top: -10px;
-              right: 20px;
-              background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-              color: white;
-              padding: 4px 12px;
-              border-radius: 12px;
-              font-size: 11px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            ">BEST VALUE</div>
-            <div style="text-align: center;">
-              <div style="
-                font-size: 48px;
-                font-weight: 800;
-                color: #fff;
-                line-height: 1;
-                margin-bottom: 8px;
-              ">$10<span style="font-size: 18px; font-weight: 500; color: #888;">/month</span></div>
-              <div style="
-                font-size: 13px;
-                color: #4285f4;
-                font-weight: 600;
-                margin-bottom: 20px;
-              ">Teyra Pro</div>
-              <div style="
-                border-top: 1px solid rgba(255, 255, 255, 0.1);
-                padding-top: 20px;
-                text-align: left;
-              ">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span style="color: #e1e1e1; font-size: 14px;">100 AI breakdowns/month (way more!)</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span style="color: #e1e1e1; font-size: 14px;">Smart context linking</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span style="color: #e1e1e1; font-size: 14px;">Google Calendar sync</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span style="color: #e1e1e1; font-size: 14px;">Priority support</span>
-                </div>
-              </div>
+        <div style="padding: 0 32px 24px;">
+          <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 20px; height: 20px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style="color: white; font-size: 14px; font-weight: 600; margin-bottom: 2px;">unlimited ai breakdowns</div>
+              <div style="color: rgba(255,255,255,0.5); font-size: 12px;">no rate limits per month</div>
             </div>
           </div>
 
-          <!-- Buttons -->
+          <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="width: 20px; height: 20px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style="color: white; font-size: 14px; font-weight: 600;">focus mode customization</div>
+                    <div style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 2px;">block any websites you choose</div>
+                  </div>
+          </div>
+
+          <div style="display: flex; align-items: start; gap: 10px; margin-bottom: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 20px; height: 20px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style="color: white; font-size: 14px; font-weight: 600; margin-bottom: 2px;">pomodoro timer</div>
+              <div style="color: rgba(255,255,255,0.5); font-size: 12px;">built-in focus sessions</div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: start; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 20px; height: 20px; background: white; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div style="color: white; font-size: 14px; font-weight: 600; margin-bottom: 2px;">priority support</div>
+              <div style="color: rgba(255,255,255,0.5); font-size: 12px;">faster response times</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 0 32px 32px;">
+
           <button id="teyra-upgrade-btn" style="
             width: 100%;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
+            background: white;
+            color: black;
             border: none;
-            padding: 14px 24px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
-            margin-bottom: 10px;
-          " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(37, 99, 235, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(37, 99, 235, 0.3)'">
-            Upgrade to Pro
-          </button>
-          <button id="teyra-upgrade-cancel" style="
-            width: 100%;
-            background: transparent;
-            color: #888;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 12px 24px;
+            padding: 14px;
             border-radius: 10px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
-          " onmouseover="this.style.background='rgba(255, 255, 255, 0.05)'; this.style.color='#aaa'" onmouseout="this.style.background='transparent'; this.style.color='#888'">
-            Maybe later
+            margin-bottom: 10px;
+          " onmouseover="this.style.background='rgba(255,255,255,0.9)'" onmouseout="this.style.background='white'">
+            upgrade to pro — $10/month
+          </button>
+          <button id="teyra-upgrade-cancel" style="
+            width: 100%;
+            background: transparent;
+            color: rgba(255,255,255,0.4);
+            border: none;
+            padding: 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.2s ease;
+          " onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
+            maybe later
           </button>
         </div>
       </div>
@@ -1633,21 +1837,41 @@ console.log('Teyra content script loading...');
 
     // Add event listeners
     document.getElementById('teyra-upgrade-btn').addEventListener('click', async function() {
-      // Get user email from storage to pass to website
-      chrome.storage.local.get(['teyra_user_email'], (result) => {
-        const email = result.teyra_user_email || '';
-        const upgradeUrl = `https://teyra.app/account?upgrade=true&email=${encodeURIComponent(email)}`;
-        window.open(upgradeUrl, '_blank');
+      // Store that user clicked upgrade (for analytics/tracking)
+      chrome.storage.local.set({ teyra_clicked_upgrade: true });
+
+      // Open dashboard with upgrade hash - the dashboard will handle Stripe checkout
+      window.open('https://teyra.app/dashboard#upgrade', '_blank');
+
+      // Remove modal
+      modal.remove();
+
+      // Set dismissed flag so it doesn't show again this session
+      chrome.storage.local.set({
+        teyra_upgrade_dismissed: true,
+        teyra_upgrade_dismissed_time: Date.now()
       });
     });
 
     document.getElementById('teyra-upgrade-cancel').addEventListener('click', function() {
+      // Track dismissal with timestamp
+      chrome.storage.local.set({
+        teyra_upgrade_dismissed: true,
+        teyra_upgrade_dismissed_time: Date.now()
+      });
+
       modal.remove();
     });
 
     // Close on backdrop click
     modal.addEventListener('click', function(e) {
       if (e.target === modal) {
+        // Track dismissal
+        chrome.storage.local.set({
+          teyra_upgrade_dismissed: true,
+          teyra_upgrade_dismissed_time: Date.now()
+        });
+
         modal.remove();
       }
     });
@@ -1796,10 +2020,10 @@ console.log('Teyra content script loading...');
         </div>
         <div style="flex: 1;">
           <div style="color: #fff; font-size: 13px; font-weight: 600; margin-bottom: 2px;">
-            Add to Google Calendar
+            AI-Researched Tasks
           </div>
           <div style="color: #aaa; font-size: 11px; line-height: 1.3;">
-            Tasks with deadlines sync automatically
+            High-quality tasks researched to improve productivity
           </div>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4285f4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1889,31 +2113,33 @@ console.log('Teyra content script loading...');
   async function generateAISuggestions(selectedText) {
     const suggestionsDiv = document.getElementById('teyra-ai-suggestions');
 
-    // Check usage limit before proceeding
-    const usage = await getAIUsageCount();
-    const FREE_LIMIT = 3;
-    const PRO_LIMIT = 100;
+    // Check usage limit and consume one request
+    const result = await checkAndConsumeAILimit();
 
-    // Check if user has hit their limit (3/day for free, 100/month for premium)
-    const limit = usage.isPremium ? PRO_LIMIT : FREE_LIMIT;
-    if (usage.count >= limit) {
+    // Check if user has hit their limit
+    if (!result.allowed) {
       // Close AI modal
       const aiModal = document.getElementById('teyra-ai-refine-modal');
       if (aiModal) {
         aiModal.remove();
       }
 
-      // Show appropriate message
-      if (usage.isPremium) {
-        showSuccessToast('Monthly limit reached (100). Resets next month.');
+      // Show appropriate message with clear formatting
+      if (result.isPremium) {
+        showSuccessToast(result.message || `Monthly limit reached (${result.limit}/${result.limit}). Resets next month.`);
       } else {
         showUpgradeModal();
       }
       return;
     }
 
-    // Increment usage count
-    await incrementAIUsage();
+    // Update usage count from result
+    const usage = {
+      count: result.count,
+      remaining: result.remaining,
+      limit: result.limit,
+      isPremium: result.isPremium
+    };
 
     // Show "AI Understanding" animation
     suggestionsDiv.innerHTML = `
@@ -1941,9 +2167,8 @@ console.log('Teyra content script loading...');
     // Wait a moment to show the animation
     await new Promise(resolve => setTimeout(resolve, 400));
 
-    // Get current usage count (check fresh each time)
-    const currentUsage = await getAIUsageCount();
-    aiUsageCount = currentUsage.count;
+    // Update global usage count
+    aiUsageCount = usage.count;
 
     // Add animations
     if (!document.getElementById('teyra-ai-styles')) {
@@ -1971,17 +2196,15 @@ console.log('Teyra content script loading...');
     // Generate AI suggestions instantly - no loading
     const suggestions = generateUniqueAISuggestions(selectedText);
 
-    // Update usage indicator
+    // Update usage indicator with better formatting
     const usageIndicator = document.getElementById('teyra-usage-indicator');
     if (usageIndicator) {
-      if (currentUsage.isPremium) {
-        const remaining = 100 - currentUsage.count;
-        usageIndicator.innerHTML = `Pro: ${remaining}/100`;
-        usageIndicator.style.color = '#4ade80';
+      if (usage.isPremium) {
+        usageIndicator.innerHTML = `Pro: ${usage.count}/${usage.limit} this month`;
+        usageIndicator.style.color = usage.remaining === 0 ? '#ef4444' : '#4ade80';
       } else {
-        const remaining = 3 - currentUsage.count;
-        usageIndicator.innerHTML = `${remaining}/3 today`;
-        usageIndicator.style.color = remaining > 1 ? '#4ade80' : remaining > 0 ? '#fb923c' : '#ef4444';
+        usageIndicator.innerHTML = `${usage.count}/${usage.limit} used today`;
+        usageIndicator.style.color = usage.remaining === 0 ? '#ef4444' : usage.remaining === 1 ? '#fb923c' : '#4ade80';
       }
     }
 
@@ -4226,5 +4449,4 @@ console.log('Teyra content script loading...');
     modal.onclick = () => modal.remove();
   }
 
-})();
 })();

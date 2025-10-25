@@ -133,6 +133,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     sendResponse({ success: true });
   }
 
+  // Handle blocking rules update
+  if (request.type === 'UPDATE_BLOCKING_RULES') {
+    chrome.storage.local.get(['focus_mode_active'], async (result) => {
+      if (result.focus_mode_active) {
+        await applyBlockingRules();
+      }
+    });
+    sendResponse({ success: true });
+  }
+
   // Handle Google Calendar event creation
   if (request.type === 'CREATE_CALENDAR_EVENT') {
     createCalendarEvent(request.taskTitle, request.dateTime)
@@ -352,7 +362,7 @@ function handleWebsiteDetection(request, sender) {
 }
 
 // Toggle focus mode
-function toggleFocusMode(enabled) {
+async function toggleFocusMode(enabled) {
   console.log('Focus mode toggled:', enabled);
 
   if (enabled) {
@@ -360,11 +370,17 @@ function toggleFocusMode(enabled) {
     focusSession.startTime = Date.now();
     focusSession.isActive = true;
     focusSession.totalTime = 0; // Start fresh each time
+
+    // Apply website blocking
+    await applyBlockingRules();
   } else {
     // End focus session but don't accumulate time
     focusSession.isActive = false;
     focusSession.startTime = null;
     // Don't accumulate totalTime - each session starts fresh
+
+    // Remove website blocking
+    await removeBlockingRules();
   }
 
   // Update storage
@@ -372,6 +388,119 @@ function toggleFocusMode(enabled) {
     focus_mode_active: enabled,
     focus_session: focusSession
   });
+}
+
+// Default blocked sites
+const DEFAULT_BLOCKED_SITES = [
+  { name: 'YouTube', url: 'youtube.com', id: 1 },
+  { name: 'Twitter/X', url: 'twitter.com', id: 2 },
+  { name: 'Twitter/X', url: 'x.com', id: 3 },
+  { name: 'LinkedIn', url: 'linkedin.com', id: 4 },
+  { name: 'Instagram', url: 'instagram.com', id: 5 },
+  { name: 'TikTok', url: 'tiktok.com', id: 6 }
+];
+
+// Apply blocking rules based on user settings
+async function applyBlockingRules() {
+  try {
+    console.log('📋 Applying website blocking rules...');
+
+    // Get user settings
+    const result = await chrome.storage.local.get(['blocked_sites_settings', 'custom_blocked_sites']);
+    const blockedSettings = result.blocked_sites_settings || {};
+    const customSites = result.custom_blocked_sites || [];
+
+    console.log('🔍 Blocked settings:', blockedSettings);
+    console.log('🔍 Custom sites:', customSites);
+
+    const rules = [];
+    let ruleId = 1;
+
+    // Add default sites (only if explicitly enabled)
+    for (const site of DEFAULT_BLOCKED_SITES) {
+      // FIXED: Only block if explicitly set to true, not by default
+      const isEnabled = blockedSettings[site.url] === true;
+
+      console.log(`📌 ${site.url}: isEnabled = ${isEnabled} (stored value: ${blockedSettings[site.url]})`);
+
+      if (isEnabled) {
+        rules.push({
+          id: ruleId++,
+          priority: 1,
+          action: { type: 'redirect', redirect: { url: 'https://teyra.app/dashboard?blocked=true' } },
+          condition: {
+            urlFilter: `*://*.${site.url}/*`,
+            resourceTypes: ['main_frame']
+          }
+        });
+        console.log(`  ✅ Added blocking rule for ${site.url}`);
+      } else {
+        console.log(`  ⏭️  Skipping ${site.url} (not enabled)`);
+      }
+    }
+
+    // Add custom sites (only if explicitly enabled)
+    for (const site of customSites) {
+      const isEnabled = site.enabled === true;
+
+      console.log(`📌 Custom: ${site.url}: isEnabled = ${isEnabled} (stored value: ${site.enabled})`);
+
+      if (isEnabled) {
+        rules.push({
+          id: ruleId++,
+          priority: 1,
+          action: { type: 'redirect', redirect: { url: 'https://teyra.app/dashboard?blocked=true' } },
+          condition: {
+            urlFilter: `*://*.${site.url}/*`,
+            resourceTypes: ['main_frame']
+          }
+        });
+        console.log(`  ✅ Added blocking rule for custom site ${site.url}`);
+      } else {
+        console.log(`  ⏭️  Skipping custom site ${site.url} (not enabled)`);
+      }
+    }
+
+    // Remove all existing rules first
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const existingRuleIds = existingRules.map(rule => rule.id);
+
+    if (existingRuleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: existingRuleIds
+      });
+    }
+
+    // Add new rules
+    if (rules.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        addRules: rules
+      });
+      console.log(`✅ Applied ${rules.length} blocking rules`);
+    } else {
+      console.log('ℹ️ No blocking rules to apply');
+    }
+
+  } catch (error) {
+    console.error('❌ Error applying blocking rules:', error);
+  }
+}
+
+// Remove all blocking rules
+async function removeBlockingRules() {
+  try {
+    const rules = await chrome.declarativeNetRequest.getDynamicRules();
+    const ruleIds = rules.map(rule => rule.id);
+
+    if (ruleIds.length > 0) {
+      await chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: ruleIds
+      });
+      console.log('✅ Removed all blocking rules');
+    }
+  } catch (error) {
+    console.error('❌ Error removing blocking rules:', error);
+  }
 }
 
 // Get current focus time
@@ -609,7 +738,7 @@ chrome.notifications.onClicked.addListener(function(notificationId) {
 });
 
 // Load saved data on startup
-chrome.storage.local.get(['website_stats', 'focus_session'], (result) => {
+chrome.storage.local.get(['website_stats', 'focus_session', 'focus_mode_active'], async (result) => {
   if (result.website_stats) {
     websiteStats = result.website_stats;
   }
@@ -618,6 +747,12 @@ chrome.storage.local.get(['website_stats', 'focus_session'], (result) => {
     // Don't resume active sessions after restart
     focusSession.isActive = false;
     focusSession.startTime = null;
+  }
+
+  // Clean up any leftover blocking rules on startup
+  if (!result.focus_mode_active) {
+    console.log('🧹 Cleaning up any leftover blocking rules...');
+    await removeBlockingRules();
   }
 });
 

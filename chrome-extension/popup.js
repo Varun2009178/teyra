@@ -31,12 +31,615 @@ let mikeXP = {
   distractionFreeSessions: 0
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+// ============================================
+// SMART TEMPLATES & QUICK ACTIONS
+// ============================================
+
+// Built-in templates (ALL FREE! Pro users get custom templates)
+const BUILTIN_TEMPLATES = {
+  morning: {
+    name: 'Morning Routine',
+    icon: '☀️',
+    tasks: [
+      'Check emails and respond to urgent messages',
+      'Review calendar for today',
+      'Identify top 3 priorities for the day'
+    ],
+    proOnly: false
+  },
+  eod: {
+    name: 'End of Day',
+    icon: '🌙',
+    tasks: [
+      'Review completed tasks',
+      'Plan tomorrow\'s priorities',
+      'Clear inbox and archive',
+      'Update team on progress'
+    ],
+    proOnly: false
+  },
+  focus: {
+    name: 'Deep Work Session',
+    icon: '🎯',
+    tasks: ['[FOCUS_TASK]'], // Special placeholder
+    actions: {
+      startPomodoro: true,
+      enableFocusMode: true,
+      duration: 25 // 25 minute Pomodoro session
+    },
+    proOnly: false
+  },
+  weekly: {
+    name: 'Weekly Review',
+    icon: '📊',
+    tasks: [
+      'Review weekly goals and achievements',
+      'Plan next week\'s priorities',
+      'Archive completed projects',
+      'Schedule important meetings'
+    ],
+    proOnly: false
+  },
+  meeting: {
+    name: 'Meeting Prep',
+    icon: '🤝',
+    tasks: [
+      'Review meeting agenda',
+      'Prepare talking points',
+      'Gather necessary documents',
+      'Send calendar invite'
+    ],
+    proOnly: false
+  },
+  workout: {
+    name: 'Workout Session',
+    icon: '💪',
+    tasks: [
+      'Warm up for 5-10 minutes',
+      'Complete main workout routine',
+      'Cool down and stretch',
+      'Log workout in tracker'
+    ],
+    proOnly: false
+  },
+  study: {
+    name: 'Study Session',
+    icon: '📚',
+    tasks: [
+      'Review lecture notes',
+      'Complete practice problems',
+      'Make flashcards for key concepts',
+      'Summarize main takeaways'
+    ],
+    proOnly: false
+  },
+  launch: {
+    name: 'Product Launch',
+    icon: '🚀',
+    tasks: [
+      'Final testing and bug fixes',
+      'Prepare launch announcement',
+      'Notify stakeholders and team',
+      'Monitor initial user feedback'
+    ],
+    proOnly: false
+  },
+  blog: {
+    name: 'Blog Post Workflow',
+    icon: '✍️',
+    tasks: [
+      'Research topic and gather sources',
+      'Write first draft',
+      'Edit and proofread',
+      'Add images and format',
+      'Schedule and promote'
+    ],
+    proOnly: false
+  },
+  cleanup: {
+    name: 'Digital Cleanup',
+    icon: '🧹',
+    tasks: [
+      'Organize desktop and downloads folder',
+      'Clear browser tabs and bookmarks',
+      'Update and organize notes',
+      'Unsubscribe from unwanted emails'
+    ],
+    proOnly: false
+  }
+};
+
+let customTemplates = {}; // User-created templates (Pro only)
+let templateAutocomplete = null; // Reference to autocomplete dropdown
+
+// Load custom templates from storage
+async function loadCustomTemplates() {
+  try {
+    const result = await chrome.storage.local.get(['custom_templates']);
+    customTemplates = result.custom_templates || {};
+  } catch (error) {
+    console.error('Error loading custom templates:', error);
+  }
+}
+
+// Save custom templates to storage
+async function saveCustomTemplates() {
+  try {
+    await chrome.storage.local.set({ custom_templates: customTemplates });
+  } catch (error) {
+    console.error('Error saving custom templates:', error);
+  }
+}
+
+// Create custom template
+async function createCustomTemplate() {
+  // Check if Pro user
+  if (!(typeof isProUser !== 'undefined' && isProUser)) {
+    try { showUpgradePrompt('Custom templates are a Pro feature! Upgrade to create unlimited custom templates with your own commands.'); } catch(_) { alert('Custom templates are a Pro feature.'); }
+    return;
+  }
+
+  // Simple prompt-based creation (can be enhanced with a modal later)
+  const command = prompt('Enter command name (e.g., "deploy" for /deploy):');
+  if (!command || !command.trim()) return;
+
+  const commandKey = command.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!commandKey) {
+    alert('Command must contain letters or numbers');
+    return;
+  }
+
+  // Check if command already exists
+  if (BUILTIN_TEMPLATES[commandKey] || customTemplates[commandKey]) {
+    alert('This command already exists. Choose a different name.');
+    return;
+  }
+
+  const name = prompt('Enter template name (e.g., "Deploy to Production"):');
+  if (!name || !name.trim()) return;
+
+  const tasksInput = prompt('Enter tasks (one per line, separated by | ):');
+  if (!tasksInput || !tasksInput.trim()) return;
+
+  const tasks = tasksInput.split('|').map(t => t.trim()).filter(t => t);
+  if (tasks.length === 0) {
+    alert('You must enter at least one task');
+    return;
+  }
+
+  // Create template
+  customTemplates[commandKey] = {
+    name: name.trim(),
+    icon: '⚡',
+    tasks: tasks,
+    proOnly: true
+  };
+
+  await saveCustomTemplates();
+  renderCustomTemplates();
+  showTemplateSuccess(`Created /${commandKey}`, tasks.length);
+}
+
+// Delete custom template
+async function deleteCustomTemplate(commandKey) {
+  if (confirm(`Delete template /${commandKey}?`)) {
+    delete customTemplates[commandKey];
+    await saveCustomTemplates();
+    renderCustomTemplates();
+  }
+}
+
+// Render custom templates list
+function renderCustomTemplates() {
+  const container = document.getElementById('custom-templates-list');
+  if (!container) return;
+
+  // Show section only for Pro users
+  const section = document.getElementById('custom-templates-section');
+  if (section) {
+    if (typeof isProUser !== 'undefined' && isProUser) {
+      section.classList.remove('hidden');
+    } else {
+      section.classList.add('hidden');
+      return;
+    }
+  }
+
+  const templateKeys = Object.keys(customTemplates);
+
+  if (templateKeys.length === 0) {
+    container.innerHTML = '<p class="empty-templates">Create your own task templates with quick commands</p>';
+    return;
+  }
+
+  container.innerHTML = templateKeys.map(key => {
+    const template = customTemplates[key];
+    return `
+      <div class="custom-template-item">
+        <div class="custom-template-info">
+          <div class="custom-template-name">${template.name}</div>
+          <div class="custom-template-command">/${key} · ${template.tasks.length} tasks</div>
+        </div>
+        <div class="custom-template-actions">
+          <button class="template-action-btn delete" onclick="deleteCustomTemplate('${key}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================
+// CUSTOM SITE BLOCKING (Pro Feature)
+// ============================================
+
+let customBlockedSites = []; // User-added sites
+
+// Load custom blocked sites
+async function loadCustomBlockedSites() {
+  try {
+    const result = await chrome.storage.local.get(['custom_blocked_sites']);
+    customBlockedSites = result.custom_blocked_sites || [];
+  } catch (error) {
+    console.error('Error loading custom blocked sites:', error);
+  }
+}
+
+// Save custom blocked sites
+async function saveCustomBlockedSites() {
+  try {
+    await chrome.storage.local.set({ custom_blocked_sites: customBlockedSites });
+  } catch (error) {
+    console.error('Error saving custom blocked sites:', error);
+  }
+}
+
+// Legacy function - now handled by custom-site-input field and addCustomSite()
+// This function is kept for backwards compatibility but redirects to the proper UI
+
+// Delete custom blocked site
+async function deleteCustomBlockedSite(index) {
+  if (confirm(`Remove ${customBlockedSites[index].name} from blocked sites?`)) {
+    customBlockedSites.splice(index, 1);
+    await saveCustomBlockedSites();
+    renderCustomBlockedSites();
+  }
+}
+
+// Render custom blocked sites
+function renderCustomBlockedSites() {
+  const container = document.getElementById('custom-sites-list');
+  if (!container) return;
+
+  // Show/hide sections based on Pro status
+  const section = document.getElementById('custom-sites-section');
+  const lockedSection = document.getElementById('custom-sites-locked');
+
+  if (typeof isProUser !== 'undefined' && isProUser) {
+    if (section) section.classList.remove('hidden');
+    if (lockedSection) lockedSection.classList.add('hidden');
+  } else {
+    if (section) section.classList.add('hidden');
+    if (lockedSection) lockedSection.classList.remove('hidden');
+    return;
+  }
+
+  if (customBlockedSites.length === 0) {
+    container.innerHTML = '<p class="empty-templates">Add websites to block during focus mode</p>';
+    return;
+  }
+
+  container.innerHTML = customBlockedSites.map((site, index) => `
+    <div class="custom-template-item">
+      <div class="custom-template-info">
+        <div class="custom-template-name">${site.icon} ${site.name}</div>
+        <div class="custom-template-command">${site.url}</div>
+      </div>
+      <div class="custom-template-actions">
+        <button class="template-action-btn delete" onclick="deleteCustomBlockedSite(${index})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Get available templates based on Pro status
+function getAvailableTemplates() {
+  const templates = {};
+
+  // Add built-in templates
+  for (const [key, template] of Object.entries(BUILTIN_TEMPLATES)) {
+    // Free users only get non-Pro templates
+    if (!template.proOnly || (typeof isProUser !== 'undefined' && isProUser)) {
+      templates[key] = template;
+    }
+  }
+
+  // Pro users get custom templates
+  if (typeof isProUser !== 'undefined' && isProUser) {
+    Object.assign(templates, customTemplates);
+  }
+
+  return templates;
+}
+
+// Parse command from input
+function parseCommand(input) {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('/')) return null;
+
+  // Extract command and args
+  const parts = trimmed.slice(1).split(' ');
+  const command = parts[0].toLowerCase();
+  const args = parts.slice(1).join(' ');
+
+  return { command, args };
+}
+
+// Execute template command
+async function executeTemplate(templateKey, args = '') {
+  const templates = getAvailableTemplates();
+  const template = templates[templateKey];
+
+  if (!template) {
+    showTemplateError(`Template "/${templateKey}" not found`);
+    return false;
+  }
+
+  // Check if Pro-only template
+  if (template.proOnly && !(typeof isProUser !== 'undefined' && isProUser)) {
+    try { showUpgradePrompt('This template is a Pro feature! Upgrade to unlock unlimited templates and quick actions.'); } catch(_) { alert('Pro feature'); }
+    return false;
+  }
+
+  console.log(`📝 Executing template: ${template.name}`);
+
+  // Add tasks from template
+  for (let taskTitle of template.tasks) {
+    // Replace placeholder with args
+    if (taskTitle === '[FOCUS_TASK]') {
+      taskTitle = args || 'Deep work session';
+    }
+
+    await addTask(taskTitle);
+  }
+
+  // Execute actions if present
+  if (template.actions) {
+    if (template.actions.startPomodoro) {
+      // Set custom duration if specified
+      if (template.actions.duration) {
+        pomodoroState.workDuration = template.actions.duration * 60;
+        pomodoroState.timeRemaining = template.actions.duration * 60;
+      }
+      startPomodoro();
+    }
+
+    if (template.actions.enableFocusMode) {
+      const toggle = document.getElementById('focus-toggle');
+      if (toggle && !toggle.checked) {
+        toggle.checked = true;
+        await toggleFocusMode();
+      }
+    }
+  }
+
+  // Show success feedback
+  showTemplateSuccess(template.name, template.tasks.length);
+
+  return true;
+}
+
+// Show template autocomplete dropdown
+function showTemplateAutocomplete(input, cursorPosition) {
+  const parsed = parseCommand(input);
+  if (!parsed) {
+    hideTemplateAutocomplete();
+    return;
+  }
+
+  const templates = getAvailableTemplates();
+  const matchingTemplates = Object.entries(templates).filter(([key, template]) => {
+    return key.startsWith(parsed.command) || template.name.toLowerCase().includes(parsed.command);
+  });
+
+  if (matchingTemplates.length === 0) {
+    hideTemplateAutocomplete();
+    return;
+  }
+
+  // Create or update autocomplete dropdown
+  if (!templateAutocomplete) {
+    templateAutocomplete = document.createElement('div');
+    templateAutocomplete.id = 'template-autocomplete';
+    templateAutocomplete.className = 'template-autocomplete';
+    document.body.appendChild(templateAutocomplete);
+  }
+
+  // Position below task input
+  const taskInput = document.getElementById('task-input');
+  const rect = taskInput.getBoundingClientRect();
+  templateAutocomplete.style.top = (rect.bottom + 4) + 'px';
+  templateAutocomplete.style.left = rect.left + 'px';
+  templateAutocomplete.style.width = rect.width + 'px';
+
+  // Render template options
+  templateAutocomplete.innerHTML = matchingTemplates.map(([key, template]) => {
+    const isLocked = template.proOnly && !(typeof isProUser !== 'undefined' && isProUser);
+    return `
+      <div class="template-option ${isLocked ? 'locked' : ''}" data-template="${key}">
+        <div class="template-option-left">
+          <span class="template-icon">${template.icon || '📝'}</span>
+          <div class="template-info">
+            <div class="template-name">
+              <span class="template-command">/${key}</span>
+              ${template.name}
+              ${isLocked ? '<span class="pro-badge-mini">PRO</span>' : ''}
+            </div>
+            <div class="template-desc">${template.tasks.length} task${template.tasks.length > 1 ? 's' : ''} • ${template.tasks[0].substring(0, 50)}${template.tasks[0].length > 50 ? '...' : ''}</div>
+          </div>
+        </div>
+        ${isLocked ? '<div class="template-lock">🔒</div>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Add click handlers
+  templateAutocomplete.querySelectorAll('.template-option').forEach(option => {
+    option.addEventListener('click', async () => {
+      const key = option.dataset.template;
+      const taskInput = document.getElementById('task-input');
+
+      // Execute template
+      await executeTemplate(key, parsed.args);
+
+      // Clear input and hide autocomplete
+      taskInput.value = '';
+      hideTemplateAutocomplete();
+    });
+  });
+
+  templateAutocomplete.classList.add('show');
+}
+
+// Hide autocomplete
+function hideTemplateAutocomplete() {
+  if (templateAutocomplete) {
+    templateAutocomplete.classList.remove('show');
+  }
+}
+
+// Show template success message
+function showTemplateSuccess(templateName, taskCount) {
+  const toast = document.createElement('div');
+  toast.className = 'template-toast success';
+  toast.innerHTML = `
+    <div class="template-toast-icon">✨</div>
+    <div class="template-toast-content">
+      <div class="template-toast-title">${templateName}</div>
+      <div class="template-toast-desc">Added ${taskCount} task${taskCount > 1 ? 's' : ''}</div>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => toast.classList.add('show'), 10);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Show template error message
+function showTemplateError(message) {
+  const toast = document.createElement('div');
+  toast.className = 'template-toast error';
+  toast.innerHTML = `
+    <div class="template-toast-icon">⚠️</div>
+    <div class="template-toast-content">
+      <div class="template-toast-title">Template Error</div>
+      <div class="template-toast-desc">${message}</div>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Animate in
+  setTimeout(() => toast.classList.add('show'), 10);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
   console.log('🌵 Teyra popup loaded with Mike!');
   checkAuthState();
   setupEventListeners();
   setupBackgroundListeners();
   loadMikeXP();
+  loadCustomTemplates();
+  loadCustomBlockedSites();
+
+  // Live demo: Highlight → Task handlers
+  const demoParagraph = document.getElementById('demo-paragraph');
+  const demoAddTaskBtn = document.getElementById('demo-add-task');
+  const demoAddCalendarBtn = document.getElementById('demo-add-calendar');
+  const demoFeedback = document.getElementById('demo-feedback');
+
+  function getSelectionText() {
+    const sel = window.getSelection();
+    return sel && sel.toString().trim();
+  }
+
+  function showFeedback(msg, type='info') {
+    if (!demoFeedback) return;
+    demoFeedback.textContent = msg;
+    demoFeedback.style.color = type === 'success' ? '#0f766e' : 'rgba(0,0,0,0.6)';
+  }
+
+  if (demoAddTaskBtn) {
+    demoAddTaskBtn.addEventListener('click', async () => {
+      const text = getSelectionText() || (demoParagraph ? demoParagraph.textContent.trim() : '');
+      if (!text) return showFeedback('Select some text first.');
+      try {
+        if (typeof addTaskFromText === 'function') {
+          await addTaskFromText(text);
+        } else {
+          await addTask(text); // fallback to existing add flow if present
+        }
+        showFeedback('Added to Teyra!', 'success');
+      } catch (e) {
+        showFeedback('Failed to add to Teyra.');
+      }
+    });
+  }
+
+  if (demoAddCalendarBtn) {
+    demoAddCalendarBtn.addEventListener('click', async () => {
+      const text = getSelectionText() || (demoParagraph ? demoParagraph.textContent.trim() : '');
+      if (!text) return showFeedback('Select some text first.');
+      try {
+        if (typeof addCalendarEventFromText === 'function') {
+          await addCalendarEventFromText(text);
+        }
+        showFeedback('Sent to Google Calendar!', 'success');
+      } catch (e) {
+        showFeedback('Failed to add to Calendar.');
+      }
+    });
+  }
+
+  // Initialize Pro features only if user is logged in
+  if (typeof initializeProFeatures === 'function') {
+    setTimeout(async () => {
+      if (currentUser) {
+        await initializeProFeatures();
+      }
+    }, 500);
+  }
+
+  // Setup dismiss showcase button
+  setupShowcaseDismiss();
+  setupDemoDismiss();
+
+  // Initialize XP/Level display
+  if (typeof initializeXPSystem === 'function') {
+    initializeXPSystem();
+  }
+
+  // Setup upgrade buttons
+  setupUpgradeButtons();
+
+  // Start random pro popups (if not Pro user)
+  if (currentUser && typeof startRandomProPopups === 'function') {
+    setTimeout(() => {
+      startRandomProPopups();
+    }, 30000); // Start after 30 seconds
+  }
 });
 
 // Listen for messages from background script
@@ -64,12 +667,47 @@ function setupBackgroundListeners() {
 
 async function checkAuthState() {
   try {
-    // Check if user data is stored in Chrome storage
-    const result = await chrome.storage.local.get(['teyra_user', 'teyra_tasks']);
+    // Check if we're waiting for Google auth completion
+    const storage = await chrome.storage.local.get(['teyra_user', 'teyra_tasks', 'awaiting_google_auth']);
 
-    if (result.teyra_user) {
-      currentUser = result.teyra_user;
-      allTasks = result.teyra_tasks || [];
+    if (storage.awaiting_google_auth) {
+      console.log('Checking for Google auth completion...');
+      // Show loading overlay WITHOUT destroying the HTML structure
+      const authScreen = document.getElementById('auth-screen');
+      if (authScreen && !document.getElementById('auth-loading-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'auth-loading-overlay';
+        overlay.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.95);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 40px;
+          text-align: center;
+        `;
+        overlay.innerHTML = `
+          <img src="Neutral Calm.gif" alt="Mike" style="width: 80px; height: 80px; margin-bottom: 20px; border-radius: 16px;">
+          <h2 style="color: white; margin-bottom: 10px; text-align: center;">Checking authentication...</h2>
+          <p style="color: rgba(255,255,255,0.6); font-size: 14px; text-align: center;">Please wait a moment</p>
+        `;
+        authScreen.appendChild(overlay);
+      }
+
+      // Poll for auth status
+      await pollForAuth();
+      return;
+    }
+
+    if (storage.teyra_user) {
+      currentUser = storage.teyra_user;
+      allTasks = storage.teyra_tasks || [];
       console.log('Found stored user:', currentUser);
       showDashboard();
       await loadUserTasks(); // Refresh from API
@@ -84,10 +722,73 @@ async function checkAuthState() {
   }
 }
 
+async function pollForAuth() {
+  let attempts = 0;
+  const maxAttempts = 10; // Poll for 10 seconds
+
+  const poll = async () => {
+    attempts++;
+    console.log(`Polling for auth (attempt ${attempts}/${maxAttempts})...`);
+
+    try {
+      const response = await fetch('APP_URL_PLACEHOLDER/api/user', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('✅ User is now logged in:', userData);
+
+        // Store user data
+        currentUser = userData;
+        await chrome.storage.local.set({
+          teyra_user: userData,
+          awaiting_google_auth: false
+        });
+
+        // Remove loading overlay
+        const overlay = document.getElementById('auth-loading-overlay');
+        if (overlay) overlay.remove();
+
+        showDashboard();
+        await loadUserTasks();
+      } else {
+        console.log(`Auth polling attempt ${attempts}: ${response.status}`);
+        if (attempts < maxAttempts) {
+          // Try again in 1 second
+          setTimeout(poll, 1000);
+        } else {
+          // Max attempts reached, clear flag and show auth screen
+          await chrome.storage.local.set({ awaiting_google_auth: false });
+          showAuthScreen();
+          showToast('Please try signing in again');
+        }
+      }
+    } catch (error) {
+      console.log(`Auth polling attempt ${attempts} failed:`, error);
+      if (attempts < maxAttempts) {
+        // Try again in 1 second
+        setTimeout(poll, 1000);
+      } else {
+        // Max attempts reached, clear flag and show auth screen
+        await chrome.storage.local.set({ awaiting_google_auth: false });
+        showAuthScreen();
+        showToast('Connection error. Please try again');
+      }
+    }
+  };
+
+  poll();
+}
+
 async function checkWebsiteAuth() {
   try {
     // Try to fetch user data from the API to see if they're already logged in
-    const response = await fetch('https://teyra.app/api/user', {
+    const response = await fetch('APP_URL_PLACEHOLDER/api/user', {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -116,11 +817,28 @@ async function checkWebsiteAuth() {
 }
 
 function setupEventListeners() {
-  // Google Sign In
-  document.getElementById('google-signin').addEventListener('click', handleGoogleSignIn);
+  // Auth Tab Switching
+  document.getElementById('tab-signin')?.addEventListener('click', () => switchAuthTab('signin'));
+  document.getElementById('tab-signup')?.addEventListener('click', () => switchAuthTab('signup'));
+
+  // Google Sign In/Sign Up
+  document.getElementById('google-signin')?.addEventListener('click', handleGoogleSignIn);
+  document.getElementById('google-signup')?.addEventListener('click', handleGoogleSignIn);
+
+  // Email Sign In
+  document.getElementById('email-signin')?.addEventListener('click', handleEmailSignIn);
+  document.getElementById('signin-password')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleEmailSignIn();
+  });
+
+  // Email Sign Up
+  document.getElementById('email-signup')?.addEventListener('click', handleEmailSignUp);
+  document.getElementById('signup-confirm')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleEmailSignUp();
+  });
 
   // Sign Out
-  document.getElementById('sign-out').addEventListener('click', handleSignOut);
+  document.getElementById('sign-out')?.addEventListener('click', handleSignOut);
 
   // Focus Mode Toggle
   document.getElementById('focus-toggle').addEventListener('change', toggleFocusMode);
@@ -134,18 +852,136 @@ function setupEventListeners() {
     window.close();
   });
 
-  // Add task on Enter
-  document.getElementById('task-input').addEventListener('keypress', async function(e) {
+  // Add task on Enter with smooth animation + template support
+  const taskInput = document.getElementById('task-input');
+
+  // Show autocomplete as user types
+  taskInput.addEventListener('input', function(e) {
+    const value = this.value;
+
+    // Show autocomplete for template commands
+    if (value.startsWith('/')) {
+      showTemplateAutocomplete(value, this.selectionStart);
+    } else {
+      hideTemplateAutocomplete();
+    }
+  });
+
+  // Handle Enter key
+  taskInput.addEventListener('keypress', async function(e) {
     if (e.key === 'Enter' && this.value.trim()) {
-      await addTask(this.value.trim());
+      const input = this.value.trim();
+
+      // Check if it's a template command
+      const parsed = parseCommand(input);
+      if (parsed) {
+        // Execute template
+        const success = await executeTemplate(parsed.command, parsed.args);
+
+        if (success) {
+          // Clear input
+          this.value = '';
+          hideTemplateAutocomplete();
+        }
+        return;
+      }
+
+      // Regular task addition
+      const taskTitle = input;
+
+      // Add submitting class for disappear animation
+      this.classList.add('submitting');
+
+      // Wait for animation to complete (300ms)
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Add the task
+      await addTask(taskTitle);
+
+      // Clear input and remove submitting class
       this.value = '';
+      this.classList.remove('submitting');
+    }
+  });
+
+  // Hide autocomplete on blur (with slight delay for click handling)
+  taskInput.addEventListener('blur', function() {
+    setTimeout(() => hideTemplateAutocomplete(), 200);
+  });
+
+  // Support arrow keys and Escape in autocomplete
+  taskInput.addEventListener('keydown', function(e) {
+    if (!templateAutocomplete || !templateAutocomplete.classList.contains('show')) {
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      hideTemplateAutocomplete();
+      e.preventDefault();
     }
   });
 
   // Focus session action buttons
   document.getElementById('end-focus')?.addEventListener('click', endFocusSession);
 
-  // Focus mode timer controls (integrated into toggle)
+  // Pomodoro timer controls
+  document.getElementById('focus-timer-start')?.addEventListener('click', () => {
+    startPomodoro();
+    // Auto-enable focus mode when Pomodoro starts
+    const focusToggle = document.getElementById('focus-toggle');
+    if (focusToggle && !focusToggle.checked) {
+      focusToggle.checked = true;
+      toggleFocusMode();
+    }
+  });
+
+  // Make timer display editable
+  document.getElementById('focus-timer-large')?.addEventListener('click', function() {
+    // Don't allow editing while timer is running
+    if (pomodoroState.isRunning) return;
+
+    const currentText = this.textContent;
+    this.classList.add('editing');
+
+    // Create input field
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'pomodoro-timer-input';
+    input.value = currentText;
+    input.style.width = '200px';
+
+    // Replace text with input
+    this.textContent = '';
+    this.appendChild(input);
+    input.focus();
+    input.select();
+
+    // Handle input completion
+    const finishEdit = () => {
+      const value = input.value.trim();
+      const minutes = parseTimeInput(value);
+
+      if (minutes !== null) {
+        // Update pomodoro state
+        pomodoroState.workDuration = minutes * 60;
+        pomodoroState.timeRemaining = minutes * 60;
+        savePomodoroState();
+      }
+
+      // Remove input and restore display
+      this.removeChild(input);
+      this.classList.remove('editing');
+      updatePomodoroDisplay();
+    };
+
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        finishEdit();
+      }
+    });
+  });
+
   document.getElementById('focus-timer-pause')?.addEventListener('click', () => {
     pausePomodoro();
     updatePomodoroDisplay();
@@ -154,6 +990,24 @@ function setupEventListeners() {
   document.getElementById('focus-timer-reset')?.addEventListener('click', () => {
     resetPomodoro();
     updatePomodoroDisplay();
+    // Disable focus mode when reset
+    const focusToggle = document.getElementById('focus-toggle');
+    if (focusToggle && focusToggle.checked) {
+      focusToggle.checked = false;
+      toggleFocusMode();
+    }
+  });
+
+  // Custom template creation (Pro feature)
+  document.getElementById('create-template-btn')?.addEventListener('click', createCustomTemplate);
+
+  // Custom site blocking (Pro feature)
+  document.getElementById('add-blocked-site-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('custom-site-input');
+    if (input && input.value.trim()) {
+      await addCustomSite(input.value.trim());
+      input.value = '';
+    }
   });
 }
 
@@ -176,10 +1030,25 @@ async function endFocusSession() {
   console.log('Focus session ended and timer reset!');
 }
 
+// Switch between Sign In and Sign Up tabs
+function switchAuthTab(tab) {
+  // Update tab buttons
+  document.querySelectorAll('.auth-tab').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.getElementById(`tab-${tab}`).classList.add('active');
+
+  // Update form visibility
+  document.querySelectorAll('.auth-form').forEach(form => {
+    form.classList.remove('active');
+  });
+  document.getElementById(`${tab}-form`).classList.add('active');
+}
+
 async function handleGoogleSignIn() {
   try {
     // Add click animation
-    const btn = document.getElementById('google-signin');
+    const btn = event.target.closest('button');
     btn.style.transform = 'scale(0.95)';
     setTimeout(() => {
       btn.style.transform = 'scale(1)';
@@ -187,31 +1056,168 @@ async function handleGoogleSignIn() {
 
     // Open the main app for sign in with onboarding flow
     chrome.tabs.create({ url: 'https://teyra.app/sign-in?extension=true&onboarding=true' });
+
+    // Store a flag that we're waiting for Google auth
+    await chrome.storage.local.set({ awaiting_google_auth: true });
+
     window.close();
   } catch (error) {
     console.error('Error signing in:', error);
+    showToast('Failed to open sign in page');
+  }
+}
+
+async function handleEmailSignIn() {
+  const email = document.getElementById('signin-email').value.trim();
+  const password = document.getElementById('signin-password').value;
+
+  if (!email || !password) {
+    showToast('Please enter your email and password');
+    return;
+  }
+
+  const btn = document.getElementById('email-signin');
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch('https://teyra.app/api/auth/signin', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      currentUser = userData;
+      await chrome.storage.local.set({ teyra_user: userData });
+
+      showToast('Signed in successfully!');
+      showDashboard();
+      await loadUserTasks();
+    } else {
+      const error = await response.json();
+      showToast(error.message || 'Invalid email or password');
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    }
+  } catch (error) {
+    console.error('Error signing in:', error);
+    showToast('Failed to sign in. Please try again.');
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
+  }
+}
+
+async function handleEmailSignUp() {
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirm = document.getElementById('signup-confirm').value;
+
+  if (!email || !password || !confirm) {
+    showToast('Please fill in all fields');
+    return;
+  }
+
+  if (password !== confirm) {
+    showToast('Passwords do not match');
+    return;
+  }
+
+  if (password.length < 8) {
+    showToast('Password must be at least 8 characters');
+    return;
+  }
+
+  const btn = document.getElementById('email-signup');
+  btn.textContent = 'Creating account...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch('https://teyra.app/api/auth/signup', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      currentUser = userData;
+      await chrome.storage.local.set({ teyra_user: userData });
+
+      showToast('Account created successfully!');
+      showNewUserWelcome();
+    } else {
+      const error = await response.json();
+      showToast(error.message || 'Failed to create account');
+      btn.textContent = 'Create Account';
+      btn.disabled = false;
+    }
+  } catch (error) {
+    console.error('Error signing up:', error);
+    showToast('Failed to create account. Please try again.');
+    btn.textContent = 'Create Account';
+    btn.disabled = false;
   }
 }
 
 async function handleSignOut() {
   try {
-    // Clear stored user data
-    await chrome.storage.local.remove(['teyra_user', 'teyra_tasks']);
+    console.log('🚪 Signing out...');
+
+    // Clear ALL stored user data including Pro status, AI usage, etc.
+    await chrome.storage.local.clear();
+
+    console.log('✅ All local storage cleared');
+
+    // Reset state variables
     currentUser = null;
     allTasks = [];
+
+    // Reset Mike XP
+    mikeXP = {
+      currentXP: 0,
+      level: 1,
+      xpForNextLevel: 100,
+      totalSessions: 0,
+      distractionFreeSessions: 0
+    };
+
+    // Reset Pomodoro state
+    if (pomodoroState.intervalId) {
+      clearInterval(pomodoroState.intervalId);
+    }
+    pomodoroState = {
+      isRunning: false,
+      isPaused: false,
+      isBreak: false,
+      timeRemaining: 25 * 60,
+      workDuration: 25 * 60,
+      shortBreakDuration: 5 * 60,
+      longBreakDuration: 15 * 60,
+      currentSession: 1,
+      totalSessions: 4,
+      linkedTaskId: null,
+      linkedTaskTitle: null,
+      intervalId: null,
+      sessionStartTime: null,
+      distractionFree: true
+    };
+
+    // Show auth screen
     showAuthScreen();
 
-    // Also try to sign out from the website
-    try {
-      await fetch('https://teyra.app/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (logoutError) {
-      console.log('Website logout failed (expected):', logoutError);
-    }
+    showToast('Signed out successfully');
+    console.log('✅ Sign out complete');
   } catch (error) {
-    console.error('Error signing out:', error);
+    console.error('❌ Error signing out:', error);
+    showToast('Error signing out. Please try again.');
   }
 }
 
@@ -221,6 +1227,11 @@ let currentView = 'tasks'; // 'tasks', 'focus', 'settings'
 async function toggleFocusMode() {
   const toggle = document.getElementById('focus-toggle');
   const isEnabled = toggle.checked;
+
+  if (isEnabled) {
+    // Show "LOCK IN" overlay animation
+    await showLockInAnimation();
+  }
 
   // Store focus mode state and communicate with background script
   await chrome.storage.local.set({ focus_mode_active: isEnabled });
@@ -241,14 +1252,33 @@ async function toggleFocusMode() {
   if (isEnabled) {
     console.log('🚫 Focus mode enabled - blocking distracting sites');
     startFocusTimer();
-    startPomodoro(); // Start Pomodoro when focus mode starts
-    showView('focus');
+    // Pomodoro is now manually controlled - don't auto-start
   } else {
     console.log('✅ Focus mode disabled - showing tasks');
     stopFocusTimer();
-    pausePomodoro(); // Pause Pomodoro when focus mode stops
-    showView('tasks');
+    // Don't auto-pause Pomodoro - let it continue if user wants
   }
+}
+
+async function showLockInAnimation() {
+  const overlay = document.getElementById('lock-in-overlay');
+  if (!overlay) return;
+
+  // Show overlay
+  overlay.classList.remove('hidden');
+
+  // Wait for animation to complete (1.5 seconds total)
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  // Start fade out
+  overlay.classList.add('fade-out');
+
+  // Wait for fade out to complete
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // Hide overlay
+  overlay.classList.add('hidden');
+  overlay.classList.remove('fade-out');
 }
 
 function updateUI(focusEnabled) {
@@ -260,38 +1290,41 @@ function updateUI(focusEnabled) {
   const timerDisplay = document.getElementById('focus-timer-display');
 
   if (focusEnabled) {
-    body.classList.add('focus-mode');
-    headerTitle.textContent = 'Focus Active';
-    mikeStatus.textContent = 'Staying focused';
-    focusTitle.textContent = 'Focus Mode Active';
-    focusDescription.textContent = '25min session - distractions blocked';
+    body.classList.add('focus-mode-active');
+    headerTitle.textContent = 'Mike';
+    mikeStatus.textContent = '🔒 Focus mode active';
+    if (focusTitle) focusTitle.textContent = 'Focus Mode Active';
+    if (focusDescription) focusDescription.textContent = '25min session - distractions blocked';
     if (timerDisplay) timerDisplay.classList.remove('hidden');
   } else {
-    body.classList.remove('focus-mode');
-    headerTitle.textContent = 'Teyra';
+    body.classList.remove('focus-mode-active');
+    headerTitle.textContent = 'Mike';
     mikeStatus.textContent = 'Ready to focus';
     if (timerDisplay) timerDisplay.classList.add('hidden');
-    focusTitle.textContent = 'Focus Mode';
-    focusDescription.textContent = 'Block distractions and stay productive';
+    if (focusTitle) focusTitle.textContent = 'Focus Mode';
+    if (focusDescription) focusDescription.textContent = 'Block distractions and stay productive';
   }
 }
 
 function showView(viewName) {
   // Hide all views
-  document.getElementById('tasks-view').classList.add('hidden');
-  document.getElementById('focus-view').classList.add('hidden');
-  document.getElementById('settings-view').classList.add('hidden');
+  const tv = document.getElementById('tasks-view');
+  const fv = document.getElementById('focus-view');
+  const sv = document.getElementById('settings-view');
+  if (tv) tv.classList.add('hidden');
+  if (fv) fv.classList.add('hidden');
+  if (sv) sv.classList.add('hidden');
 
   // Show requested view
-  document.getElementById(viewName + '-view').classList.remove('hidden');
+  const target = document.getElementById(viewName + '-view');
+  if (target) target.classList.remove('hidden');
   currentView = viewName;
 }
 
 function toggleSettings() {
   if (currentView === 'settings') {
-    // Go back to previous view based on focus mode
-    const toggle = document.getElementById('focus-toggle');
-    showView(toggle.checked ? 'focus' : 'tasks');
+    // Always go back to tasks view
+    showView('tasks');
   } else {
     showView('settings');
   }
@@ -385,29 +1418,89 @@ async function updateProtectionStats() {
 }
 
 function showAuthScreen() {
-  document.getElementById('auth-screen').classList.remove('hidden');
-  document.getElementById('dashboard-screen').classList.add('hidden');
+  const authScreen = document.getElementById('auth-screen');
+  const dashboardScreen = document.getElementById('dashboard-screen');
+
+  if (authScreen) {
+    authScreen.classList.remove('hidden');
+    authScreen.style.visibility = 'visible';
+    authScreen.style.position = 'relative';
+    authScreen.style.zIndex = '1';
+  }
+
+  if (dashboardScreen) {
+    dashboardScreen.classList.add('hidden');
+    dashboardScreen.style.visibility = 'hidden';
+    dashboardScreen.style.position = 'absolute';
+    dashboardScreen.style.zIndex = '-1';
+  }
 
   // Reset Mike to neutral for auth screen
   updateMikeMood('neutral');
 }
 
 async function showDashboard() {
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('dashboard-screen').classList.remove('hidden');
+  console.log('🎯 showDashboard() called');
+
+  // Remove any loading overlays
+  const overlay = document.getElementById('auth-loading-overlay');
+  if (overlay) {
+    console.log('Removing auth overlay');
+    overlay.remove();
+  }
+
+  const authScreen = document.getElementById('auth-screen');
+  const dashboardScreen = document.getElementById('dashboard-screen');
+
+  console.log('Auth screen:', authScreen ? 'found' : 'NOT FOUND');
+  console.log('Dashboard screen:', dashboardScreen ? 'found' : 'NOT FOUND');
+
+  // Hide auth screen using visibility and position
+  if (authScreen) {
+    authScreen.classList.add('hidden');
+    authScreen.style.visibility = 'hidden';
+    authScreen.style.position = 'absolute';
+    authScreen.style.zIndex = '-1';
+    console.log('✅ Auth screen hidden');
+  }
+
+  // Show dashboard screen
+  if (dashboardScreen) {
+    dashboardScreen.classList.remove('hidden');
+    dashboardScreen.style.visibility = 'visible';
+    dashboardScreen.style.position = 'relative';
+    dashboardScreen.style.zIndex = '1';
+    console.log('✅ Dashboard screen shown');
+  }
 
   // Load focus mode state
   const result = await chrome.storage.local.get(['focus_mode_active']);
   const isEnabled = result.focus_mode_active || false;
   document.getElementById('focus-toggle').checked = isEnabled;
 
-  // Update UI and show correct view
+  // Update UI - always stay on tasks view
   updateUI(isEnabled);
-  showView(isEnabled ? 'focus' : 'tasks');
+  showView('tasks');
+
+  // Resume focus timer if focus mode is active
+  if (isEnabled) {
+    startFocusTimer();
+  }
 
   // Load user-specific Mike state and update mood based on their progress
   await loadUserMikeState();
   updateMikeMoodFromProgress();
+
+  // Initialize Pro features when dashboard loads
+  if (typeof initializeProFeatures === 'function') {
+    await initializeProFeatures();
+  }
+
+  // Render custom templates (Pro users only)
+  renderCustomTemplates();
+
+  // Render custom blocked sites (Pro users only)
+  renderCustomBlockedSites();
 }
 
 async function loadUserMikeState() {
@@ -495,11 +1588,10 @@ async function syncSubscriptionStatus() {
           }).catch(() => {}); // Ignore errors for tabs without content script
         });
       });
-    } else {
-      console.log('Failed to fetch subscription status:', response.status);
     }
+    // Silently fail if API not available
   } catch (error) {
-    console.error('Error syncing subscription:', error);
+    // Silently fail - API not available or user not logged in
   }
 }
 
@@ -591,21 +1683,18 @@ function renderTasks() {
   activeTasks.forEach(task => {
     const taskElement = document.createElement('div');
     taskElement.className = 'task-item';
+
+    // Add 'appearing' class if this is a new task
+    if (task.isNew) {
+      taskElement.classList.add('appearing');
+    }
+
     taskElement.innerHTML = `
       <div class="task-checkbox ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
         ${task.completed ? '✓' : ''}
       </div>
       <span class="task-text ${task.completed ? 'completed' : ''}">${task.title}</span>
-      <button class="task-delete" data-task-id="${task.id}" style="
-        background: transparent;
-        border: none;
-        color: #666;
-        cursor: pointer;
-        padding: 4px 8px;
-        font-size: 16px;
-        margin-left: auto;
-        transition: color 0.2s ease;
-      ">×</button>
+      <button class="task-delete" data-task-id="${task.id}">×</button>
     `;
 
     // Add click handler for checkbox
@@ -614,13 +1703,10 @@ function renderTasks() {
 
     // Add click handler for delete button
     const deleteBtn = taskElement.querySelector('.task-delete');
-    deleteBtn.addEventListener('mouseenter', (e) => {
-      e.target.style.color = '#ff4444';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTask(task.id);
     });
-    deleteBtn.addEventListener('mouseleave', (e) => {
-      e.target.style.color = '#666';
-    });
-    deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
     tasksList.appendChild(taskElement);
   });
@@ -822,7 +1908,8 @@ async function addTask(title) {
       id: Date.now(), // Temporary ID
       title: title,
       completed: false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      isNew: true // Mark as new for animation
     };
 
     allTasks.push(tempTask);
@@ -830,10 +1917,15 @@ async function addTask(title) {
     // Update Chrome storage immediately
     await chrome.storage.local.set({ teyra_tasks: allTasks });
 
-    // Re-render immediately for responsive UI
+    // Re-render immediately for responsive UI with animation
     renderTasks();
     updateProgress();
     updateMikeMoodFromProgress();
+
+    // Remove isNew flag after animation completes
+    setTimeout(() => {
+      tempTask.isNew = false;
+    }, 500);
 
     // Try to sync with API in background
     try {
@@ -876,6 +1968,13 @@ function updateProgress() {
   const completed = activeTasks.filter(t => t.completed).length;
   const total = activeTasks.length;
 
+  // Update header counters
+  const headerCompletedEl = document.getElementById('header-completed-tasks');
+  const headerTotalEl = document.getElementById('header-total-tasks');
+  if (headerCompletedEl) headerCompletedEl.textContent = completed.toString();
+  if (headerTotalEl) headerTotalEl.textContent = total.toString();
+
+  // Update progress card counters
   const completedTasksEl = document.getElementById('completed-tasks');
   const totalTasksEl = document.getElementById('total-tasks');
   const progressPercentEl = document.getElementById('progress-percent');
@@ -890,47 +1989,59 @@ function updateProgress() {
 }
 
 function updateMikeMoodFromProgress() {
-  // Use all tasks, not just today's
-  const activeTasks = allTasks.filter(task => !task.title.includes('[COMPLETED]'));
-  const completed = activeTasks.filter(t => t.completed).length;
-  const total = activeTasks.length;
-  const percentage = total > 0 ? (completed / total) * 100 : 0;
+  // Calculate total points using the SAME system as the dashboard
+  // Regular tasks = 10 points, Sustainable tasks = 20 points
+  const completedTasks = allTasks.filter(task => {
+    return task.title.includes('[COMPLETED]') || (task.completed && !task.title.includes('[COMPLETED]'));
+  });
 
-  let newMood = 'neutral';
+  const sustainableTasks = [
+    "🌱 Use a reusable water bottle",
+    "♻️ Put one item in recycling",
+    "🚶 Take stairs instead of elevator",
+    "💡 Turn off one light you're not using",
+    "🌿 Save food scraps for composting",
+    "📱 Choose digital receipt at store",
+    "🚿 Reduce shower time by 1 minute",
+    "🌍 Buy one local product if shopping",
+    "🔌 Unplug one device when done",
+    "🥬 Add vegetables to one meal"
+  ];
+
+  let totalPoints = 0;
+  completedTasks.forEach(task => {
+    const taskTitle = task.title.replace(/^\[COMPLETED\]\s*/, '');
+    const isSustainable = sustainableTasks.includes(taskTitle);
+    totalPoints += isSustainable ? 20 : 10;
+  });
+
+  // Determine Mike's mood based on POINTS not percentage
+  // Same thresholds as dashboard: 0-99 = sad, 100-249 = neutral, 250+ = happy
+  let newMood = 'sad';
   let moodText = "Ready to focus";
   let greetingText = "Hey there!";
   let motivationText = "Let's get some tasks done today";
 
-  if (total === 0) {
-    newMood = 'neutral';
+  if (totalPoints === 0) {
+    newMood = 'sad';
     moodText = "Ready to start";
     greetingText = "Hey there!";
     motivationText = "Add your first task to get started";
-  } else if (percentage === 100) {
+  } else if (totalPoints >= 250) {
     newMood = 'happy';
-    moodText = "All done! 🎉";
+    moodText = "Happy! 🎉";
     greetingText = "Amazing work!";
-    motivationText = "You've completed all your tasks today!";
-  } else if (percentage >= 75) {
-    newMood = 'happy';
-    moodText = "Almost there!";
-    greetingText = "You're crushing it!";
-    motivationText = "Just a few more tasks to go!";
-  } else if (percentage >= 50) {
+    motivationText = "You've earned " + totalPoints + " points!";
+  } else if (totalPoints >= 100) {
     newMood = 'neutral';
     moodText = "Making progress";
     greetingText = "Keep it up!";
-    motivationText = "You're halfway through your tasks";
-  } else if (percentage > 0) {
-    newMood = 'neutral';
+    motivationText = "You have " + totalPoints + " points";
+  } else {
+    newMood = 'sad';
     moodText = "Getting started";
     greetingText = "Nice start!";
-    motivationText = "Every task completed is progress";
-  } else {
-    newMood = 'neutral';
-    moodText = "Let's begin";
-    greetingText = "Ready to be productive?";
-    motivationText = "Start with your most important task";
+    motivationText = "You have " + totalPoints + " points";
   }
 
   updateMikeMood(newMood);
@@ -965,9 +2076,8 @@ function updateMikeMoodFromProgress() {
   saveUserMikeState({
     greeting: greetingText,
     motivation: motivationText,
-    progressPercentage: percentage,
-    completedTasks: completed,
-    totalTasks: total
+    totalPoints: totalPoints,
+    completedTasks: completedTasks.length
   });
 }
 
@@ -1097,6 +2207,32 @@ function showNewUserWelcome() {
 // Pomodoro Timer Functions
 // ============================================
 
+// Parse time input - supports formats like "25", "25:00", "90", "1:30"
+function parseTimeInput(input) {
+  if (!input) return null;
+
+  // Remove any spaces
+  input = input.trim();
+
+  // Check for MM:SS format
+  if (input.includes(':')) {
+    const parts = input.split(':');
+    const minutes = parseInt(parts[0]);
+    const seconds = parseInt(parts[1] || 0);
+
+    if (isNaN(minutes) || isNaN(seconds)) return null;
+    if (seconds >= 60) return null;
+
+    return minutes + (seconds / 60);
+  }
+
+  // Just a number - treat as minutes
+  const minutes = parseInt(input);
+  if (isNaN(minutes) || minutes <= 0 || minutes > 999) return null;
+
+  return minutes;
+}
+
 function updatePomodoroDisplay() {
   const minutes = Math.floor(pomodoroState.timeRemaining / 60);
   const seconds = pomodoroState.timeRemaining % 60;
@@ -1117,6 +2253,22 @@ function updatePomodoroDisplay() {
       focusSessionEl.textContent = `Session ${pomodoroState.currentSession} of ${pomodoroState.totalSessions}`;
     }
   }
+
+  // Update SVG progress ring
+  const progressRing = document.querySelector('.pomodoro-progress-ring-fill');
+  if (progressRing) {
+    const totalTime = pomodoroState.isBreak ?
+      (pomodoroState.currentSession > pomodoroState.totalSessions ? pomodoroState.longBreakDuration : pomodoroState.shortBreakDuration) :
+      pomodoroState.workDuration;
+
+    const progress = pomodoroState.timeRemaining / totalTime;
+    const radius = 57; // r attribute of circle
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - progress);
+
+    progressRing.style.strokeDasharray = `${circumference}`;
+    progressRing.style.strokeDashoffset = `${offset}`;
+  }
 }
 
 function startPomodoro() {
@@ -1128,6 +2280,12 @@ function startPomodoro() {
   pomodoroState.isPaused = false;
   pomodoroState.sessionStartTime = Date.now();
   pomodoroState.distractionFree = true; // Reset for new session
+
+  // Show/hide buttons
+  const startBtn = document.getElementById('focus-timer-start');
+  const pauseBtn = document.getElementById('focus-timer-pause');
+  if (startBtn) startBtn.classList.add('hidden');
+  if (pauseBtn) pauseBtn.classList.remove('hidden');
 
   // Start countdown
   pomodoroState.intervalId = setInterval(() => {
@@ -1203,10 +2361,22 @@ function resetPomodoro() {
   pomodoroState.isPaused = false;
   pomodoroState.isBreak = false;
   pomodoroState.timeRemaining = pomodoroState.workDuration;
+  pomodoroState.currentSession = 1; // Reset session counter
 
-  // Update UI
-  document.getElementById('pomodoro-start').classList.remove('hidden');
-  document.getElementById('pomodoro-pause').classList.add('hidden');
+  // Show start button, hide pause button
+  const startBtn = document.getElementById('focus-timer-start');
+  const pauseBtn = document.getElementById('focus-timer-pause');
+  if (startBtn) startBtn.classList.remove('hidden');
+  if (pauseBtn) {
+    pauseBtn.classList.add('hidden');
+    // Reset pause button icon to pause (not play)
+    pauseBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="6" y="4" width="4" height="16" rx="2"/>
+        <rect x="14" y="4" width="4" height="16" rx="2"/>
+      </svg>
+    `;
+  }
 
   updatePomodoroDisplay();
   savePomodoroState();
@@ -1223,25 +2393,28 @@ async function pomodoroTimerComplete() {
     // Just completed a work session
     const wasDistractionFree = pomodoroState.distractionFree;
 
-    // Award XP for distraction-free sessions
+    // Award XP for distraction-free sessions AND award 30 points to cactus
     if (wasDistractionFree) {
       await awardSessionXP(30);
+      await awardPomodoroPointsToCactus(true); // Award 30 points to cactus
 
       // Show special notification for distraction-free session
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'teyra-logo-64kb.png',
         title: '🎉 Distraction-Free Session Complete!',
-        message: `+30 XP! You've completed session ${pomodoroState.currentSession} without distractions. Mike is proud!`,
+        message: `+30 points! You've completed session ${pomodoroState.currentSession} without distractions. Mike is happy!`,
         priority: 2
       });
     } else {
+      await awardPomodoroPointsToCactus(false); // Still award 30 points even with distractions
+
       // Show regular notification
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'teyra-logo-64kb.png',
         title: 'Focus Session Complete!',
-        message: `You've completed session ${pomodoroState.currentSession}. Take a break.`,
+        message: `+30 points! You've completed session ${pomodoroState.currentSession}. Take a break.`,
         priority: 2
       });
     }
@@ -1569,7 +2742,650 @@ async function syncMikeXPToBackend() {
   }
 }
 
+async function awardPomodoroPointsToCactus(distractionFree) {
+  if (!currentUser) return;
+
+  try {
+    console.log('🌵 Awarding 30 points to cactus for pomodoro completion...');
+
+    const response = await fetch('https://teyra.app/api/extension/pomodoro-complete', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        distractionFree
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Cactus points awarded:', data);
+
+      // Reload tasks to update progress/cactus mood
+      await loadUserTasks();
+
+      return data;
+    } else {
+      console.log('⚠️ Failed to award cactus points, but saved locally');
+    }
+  } catch (error) {
+    console.log('⚠️ Error awarding cactus points:', error.message);
+  }
+}
+
 // Load pomodoro state on startup
 document.addEventListener('DOMContentLoaded', () => {
+  // Demo toggle
+  // Demo removed
+
   loadPomodoroState();
 });
+
+// ============================================
+// Focus Mode Website Customization
+// ============================================
+
+const DEFAULT_BLOCKED_SITES = [
+  { name: 'YouTube', url: '*.youtube.com/*', icon: '📺' },
+  { name: 'Twitter / X', url: '*.twitter.com/*,*.x.com/*', icon: '🐦' },
+  { name: 'LinkedIn', url: '*.linkedin.com/*', icon: '💼' },
+  { name: 'Instagram', url: '*.instagram.com/*', icon: '📷' },
+  { name: 'TikTok', url: '*.tiktok.com/*', icon: '🎵' },
+  { name: 'Facebook', url: '*.facebook.com/*', icon: '👥' }
+];
+
+async function initializeFocusCustomization() {
+  // Populate default blocked sites
+  await populateDefaultBlockedSites();
+
+  // Load and display custom sites
+  await loadCustomBlockedSites();
+
+  // Setup event listeners
+  setupFocusCustomizationListeners();
+}
+
+async function populateDefaultBlockedSites() {
+  const container = document.getElementById('default-blocked-sites');
+  if (!container) return;
+
+  // Load user's blocked sites preferences
+  const result = await chrome.storage.local.get(['blocked_sites_settings']);
+  let blockedSettings = result.blocked_sites_settings || {};
+
+  // Initialize default values if not set
+  let needsSave = false;
+  DEFAULT_BLOCKED_SITES.forEach((site) => {
+    if (blockedSettings[site.url] === undefined) {
+      blockedSettings[site.url] = true; // Default to blocked
+      needsSave = true;
+    }
+  });
+
+  if (needsSave) {
+    await chrome.storage.local.set({ blocked_sites_settings: blockedSettings });
+    console.log('✅ Initialized default blocked sites settings');
+  }
+
+  container.innerHTML = '';
+
+  DEFAULT_BLOCKED_SITES.forEach((site, index) => {
+    const isBlocked = blockedSettings[site.url] === true; // Explicitly check for true
+
+    const siteItem = document.createElement('div');
+    siteItem.className = 'blocked-site-item';
+    siteItem.innerHTML = `
+      <div class="blocked-site-info">
+        <span class="site-icon">${site.icon}</span>
+        <div>
+          <div class="site-name">${site.name}</div>
+          <div class="site-url">${site.url.replace(/\*/g, '')}</div>
+        </div>
+      </div>
+      <label class="site-toggle">
+        <input type="checkbox" ${isBlocked ? 'checked' : ''} data-site-url="${site.url}">
+        <span class="site-toggle-slider"></span>
+      </label>
+    `;
+
+    // Add toggle listener
+    const toggle = siteItem.querySelector('input[type="checkbox"]');
+    toggle.addEventListener('change', async (e) => {
+      await toggleDefaultSite(site.url, e.target.checked);
+    });
+
+    container.appendChild(siteItem);
+  });
+}
+
+async function toggleDefaultSite(siteUrl, isBlocked) {
+  const result = await chrome.storage.local.get(['blocked_sites_settings']);
+  const blockedSettings = result.blocked_sites_settings || {};
+
+  blockedSettings[siteUrl] = isBlocked;
+
+  await chrome.storage.local.set({ blocked_sites_settings: blockedSettings });
+
+  // Notify background script to update blocking rules
+  chrome.runtime.sendMessage({
+    type: 'UPDATE_BLOCKED_SITES',
+    settings: blockedSettings
+  }).catch(() => {});
+
+  console.log(`${isBlocked ? 'Blocked' : 'Unblocked'} ${siteUrl}`);
+}
+
+async function loadCustomBlockedSites() {
+  const container = document.getElementById('custom-sites-container');
+  if (!container) return;
+
+  const result = await chrome.storage.local.get(['custom_blocked_sites']);
+  const customSites = result.custom_blocked_sites || [];
+
+  container.innerHTML = '';
+
+  if (customSites.length === 0) {
+    container.innerHTML = '<p style="font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px;">No custom sites added yet</p>';
+    return;
+  }
+
+  customSites.forEach((site, index) => {
+    const siteItem = document.createElement('div');
+    siteItem.className = 'blocked-site-item';
+    siteItem.innerHTML = `
+      <div class="blocked-site-info">
+        <span class="site-icon">🚫</span>
+        <div>
+          <div class="site-name">${site.name || site.url}</div>
+          <div class="site-url">${site.url}</div>
+        </div>
+      </div>
+      <label class="site-toggle">
+        <input type="checkbox" ${site.enabled !== false ? 'checked' : ''} data-custom-index="${index}">
+        <span class="site-toggle-slider"></span>
+      </label>
+      <button class="custom-site-remove" data-custom-index="${index}">×</button>
+    `;
+
+    // Add toggle listener
+    const toggle = siteItem.querySelector('input[type="checkbox"]');
+    toggle.addEventListener('change', async (e) => {
+      await toggleCustomSite(index, e.target.checked);
+    });
+
+    // Add remove listener
+    const removeBtn = siteItem.querySelector('.custom-site-remove');
+    removeBtn.addEventListener('click', async () => {
+      await removeCustomSite(index);
+    });
+
+    container.appendChild(siteItem);
+  });
+}
+
+async function toggleCustomSite(index, isEnabled) {
+  const result = await chrome.storage.local.get(['custom_blocked_sites']);
+  const customSites = result.custom_blocked_sites || [];
+
+  if (customSites[index]) {
+    customSites[index].enabled = isEnabled;
+    await chrome.storage.local.set({ custom_blocked_sites: customSites });
+
+    // Notify background script
+    chrome.runtime.sendMessage({
+      type: 'UPDATE_CUSTOM_SITES',
+      sites: customSites
+    }).catch(() => {});
+
+    console.log(`${isEnabled ? 'Enabled' : 'Disabled'} custom site: ${customSites[index].url}`);
+  }
+}
+
+async function removeCustomSite(index) {
+  const result = await chrome.storage.local.get(['custom_blocked_sites']);
+  let customSites = result.custom_blocked_sites || [];
+
+  customSites.splice(index, 1);
+
+  await chrome.storage.local.set({ custom_blocked_sites: customSites });
+
+  // Reload the display
+  await loadCustomBlockedSites();
+
+  // Notify background script
+  chrome.runtime.sendMessage({
+    type: 'UPDATE_CUSTOM_SITES',
+    sites: customSites
+  }).catch(() => {});
+
+  console.log('Removed custom site at index', index);
+}
+
+async function addCustomSite(url) {
+  // Clean up URL
+  url = url.trim().toLowerCase();
+  if (!url) return;
+
+  // Remove protocol if present
+  url = url.replace(/^https?:\/\//, '');
+  url = url.replace(/^www\./, '');
+
+  // Remove trailing slash
+  url = url.replace(/\/$/, '');
+
+  if (!url) return;
+
+  // Add wildcard pattern
+  const pattern = `*.${url}/*`;
+
+  const result = await chrome.storage.local.get(['custom_blocked_sites']);
+  const customSites = result.custom_blocked_sites || [];
+
+  // Check if already exists
+  if (customSites.some(site => site.url === url)) {
+    showToast('This site is already in your custom list');
+    return;
+  }
+
+  customSites.push({
+    name: url,
+    url: url,
+    pattern: pattern,
+    enabled: true
+  });
+
+  await chrome.storage.local.set({ custom_blocked_sites: customSites });
+
+  // Reload the display
+  await loadCustomBlockedSites();
+
+  // Notify background script
+  chrome.runtime.sendMessage({
+    type: 'UPDATE_CUSTOM_SITES',
+    sites: customSites
+  }).catch(() => {});
+
+  console.log('Added custom site:', url);
+  showToast(`Added ${url} to blocked sites`);
+}
+
+async function clearAllCustomSites() {
+  await chrome.storage.local.set({ custom_blocked_sites: [] });
+  await loadCustomBlockedSites();
+
+  // Notify background script
+  chrome.runtime.sendMessage({
+    type: 'UPDATE_CUSTOM_SITES',
+    sites: []
+  }).catch(() => {});
+
+  console.log('Cleared all custom sites');
+  showToast('All custom sites cleared');
+}
+
+function setupFocusCustomizationListeners() {
+  // Add custom site button
+  const addBtn = document.getElementById('add-custom-site-btn');
+  const input = document.getElementById('custom-site-input');
+
+  if (addBtn && input) {
+    addBtn.addEventListener('click', async () => {
+      // Check Pro status
+      const isPro = await checkProStatus();
+      if (!isPro) {
+        // Show Pro overlay (it's already visible in HTML)
+        return;
+      }
+
+      const url = input.value.trim();
+      if (url) {
+        await addCustomSite(url);
+        input.value = '';
+      }
+    });
+
+    // Also allow Enter key
+    input.addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        const isPro = await checkProStatus();
+        if (!isPro) return;
+
+        const url = input.value.trim();
+        if (url) {
+          await addCustomSite(url);
+          input.value = '';
+        }
+      }
+    });
+  }
+
+  // Clear all button
+  const clearBtn = document.getElementById('clear-custom-sites-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      const isPro = await checkProStatus();
+      if (!isPro) return;
+
+      if (confirm('Are you sure you want to remove all custom sites?')) {
+        await clearAllCustomSites();
+      }
+    });
+  }
+
+  // Upgrade buttons
+  const upgradeBtn = document.getElementById('upgrade-custom-sites-btn');
+  if (upgradeBtn) {
+    upgradeBtn.addEventListener('click', async () => {
+      await initiateCheckout();
+    });
+  }
+}
+
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10001;
+    animation: slideUp 0.3s ease;
+  `;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(10px)';
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 2000);
+}
+
+// Call initialization when settings view is shown
+const originalToggleSettings = toggleSettings;
+toggleSettings = function() {
+  originalToggleSettings();
+
+  // If we're now showing settings, initialize focus customization
+  if (currentView === 'settings') {
+    initializeFocusCustomization();
+  }
+};
+
+// ============================================
+// Feature Showcase Dismiss
+// ============================================
+
+async function setupShowcaseDismiss() {
+  // Check if user has dismissed the showcase
+  const result = await chrome.storage.local.get(['showcase_dismissed']);
+  const isDismissed = result.showcase_dismissed || false;
+
+  const showcase = document.getElementById('feature-showcase');
+  const dismissBtn = document.getElementById('dismiss-showcase');
+
+  if (!showcase) return;
+
+  // Hide if already dismissed
+  if (isDismissed) {
+    showcase.style.display = 'none';
+  }
+
+  // Setup dismiss button
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', async () => {
+      // Fade out animation
+      showcase.style.opacity = '0';
+      showcase.style.transform = 'translateY(-10px)';
+
+      setTimeout(async () => {
+        showcase.style.display = 'none';
+
+        // Save dismissed state
+        await chrome.storage.local.set({ showcase_dismissed: true });
+      }, 200);
+    });
+  }
+}
+
+async function initializeXPSystem() {
+    if (!currentUser) {
+      console.log('No user logged in, skipping XP initialization');
+      return;
+    }
+    await fetchMikeXP();
+  }
+
+async function fetchMikeXP() {
+  try {
+    const response = await fetch('APP_URL_PLACEHOLDER/api/user/mike-xp', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+  if (response.ok) {
+    const data = await response.json();
+    updateXPDisplay(data.xp,data.level, data.xpForNextLevel);
+      }
+    } 
+    catch (error) {
+      console.error('Error fetching Mike XP:', error);
+    }
+  }
+
+function updateXPDisplay(currentXP, level, xpForNextLevel) {
+  const levelEl = document.getElementById('mike-level');
+  const xpProgressEl = document.getElementById('xp-progress');
+    if (levelEl) {
+      levelEl.textContent = `Level ${level}`;
+    }
+    if (xpProgressEl) {
+      const progress = (currentXP / xpForNextLevel) * 100;
+      xpProgressEl.style.width = `${progress}%`;
+    }
+  }
+
+  async function awardXP(amount, source) {
+  if (!currentUser) {console.log('No user logged in, skipping XP award');
+    return;
+    }
+    try {
+      const response = await fetch('APP_URL_PLACEHOLDER/api/user/mike-xp/award', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ xp: amount, source })
+      });
+
+    if (response.ok) { 
+      const data = await response.json();
+      updateXPDisplay(data.xp, data.level, data.xpForNext);
+    
+      if (data.leveledUp) {
+        showNotification(`🎉 Level Up! You're now Level ${data.level}!`);
+        }
+        return data;
+      }
+    } catch (error) {
+      console.error('Error awarding XP:', error);
+    }
+  }
+
+// ============================================
+// Demo and Upgrade Button Handlers
+// ============================================
+
+async function setupDemoDismiss() {
+  const result = await chrome.storage.local.get(['demo_dismissed']);
+  const isDismissed = result.demo_dismissed || false;
+
+  const demo = document.getElementById('highlight-demo');
+  const dismissBtn = document.getElementById('dismiss-demo');
+  const demoToggleBtn = document.getElementById('demo-toggle');
+
+  if (!demo) return;
+
+  if (isDismissed) {
+    demo.style.display = 'none';
+  }
+
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', async () => {
+      demo.style.opacity = '0';
+      demo.style.transform = 'translateY(-10px)';
+
+      setTimeout(async () => {
+        demo.style.display = 'none';
+        // Clear inline styles
+        demo.style.removeProperty('opacity');
+        demo.style.removeProperty('transform');
+        await chrome.storage.local.set({ demo_dismissed: true });
+      }, 200);
+    });
+  }
+
+  // Demo toggle button - show demo again
+  if (demoToggleBtn) {
+    demoToggleBtn.addEventListener('click', async () => {
+      if (demo.style.display === 'none' || !demo.style.display) {
+        // Show demo - remove display none, let CSS handle the rest
+        demo.style.removeProperty('display');
+        demo.style.removeProperty('opacity');
+        demo.style.removeProperty('transform');
+
+        await chrome.storage.local.set({ demo_dismissed: false });
+      } else {
+        // Hide demo with animation
+        demo.style.opacity = '0';
+        demo.style.transform = 'translateY(-10px)';
+
+        setTimeout(async () => {
+          demo.style.display = 'none';
+          await chrome.storage.local.set({ demo_dismissed: true });
+        }, 200);
+      }
+    });
+  }
+}
+
+function setupUpgradeButtons() {
+  // Pomodoro upgrade button
+  document.getElementById('upgrade-pomodoro-btn')?.addEventListener('click', async () => {
+    await initiateCheckout();
+  });
+
+  // Custom sites upgrade button
+  document.getElementById('upgrade-sites-btn')?.addEventListener('click', async () => {
+    await initiateCheckout();
+  });
+}
+
+// ============================================
+// Random Pro Feature Popups
+// ============================================
+
+let proPopupInterval = null;
+
+async function startRandomProPopups() {
+  // Check if user is Pro
+  if (typeof isProUser !== 'undefined' && isProUser) {
+    return; // Don't show popups to Pro users
+  }
+
+  // Show popup every 3-5 minutes randomly
+  const showPopup = () => {
+    const randomDelay = Math.random() * (5 * 60 * 1000 - 3 * 60 * 1000) + 3 * 60 * 1000;
+
+    setTimeout(() => {
+      showRandomProPopup();
+      showPopup(); // Schedule next popup
+    }, randomDelay);
+  };
+
+  showPopup();
+}
+
+function showRandomProPopup() {
+  const popups = [
+    {
+      icon: '🎯',
+      title: 'Block Custom Websites?',
+      description: 'Choose exactly which sites distract you',
+      feature: 'Custom Site Blocking'
+    },
+    {
+      icon: '∞',
+      title: 'Unlimited AI Tasks?',
+      description: 'Turn any text into tasks with no daily limit',
+      feature: 'Unlimited AI'
+    }
+  ];
+
+  const randomPopup = popups[Math.floor(Math.random() * popups.length)];
+
+  // Create popup
+  const popup = document.createElement('div');
+  popup.className = 'pro-popup-toast';
+  popup.innerHTML = `
+    <div class="pro-popup-content">
+      <div class="pro-popup-icon">${randomPopup.icon}</div>
+      <div class="pro-popup-text">
+        <h4>${randomPopup.title}</h4>
+        <p>${randomPopup.description}</p>
+      </div>
+      <div class="pro-popup-actions">
+        <button class="pro-popup-upgrade">Upgrade to Pro</button>
+        <button class="pro-popup-dismiss">×</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+
+  // Animate in
+  setTimeout(() => {
+    popup.classList.add('show');
+  }, 10);
+
+  // Setup buttons
+  popup.querySelector('.pro-popup-upgrade').addEventListener('click', async () => {
+    await initiateCheckout();
+    removePopup(popup);
+  });
+
+  popup.querySelector('.pro-popup-dismiss').addEventListener('click', () => {
+    removePopup(popup);
+  });
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => {
+    removePopup(popup);
+  }, 8000);
+}
+
+function removePopup(popup) {
+  popup.classList.remove('show');
+  popup.classList.add('hide');
+  setTimeout(() => {
+    if (popup.parentNode) {
+      popup.parentNode.removeChild(popup);
+    }
+  }, 300);
+}

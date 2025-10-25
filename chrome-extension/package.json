@@ -1,0 +1,11 @@
+{
+  "name": "teyra-chrome-extension",
+  "version": "1.0.0",
+  "description": "Teyra Chrome Extension",
+  "scripts": {
+    "build": "node build-extension.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.0"
+  }
+}
