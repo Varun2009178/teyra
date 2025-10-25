@@ -5,12 +5,12 @@ import Groq from 'groq-sdk';
 export const dynamic = 'force-dynamic';
 
 const groq = new Groq({
-  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
     }
     

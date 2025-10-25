@@ -6,15 +6,26 @@ import { Analytics } from '@vercel/analytics/next'
 import AuthProvider from '@/components/auth/AuthProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
-  weights: ['400', '500', '600', '700', '800', '900'],
-  variable: '--font-inter'
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+  adjustFontFallback: true
 })
 
 export const metadata: Metadata = {
-  title: 'Teyra - Your Personal Productivity Companion',
-  description: 'Build sustainable productivity habits with Mike the Cactus. PWA with push notifications.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.vercel.app'),
+  title: {
+    default: 'Teyra - Your Personal Productivity Companion',
+    template: '%s | Teyra'
+  },
+  description: 'Build sustainable productivity habits with Mike the Cactus. AI-powered task management, smart scheduling, and Google Calendar integration. Track your progress and achieve your goals.',
+  keywords: ['productivity', 'task management', 'AI scheduling', 'habit tracking', 'goal setting', 'calendar', 'to-do list'],
+  authors: [{ name: 'Teyra' }],
+  creator: 'Teyra',
+  publisher: 'Teyra',
   manifest: '/manifest.json',
   icons: {
     icon: '/teyra-logo-64kb.png',
@@ -27,6 +38,42 @@ export const metadata: Metadata = {
     title: 'Teyra',
   },
   applicationName: 'Teyra',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.vercel.app',
+    siteName: 'Teyra',
+    title: 'Teyra - Your Personal Productivity Companion',
+    description: 'Build sustainable productivity habits with Mike the Cactus. AI-powered task management and smart scheduling.',
+    images: [
+      {
+        url: '/teyra-logo-64kb.png',
+        width: 1200,
+        height: 630,
+        alt: 'Teyra - Personal Productivity Companion',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Teyra - Your Personal Productivity Companion',
+    description: 'Build sustainable productivity habits with Mike the Cactus. AI-powered task management.',
+    images: ['/teyra-logo-64kb.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: process.env.NEXT_PUBLIC_APP_URL || 'https://teyra.vercel.app',
+  },
 }
 
 export const viewport = {

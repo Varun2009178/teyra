@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { auth } from '@clerk/nextjs/server';
+import { createClient } from '@supabase/supabase-js';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export async function POST(req: NextRequest) {
+  try {
+    const { userId } = await auth();
+    const { sessionId } = await req.json();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    }
+
+    console.log('🔍 Verifying Stripe session:', sessionId);
+
+    // Retrieve the session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    console.log('📋 Session status:', session.payment_status, 'Customer:', session.customer);
+
+    // If payment is successful, ensure user is marked as Pro
+    if (session.payment_status === 'paid' || session.status === 'complete') {
+      // Update user in database
+      const { error } = await supabase
+        .from('user_progress')
+        .upsert({
+          user_id: userId,
+          is_pro: true,
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: session.subscription as string,
+          pro_since: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) {
+        console.error('❌ Error updating user to Pro:', error);
+        return NextResponse.json({
+          success: false,
+          error: 'Database update failed'
+        }, { status: 500 });
+      }
+
+      console.log('✅ User successfully upgraded to Pro:', userId);
+
+      return NextResponse.json({
+        success: true,
+        isPro: true,
+        message: 'Successfully upgraded to Pro!'
+      });
+    } else {
+      console.log('⚠️ Session payment not completed:', session.payment_status);
+      return NextResponse.json({
+        success: false,
+        isPro: false,
+        message: 'Payment not completed'
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error verifying session:', error);
+    return NextResponse.json(
+      { error: 'Error verifying session' },
+      { status: 500 }
+    );
+  }
+}

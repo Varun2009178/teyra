@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import Image from 'next/image'
-import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle } from 'lucide-react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Image from 'next/image';
+import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { Cactus } from '@/components/Cactus';
@@ -17,6 +17,8 @@ import { OnboardingTour } from '@/components/OnboardingTour';
 import { SmartNotificationSetup } from '@/components/SmartNotificationSetup';
 import { NotificationSettings } from '@/components/NotificationSettings';
 import DailyNotificationPrompt from '@/components/DailyNotificationPrompt';
+import ProBadgeDropdown from '@/components/ProBadgeDropdown';
+import ProWelcomeModal from '@/components/ProWelcomeModal';
 import * as gtag from '@/lib/gtag';
 
 interface Task {
@@ -27,65 +29,261 @@ interface Task {
   updated_at: string;
 }
 
-// Premium Cursor-style task card with animations
+// Sophisticated liquid glass task card with smooth animations
 const TaskCard = React.memo(({
   task,
   onToggle,
   onDelete,
-  isSustainable = false
+  onEdit,
+  onAISchedule,
+  onManualSchedule,
+  isSustainable = false,
+  isDeleting = false,
+  isPro = false
 }: {
-  task: Task;
+  task: Task & { isNew?: boolean };
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
+  onEdit?: (id: number) => void;
+  onAISchedule?: (id: number) => void;
+  onManualSchedule?: (id: number) => void;
   isSustainable?: boolean;
+  isDeleting?: boolean;
+  isPro?: boolean;
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+
+  const handleToggle = async () => {
+    if (task.completed) return; // Don't allow uncompleting for now
+
+    setIsCompleting(true);
+    await new Promise(resolve => setTimeout(resolve, 300)); // Smooth completion animation
+    onToggle(task.id);
+    setIsCompleting(false);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  useEffect(() => {
+    const handleClick = () => setShowContextMenu(false);
+    if (showContextMenu) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [showContextMenu]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="group relative flex items-center gap-4 py-3 px-2 hover:bg-white/[0.07] rounded-lg transition-all duration-200"
-    >
-      <button
-        onClick={() => onToggle(task.id)}
-        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-          task.completed
-            ? 'bg-white border-white scale-110'
-            : 'border-white/40 hover:border-white/70 hover:scale-105'
-        }`}
+    <>
+      <motion.div
+        className={`liquid-glass-task liquid-glass-task-hover rounded-xl p-4 mb-3 ${
+          task.isNew ? 'new-task' : ''
+        } ${isCompleting ? 'opacity-50' : ''}`}
+        whileHover={{ scale: 1.02 }}
+        onHoverStart={() => setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
+        onContextMenu={handleContextMenu}
       >
-        {task.completed && (
+      <div className="flex items-center gap-4">
+        {/* Enhanced checkbox with liquid glass effect */}
+        <motion.button
+          onClick={handleToggle}
+          disabled={task.completed || isCompleting}
+          className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+            task.completed
+              ? 'bg-white border-white shadow-lg'
+              : 'border-white/40 hover:border-white/70 liquid-glass-subtle'
+          }`}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {task.completed && (
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 500, 
+                damping: 30,
+                delay: 0.1
+              }}
+            >
+              <Check className="w-4 h-4 text-black" strokeWidth={3} />
+            </motion.div>
+          )}
+          
+          {/* Subtle glow effect when hovering */}
+          {isHovered && !task.completed && (
+            <motion.div
+              className="absolute inset-0 rounded-lg bg-white/10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+          )}
+        </motion.button>
+
+        {/* Task title with smooth text transitions */}
+        <motion.span
+          className={`flex-1 text-base font-medium transition-all duration-300 ${
+            task.completed
+              ? 'text-white/40 line-through'
+              : 'text-white/90'
+          }`}
+          animate={{
+            opacity: task.completed ? 0.6 : 1,
+            x: task.completed ? 5 : 0
+          }}
+          transition={{ duration: 0.3 }}
+        >
+          {task.title}
+        </motion.span>
+
+        {/* XP indicator with smooth animation */}
+        {isSustainable && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-1"
           >
-            <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+            <motion.span 
+              className="text-xs text-green-400 font-mono font-semibold"
+              animate={{ 
+                color: isHovered ? '#4ade80' : '#22c55e'
+              }}
+            >
+              +20
+            </motion.span>
+            <motion.div
+              className="w-1 h-1 bg-green-400 rounded-full"
+              animate={{ 
+                scale: isHovered ? 1.2 : 1,
+                opacity: isHovered ? 0.8 : 0.6
+              }}
+            />
           </motion.div>
         )}
-      </button>
 
-      <span
-        className={`flex-1 text-base transition-all duration-200 ${
-          task.completed
-            ? 'text-white/40 line-through'
-            : 'text-white/90'
-        }`}
-      >
-        {task.title}
-      </span>
+        {/* Delete button with smooth reveal */}
+        <motion.button
+          onClick={() => onDelete(task.id)}
+          className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-red-400 transition-all duration-300 liquid-glass-subtle rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ 
+            opacity: isHovered ? 1 : 0.3,
+            scale: isHovered ? 1 : 0.9
+          }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <motion.div
+              className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
+        </motion.button>
+      </div>
 
-      {isSustainable && (
-        <span className="text-xs text-green-400 font-mono font-semibold">+20</span>
+      {/* Subtle progress indicator for new tasks */}
+      {task.isNew && (
+        <motion.div
+          className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-400 to-blue-400 rounded-b-xl"
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 2, ease: "easeOut" }}
+        />
       )}
-
-      <button
-        onClick={() => onDelete(task.id)}
-        className="w-7 h-7 flex items-center justify-center text-white/30 hover:text-red-400 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:bg-white/5 rounded"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
     </motion.div>
+
+    {/* Context Menu */}
+    <AnimatePresence>
+      {showContextMenu && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.1 }}
+          className="fixed z-50 bg-zinc-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden"
+          style={{
+            left: `${contextMenuPosition.x}px`,
+            top: `${contextMenuPosition.y}px`,
+            minWidth: '200px'
+          }}
+        >
+          <div className="py-1">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(task.id);
+                  setShowContextMenu(false);
+                }}
+                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
+              >
+                <Edit className="w-4 h-4" />
+                <span>edit</span>
+              </button>
+            )}
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task.id);
+                setShowContextMenu(false);
+              }}
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-red-400 text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>delete</span>
+            </button>
+
+            <div className="border-t border-white/10 my-1" />
+
+            {onAISchedule && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAISchedule(task.id);
+                  setShowContextMenu(false);
+                }}
+                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>ai schedule</span>
+                {!isPro && <span className="ml-auto text-xs text-white/40">pro</span>}
+              </button>
+            )}
+
+            {onManualSchedule && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onManualSchedule(task.id);
+                  setShowContextMenu(false);
+                }}
+                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
+              >
+                <Clock className="w-4 h-4" />
+                <span>schedule</span>
+              </button>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </>
   );
 });
 
@@ -127,8 +325,18 @@ export default function MVPDashboard() {
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
   const [showSmartNotificationSetup, setShowSmartNotificationSetup] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [deletingTaskIds, setDeletingTaskIds] = useState<Set<number>>(new Set());
+  const [isAddLocked, setIsAddLocked] = useState(false);
   const [hasCompletedFirstTask, setHasCompletedFirstTask] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showProWelcome, setShowProWelcome] = useState(false);
+  const [editModalTask, setEditModalTask] = useState<Task | null>(null);
+  const [editModalTitle, setEditModalTitle] = useState('');
+  const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
+  const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
 
   // Sustainable tasks state - very easy to complete
   const sustainableTasks = [
@@ -267,26 +475,39 @@ export default function MVPDashboard() {
   // Fetch user data - optimized for faster loading
   const fetchUserData = useCallback(async () => {
     if (!user || !isHydrated) return;
-    
+
     try {
       setIsLoading(true);
       const token = await getToken();
-      
+
       // Fetch tasks first (most important for UI)
       const tasksRes = await fetch('/api/tasks', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const tasksData = await tasksRes.json();
       const tasksList = Array.isArray(tasksData) ? tasksData : tasksData.tasks || [];
       setTasks(tasksList);
-      
+
+      // Fetch subscription status
+      try {
+        const subRes = await fetch('/api/subscription/status', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (subRes.ok) {
+          const subData = await subRes.json();
+          setIsPro(subData.isPro || false);
+        }
+      } catch (error) {
+        console.warn('Could not fetch subscription status:', error);
+      }
+
       // Immediately show UI with tasks, load progress in background
       setIsLoading(false);
-      
+
       // Note: User progress is now calculated client-side from tasks
       // No need to fetch/create separate progress data
-      
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -300,14 +521,107 @@ export default function MVPDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !isHydrated) return;
-    
+    if (!user?.id || !isHydrated) 
+      return;
+
     fetchUserData();
     // Track session start
     try {
       trackSessionStart();
     } catch (error) {
       console.warn('Session tracking failed:', error);
+    }
+
+    // Check if user just upgraded to Pro (coming back from Stripe)
+    const checkProUpgrade = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const justUpgraded = urlParams.get('pro_welcome');
+      const sessionId = urlParams.get('session_id');
+      const upgradeStatus = urlParams.get('upgrade');
+
+      if (justUpgraded === 'true' && sessionId) {
+        console.log('🎉 User returned from Stripe checkout!');
+
+        try {
+          const token = await getToken();
+
+          // Step 1: Verify the Stripe session and ensure user is marked as Pro
+          console.log('🔍 Verifying Stripe session...');
+          const verifyRes = await fetch('/api/stripe/verify-session', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sessionId })
+          });
+
+          if (verifyRes.ok) {
+            const verifyData = await verifyRes.json();
+            console.log('✅ Session verified:', verifyData);
+
+            if (verifyData.isPro) {
+              // Step 2: Refresh subscription status
+              const subRes = await fetch('/api/subscription/status', {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+
+              if (subRes.ok) {
+                const subData = await subRes.json();
+                setIsPro(true);
+
+                // Show welcome modal with confetti
+                setTimeout(() => {
+                  setShowProWelcome(true);
+                  toast.success('🎉 Welcome to Teyra Pro!');
+                }, 800);
+              }
+            } else {
+              toast.error('Payment verification failed. Please contact support.');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error verifying upgrade:', error);
+          toast.error('Could not verify payment. Please contact support if charged.');
+        }
+
+        // Clean up URL
+        window.history.replaceState({}, '', '/dashboard');
+      } else if (upgradeStatus === 'cancelled') {
+        toast.info('Upgrade cancelled. You can upgrade anytime!');
+        window.history.replaceState({}, '', '/dashboard');
+      }
+    };
+
+    checkProUpgrade();
+
+    // Handle checkout action from extension
+    const handleCheckoutAction = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+
+      if (action === 'checkout') {
+        console.log('🚀 Checkout action detected from extension, initiating upgrade...');
+        // Clean up URL first
+        window.history.replaceState({}, '', '/dashboard');
+
+        // Small delay to ensure page is loaded
+        setTimeout(async () => {
+          await handleUpgrade();
+        }, 500);
+      }
+    };
+
+    handleCheckoutAction();
+
+    // Scroll to upgrade section if hash is present
+    if (window.location.hash === '#upgrade') {
+      setTimeout(() => {
+        const upgradeSection = document.getElementById('upgrade');
+        if (upgradeSection) {
+          upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
     }
 
     // For existing users, ensure they get appropriate onboarding experiences
@@ -348,9 +662,12 @@ export default function MVPDashboard() {
     }
   }, [user?.id, isLoading]);
 
-  // Add task - Optimistic updates for instant responsiveness
+  // Add task - Sophisticated optimistic updates with smooth animations
+  const [isInputSubmitting, setIsInputSubmitting] = useState(false);
+  const [recentlyAddedTask, setRecentlyAddedTask] = useState<number | null>(null);
+
   const handleAddTask = async () => {
-    if (!newTask.trim() || !user) return;
+    if (!newTask.trim() || !user || isInputSubmitting || isAddLocked) return;
 
     // Check daily limit before adding
     if (dailyTasksCount >= 10) {
@@ -359,25 +676,38 @@ export default function MVPDashboard() {
     }
 
     const taskTitle = newTask.trim();
-    setNewTask(''); // Clear input immediately
-    
-    // Create optimistic task immediately
-    const optimisticTask: Task = {
+    setIsInputSubmitting(true);
+    setIsAddLocked(true);
+
+    // Create optimistic task with new flag for special animation
+    const optimisticTask: Task & { isNew?: boolean } = {
       id: Date.now(), // Temporary ID
       title: taskTitle,
       completed: false,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      isNew: true // Flag for special new task animation
     };
-    
-    // Add to UI instantly
+
+    // Add to UI instantly with smooth animation
     setTasks(prev => [optimisticTask, ...prev]);
-    toast.success('Task added!');
+    setRecentlyAddedTask(optimisticTask.id);
     
+    // Clear input with smooth animation
+    setNewTask('');
+
     // Send notification for first task
     if (tasks.length === 0 && permission.granted) {
       sendFirstTaskNotification(taskTitle);
     }
+
+    // Remove the "new" flag after animation completes
+    setTimeout(() => {
+      setTasks(prev => prev.map(t => 
+        t.id === optimisticTask.id ? { ...t, isNew: false } : t
+      ));
+      setRecentlyAddedTask(null);
+    }, 2000);
 
     try {
       const token = await getToken();
@@ -393,10 +723,10 @@ export default function MVPDashboard() {
       if (response.ok) {
         const data = await response.json();
         // Replace optimistic task with real data
-        setTasks(prev => prev.map(task => 
+        setTasks(prev => prev.map(task =>
           task.id === optimisticTask.id ? data : task
         ));
-        
+
         // Track successful task creation (non-blocking)
         try {
           trackTaskCreated(taskTitle, data.id);
@@ -414,6 +744,10 @@ export default function MVPDashboard() {
       // Remove optimistic task on failure
       setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
       toast.error('Failed to add task');
+    } finally {
+      setIsInputSubmitting(false);
+      // brief lock to prevent spam add
+      setTimeout(() => setIsAddLocked(false), 350);
     }
   };
 
@@ -581,15 +915,21 @@ export default function MVPDashboard() {
     }
 
     const randomTask = sustainableTasks[Math.floor(Math.random() * sustainableTasks.length)];
-    const optimisticTask: Task = {
+    const optimisticTask: Task & { isNew?: boolean } = {
       id: Date.now() + Math.random(),
       title: randomTask,
       completed: false,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      isNew: true
     };
     
     setTasks(prev => [optimisticTask, ...prev]);
+
+    // Remove isNew flag after glow completes
+    setTimeout(() => {
+      setTasks(prev => prev.map(t => t.id === optimisticTask.id ? { ...t, isNew: false } : t));
+    }, 2000);
     toast.success('Sustainable task added! Complete it for 20 points! 🌱');
 
     try {
@@ -666,12 +1006,58 @@ export default function MVPDashboard() {
     }
   };
 
+  // Handle Pro upgrade
+  const handleUpgrade = async (e?: React.MouseEvent) => {
+    // Prevent event bubbling and multiple triggers
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Prevent multiple simultaneous upgrade attempts
+    if (isUpgrading) {
+      console.log('⚠️ Upgrade already in progress, ignoring duplicate click');
+      return;
+    }
+
+    console.log('🚀 Starting upgrade process...');
+    setIsUpgrading(true);
+
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      console.log('✅ Checkout session created, redirecting to:', url);
+
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('❌ Error upgrading:', error);
+      toast.error('Failed to start upgrade process');
+      setIsUpgrading(false);
+    }
+  };
+
   // Delete task
   const handleDeleteTask = async (taskId: number) => {
+    if (deletingTaskIds.has(taskId)) return; // ignore rapid double clicks
+    setDeletingTaskIds(prev => new Set(prev).add(taskId));
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Remove from UI immediately
+    // Soft-remove with smoother experience: optimistic remove, but keep delete lock
     setTasks(prev => prev.filter(t => t.id !== taskId));
 
     try {
@@ -701,6 +1087,122 @@ export default function MVPDashboard() {
       setTasks(prev => [task, ...prev]);
       toast.error('Failed to delete task');
     }
+    finally {
+      // small delay to avoid fast delete spam on adjacent items
+      setTimeout(() => {
+        setDeletingTaskIds(prev => {
+          const next = new Set(prev);
+          next.delete(taskId);
+          return next;
+        });
+      }, 250);
+    }
+  };
+
+  // Handler for editing a task - show modal
+  const handleEditTask = async (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    setEditModalTask(task);
+    setEditModalTitle(task.title);
+  };
+
+  // Actually save the edited task
+  const saveEditedTask = async () => {
+    if (!editModalTask) return;
+
+    const newTitle = editModalTitle.trim();
+    if (!newTitle || newTitle === editModalTask.title) {
+      setEditModalTask(null);
+      return;
+    }
+
+    // Optimistically update
+    setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: newTitle } : t));
+    setEditModalTask(null);
+
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/tasks/${editModalTask.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      if (!response.ok) {
+        // Restore original title
+        setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: editModalTask.title } : t));
+        toast.error('failed to edit task');
+      } else {
+        toast.success('task updated');
+      }
+    } catch (error) {
+      // Restore original title
+      setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: editModalTask.title } : t));
+      toast.error('failed to edit task');
+    }
+  };
+
+  // Handler for AI scheduling a single task
+  const handleAIScheduleTask = async (taskId: number) => {
+    if (!isPro) {
+      toast.error('ai scheduling requires pro. upgrade to schedule tasks automatically');
+      return;
+    }
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    toast.success('redirecting to calendar for ai scheduling...');
+    // Redirect to calendar page with auto-schedule flag
+    window.location.href = '/dashboard/calendar?autoSchedule=true';
+  };
+
+  // Handler for manually scheduling a single task
+  const handleManualScheduleTask = async (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    setScheduleModalTask(task);
+  };
+
+  // Actually schedule the task
+  const saveScheduledTask = async (scheduledTime: string, durationMinutes: number) => {
+    if (!scheduleModalTask) return;
+
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/tasks/${scheduleModalTask.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          scheduled_time: scheduledTime,
+          duration_minutes: durationMinutes
+        })
+      });
+
+      if (response.ok) {
+        toast.success('task scheduled! view in calendar');
+        setScheduleModalTask(null);
+        // Refresh tasks to update the list
+        const tasksResponse = await fetch('/api/tasks', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (tasksResponse.ok) {
+          const updatedTasks = await tasksResponse.json();
+          setTasks(updatedTasks);
+        }
+      } else {
+        toast.error('failed to schedule task');
+      }
+    } catch (error) {
+      toast.error('failed to schedule task');
+    }
   };
 
   // Show loading while hydrating, user loading, or data loading - prevent white flash
@@ -716,33 +1218,53 @@ export default function MVPDashboard() {
   }
 
   return (
-    <div className="min-h-screen dark-gradient-bg noise-texture text-white relative">
+    <div className="min-h-screen dark-gradient-bg noise-texture text-white relative overflow-hidden">
+      {/* Vibrant gradient orbs behind glass panels - Apple liquid glass effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-20">
+        <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500 rounded-full filter blur-[120px] animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-80 h-80 bg-blue-500 rounded-full filter blur-[100px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-32 left-1/4 w-72 h-72 bg-pink-500 rounded-full filter blur-[110px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute bottom-20 right-1/3 w-64 h-64 bg-green-500 rounded-full filter blur-[90px] animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+      </div>
       {/* Subtle tech grid background */}
-      <div 
+      <div
         className="fixed inset-0 opacity-[0.02] pointer-events-none"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
           backgroundSize: '20px 20px'
         }}
       />
-      {/* Premium Cursor-style header */}
-      <header className="border-b border-white/10 bg-black/50 backdrop-blur-xl sticky top-0 z-10">
+      {/* Premium Cursor-style header with liquid glass */}
+      <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Image
-              src="/teyra-logo-64kb.png"
-              alt="Teyra"
-              width={40}
-              height={40}
-              className="w-10 h-10"
-            />
+            <div className="flex items-center gap-3">
+              <Image
+                src="/teyra-logo-64kb.png"
+                alt="Teyra"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+              />
+            </div>
             <div className="hidden sm:flex items-center gap-6 text-base">
               <button
                 onClick={() => setShowAllTasks(true)}
-                className="text-white/60 hover:text-white transition-colors font-medium"
+                className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium"
               >
                 All Tasks
               </button>
+              <button
+                onClick={() => window.location.href = '/dashboard/calendar'}
+                className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                Calendar
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                  beta
+                </span>
+              </button>
+              {isPro && <ProBadgeDropdown />}
               {currentMood && (
                 <div className="text-white/50 text-sm">
                   {currentMood.emoji} {currentMood.label}
@@ -752,6 +1274,13 @@ export default function MVPDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAccountModal(true)}
+              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+              title="Account Status"
+            >
+              <User className="w-5 h-5" />
+            </button>
             <button
               onClick={() => setShowNotificationSettings(true)}
               className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
@@ -828,7 +1357,105 @@ export default function MVPDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Teyra Pro Banner - Only show if not Pro */}
+        {!isPro && (
+          <motion.div
+            id="upgrade"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6 sm:mb-8 relative overflow-hidden group"
+          >
+            <div className="relative liquid-glass-strong liquid-glass-hover glass-gradient-purple rounded-xl p-4 sm:p-6 liquid-glass-depth">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6">
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 10 }}
+                    className="px-2 sm:px-3 py-1 bg-white text-black rounded font-bold text-xs"
+                  >
+                    PRO
+                  </motion.div>
+                  <motion.h2
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    className="text-xl sm:text-2xl font-bold text-white"
+                  >
+                    teyra pro
+                  </motion.h2>
+                </div>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-white/70 text-sm sm:text-base mb-4 sm:mb-5"
+                >
+                  unlock premium features to maximize your productivity
+                </motion.p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {[
+                    { title: "unlimited ai scheduling", desc: "schedule tasks automatically with ai (vs 3 free)", highlight: true },
+                    { title: "unlimited AI text → task", desc: "limited time only! (vs 5 per day free)", highlight: false },
+                    { title: "focus mode customization", desc: "block any websites you choose" },
+                    { title: "pomodoro timer", desc: "built-in focus sessions" },
+                    { title: "priority support", desc: "faster response times" }
+                  ].map((feature, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.4 }}
+                      whileHover={{ y: -2 }}
+                      className="flex items-start gap-2 p-2.5 sm:p-3 rounded-lg liquid-glass-subtle liquid-glass-hover transition-all duration-200"
+                    >
+                      <div className="w-5 h-5 bg-white rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-black" strokeWidth={3} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-semibold text-xs sm:text-sm truncate">{feature.title}</p>
+                          {feature.highlight && (
+                            <motion.span
+                              initial={{ opacity: 0.6 }}
+                              animate={{ opacity: [0.6, 1, 0.6] }}
+                              transition={{ duration: 1.6, repeat: Infinity }}
+                              className="px-2 py-0.5 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-300 text-[9px] sm:text-[10px] font-bold tracking-wide whitespace-nowrap"
+                            >
+                              limited time
+                            </motion.span>
+                          )}
+                        </div>
+                        <p className="text-white/60 text-xs line-clamp-1">{feature.desc}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                className="flex flex-col items-center gap-3 w-full sm:w-auto lg:min-w-[180px]"
+              >
+                <motion.button
+                  onClick={(e) => handleUpgrade(e)}
+                  disabled={isUpgrading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpgrading ? 'loading...' : 'upgrade to pro — $10/month'}
+                </motion.button>
+              </motion.div>
+            </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
 
           {/* Left Column: Task Management */}
@@ -851,7 +1478,7 @@ export default function MVPDashboard() {
             {/* Sustainable Task Generator */}
             <motion.div
               whileHover={{ scale: 1.01 }}
-              className="border border-white/10 bg-white/5 rounded-lg p-4 hover:bg-white/[0.07] transition-all duration-200"
+              className="liquid-glass glass-gradient-green rounded-lg p-4 liquid-glass-hover transition-all duration-200"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -870,26 +1497,123 @@ export default function MVPDashboard() {
               </div>
             </motion.div>
 
-            {/* Task Input */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={newTask}
-                  onChange={(e) => setNewTask(e.target.value)}
-                  placeholder="What needs to be done?"
-                  className="flex-1 px-4 py-3 border border-white/20 rounded-lg bg-black/30 text-white placeholder:text-white/40 text-base focus:outline-none focus:border-white/50 focus:bg-black/40 transition-all duration-200"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
-                />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleAddTask}
-                  disabled={!newTask.trim()}
-                  className="w-11 h-11 flex items-center justify-center bg-white hover:bg-white/90 text-black rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+            {/* Enhanced Task Input with sophisticated animations */}
+            <motion.div 
+              className="space-y-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <div className="relative">
+                <motion.div 
+                  className="flex items-center gap-3"
+                  animate={{
+                    scale: isInputSubmitting ? 0.98 : 1,
+                  }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
+                  <div className="relative flex-1">
+                    <motion.input
+                      type="text"
+                      value={newTask}
+                      onChange={(e) => setNewTask(e.target.value)}
+                      placeholder="What needs to be accomplished today?"
+                      className="w-full px-6 py-4 liquid-glass-input rounded-xl text-white placeholder:text-white/50 text-base focus:outline-none transition-all duration-300"
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
+                      disabled={isInputSubmitting}
+                      animate={{
+                        borderColor: newTask.trim() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.12)',
+                      }}
+                    />
+                    
+                    {/* Subtle typing indicator */}
+                    {newTask.trim() && (
+                      <motion.div
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                      >
+                        <motion.div
+                          className="w-2 h-2 bg-green-400 rounded-full"
+                          animate={{ 
+                            scale: [1, 1.2, 1],
+                            opacity: [0.6, 1, 0.6]
+                          }}
+                          transition={{ 
+                            duration: 1.5, 
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Enhanced add button with sophisticated animations */}
+                  <motion.button
+                    whileHover={{ 
+                      scale: newTask.trim() ? 1.05 : 1,
+                      rotate: newTask.trim() ? 5 : 0
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAddTask}
+                    disabled={!newTask.trim() || isInputSubmitting}
+                    className={`relative w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 ${
+                      newTask.trim() && !isInputSubmitting
+                        ? 'bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl'
+                        : 'bg-white/20 text-white/40 cursor-not-allowed'
+                    }`}
+                    animate={{
+                      backgroundColor: newTask.trim() && !isInputSubmitting 
+                        ? 'rgba(255, 255, 255, 1)' 
+                        : 'rgba(255, 255, 255, 0.2)',
+                      color: newTask.trim() && !isInputSubmitting 
+                        ? 'rgba(0, 0, 0, 1)' 
+                        : 'rgba(255, 255, 255, 0.4)'
+                    }}
+                  >
+                    {isInputSubmitting ? (
+                      <motion.div
+                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                    ) : (
+                      <motion.div
+                        animate={{ 
+                          scale: newTask.trim() ? 1.1 : 1,
+                          rotate: newTask.trim() ? 0 : 0
+                        }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Plus className="w-5 h-5" />
+                      </motion.div>
+                    )}
+                    
+                    {/* Subtle glow effect when ready to add */}
+                    {newTask.trim() && !isInputSubmitting && (
+                      <motion.div
+                        className="absolute inset-0 rounded-xl bg-white/20"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0, 0.3, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                    )}
+                  </motion.button>
+                </motion.div>
+
+                {/* Character count indicator */}
+                {newTask.trim() && (
+                  <motion.div
+                    className="absolute -bottom-6 right-0 text-xs text-white/40"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {newTask.length}/100
+                  </motion.div>
+                )}
               </div>
 
               {dailyTasksCount >= 8 && (
@@ -907,10 +1631,12 @@ export default function MVPDashboard() {
                   </span>
                 </motion.div>
               )}
-            </div>
+            </motion.div>
 
-            {/* Task List */}
-            <div className="border border-white/10 bg-black/20 backdrop-blur-sm rounded-lg p-6">
+            {/* Task List - render statically (no initial load animation) */}
+            <div
+              className="liquid-glass-strong rounded-xl p-6"
+            >
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-white">Today's Tasks</h2>
@@ -926,34 +1652,29 @@ export default function MVPDashboard() {
               <div className="min-h-[240px]">
                 {tasks.filter(t => !t.title.includes('[COMPLETED]')).length === 0 ? (
                   <div className="text-center py-16">
-                    <motion.div
-                      className="w-16 h-16 bg-white/5 rounded-full mx-auto mb-4 flex items-center justify-center"
-                      animate={{
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 3, -3, 0]
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    >
+                    <div className="w-16 h-16 bg-white/5 rounded-full mx-auto mb-4 flex items-center justify-center">
                       <Plus className="w-7 h-7 text-white/40" />
-                    </motion.div>
+                    </div>
                     <p className="text-white/60 text-lg font-semibold">No tasks yet</p>
                     <p className="text-white/40 text-sm mt-2">Add your first task above to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <AnimatePresence>
+                  <div className="space-y-3">
+                    <AnimatePresence mode="popLayout" initial={false}>
                       {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onToggle={handleToggleTask}
-                          onDelete={handleDeleteTask}
-                          isSustainable={sustainableTasks.includes(task.title)}
-                        />
+                        <div key={task.id}>
+                          <TaskCard
+                            task={task}
+                            onToggle={handleToggleTask}
+                            onDelete={handleDeleteTask}
+                            onEdit={handleEditTask}
+                            onAISchedule={handleAIScheduleTask}
+                            onManualSchedule={handleManualScheduleTask}
+                            isSustainable={sustainableTasks.includes(task.title)}
+                            isDeleting={deletingTaskIds.has(task.id as number)}
+                            isPro={isPro}
+                          />
+                        </div>
                       ))}
                     </AnimatePresence>
                   </div>
@@ -964,7 +1685,7 @@ export default function MVPDashboard() {
 
           {/* Right Column: Progress & Motivation */}
           <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="border border-white/10 bg-black/20 backdrop-blur-sm rounded-lg p-6 lg:sticky lg:top-24">
+            <div className="liquid-glass-strong glass-gradient-blue rounded-lg p-6 lg:sticky lg:top-24 liquid-glass-depth">
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-white">Progress</h2>
 
@@ -974,8 +1695,8 @@ export default function MVPDashboard() {
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
-                  <div className="bg-white/5 rounded-xl p-8 border border-white/10">
-                    <Cactus mood={milestoneData.cactusState} size="xl" />
+                  <div className="liquid-glass-subtle rounded-xl p-8">
+                    <Cactus mood={milestoneData.cactusState as 'sad' | 'happy' | 'neutral' | 'overwhelmed' | 'tired' | 'stressed' | 'focused' | 'excited' | 'energized'} size="xl" />
                   </div>
                 </motion.div>
 
@@ -991,7 +1712,7 @@ export default function MVPDashboard() {
                 </div>
 
                 {/* Stats */}
-                <div className="bg-white/5 rounded-lg p-4 border border-white/10 space-y-2">
+                <div className="liquid-glass-subtle rounded-lg p-4 space-y-2">
                   <div className="flex items-baseline gap-2">
                     <div className="text-3xl font-bold text-white font-mono">
                       {milestoneData.currentPoints.toString().padStart(2, '0')}
@@ -1034,14 +1755,14 @@ export default function MVPDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 liquid-glass-overlay z-50 flex items-center justify-center p-4"
             onClick={() => setShowAllTasks(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -1062,7 +1783,7 @@ export default function MVPDashboard() {
               
               <div className="overflow-y-auto max-h-[60vh] space-y-4">
                 {/* Progress Overview */}
-                <div className="bg-gradient-to-r from-blue-500/20 to-green-500/20 border border-blue-400/30 rounded-xl p-4">
+                <div className="liquid-glass glass-gradient-blue rounded-xl p-4">
                   <h3 className="font-semibold text-white mb-3">🎯 Your Progress</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
@@ -1081,7 +1802,7 @@ export default function MVPDashboard() {
                 </div>
 
                 {/* Cactus Progress */}
-                <div className="bg-green-500/20 border border-green-400/30 rounded-xl p-4">
+                <div className="liquid-glass glass-gradient-green rounded-xl p-4">
                   <h3 className="font-semibold text-white mb-3">🌵 Cactus Growth</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
@@ -1100,7 +1821,7 @@ export default function MVPDashboard() {
                 </div>
 
                 {/* Current Session */}
-                <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                <div className="liquid-glass-subtle rounded-xl p-4">
                   <h3 className="font-semibold text-white mb-3">📋 Current Session</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
@@ -1120,7 +1841,7 @@ export default function MVPDashboard() {
 
                 {/* All-Time Completed Tasks */}
                 {tasks.filter(t => t.title.includes('[COMPLETED]')).length > 0 && (
-                  <div className="bg-green-500/10 border border-green-400/30 rounded-xl p-4">
+                  <div className="liquid-glass glass-gradient-green rounded-xl p-4">
                     <h3 className="font-semibold text-white mb-3">🏆 All-Time Completed Tasks</h3>
                     <p className="text-xs text-white/60 mb-3">These tasks stay here permanently and contribute to your cactus's mood</p>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -1140,7 +1861,7 @@ export default function MVPDashboard() {
 
                 {/* Today's Tasks (if any) */}
                 {tasks.filter(t => !t.title.includes('[COMPLETED]')).length > 0 && (
-                  <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+                  <div className="liquid-glass-subtle rounded-xl p-4">
                     <h3 className="font-semibold text-white mb-3">📝 Today's Tasks</h3>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
@@ -1171,14 +1892,14 @@ export default function MVPDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-lg z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 liquid-glass-overlay z-50 flex items-center justify-center p-4"
             onClick={() => handleConfirmCompletion(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center mb-6">
@@ -1241,14 +1962,14 @@ export default function MVPDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 liquid-glass-overlay z-50 flex items-center justify-center p-4"
             onClick={() => setShowMilestonePopup(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
@@ -1280,14 +2001,14 @@ export default function MVPDashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 liquid-glass-overlay z-50 flex items-center justify-center p-4"
             onClick={() => setShowDailyLimitPopup(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="glass-dark-modern border-precise rounded-2xl p-6 max-w-md w-full"
+              className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-md w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
@@ -1389,6 +2110,207 @@ export default function MVPDashboard() {
 
       {/* Daily Notification Prompt */}
       <DailyNotificationPrompt />
+
+      {/* Account Status Modal */}
+      <AnimatePresence>
+        {showAccountModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 liquid-glass-overlay z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAccountModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-white mb-2">account status</h3>
+                <p className="text-white/60 text-sm">{user?.primaryEmailAddress?.emailAddress}</p>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {/* Pro Status */}
+                <div className="liquid-glass-subtle glass-gradient-purple rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white/60 text-sm font-medium">subscription</span>
+                    {isPro ? (
+                      <span className="px-2 py-1 bg-white text-black rounded text-xs font-bold">PRO</span>
+                    ) : (
+                      <span className="px-2 py-1 bg-white/10 text-white/60 rounded text-xs font-medium">FREE</span>
+                    )}
+                  </div>
+                  <p className="text-white font-semibold">
+                    {isPro ? 'teyra pro' : 'teyra free'}
+                  </p>
+                  <p className="text-white/50 text-xs mt-1">
+                    {isPro ? 'unlimited AI text → task, pomodoro timer, and more' : '5 AI text → task per day'}
+                  </p>
+                </div>
+
+                {/* Progress Stats */}
+                <div className="liquid-glass-subtle glass-gradient-blue rounded-lg p-4">
+                  <span className="text-white/60 text-sm font-medium block mb-2">progress</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-2xl font-bold text-white">{milestoneData.totalPointsEarned}</div>
+                      <div className="text-white/50 text-xs">total points</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-white capitalize">{milestoneData.cactusState}</div>
+                      <div className="text-white/50 text-xs">mike's mood</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tasks Summary */}
+                <div className="liquid-glass-subtle glass-gradient-green rounded-lg p-4">
+                  <span className="text-white/60 text-sm font-medium block mb-2">tasks</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {tasks.filter(t => t?.completed || t.title.includes('[COMPLETED]')).length}
+                      </div>
+                      <div className="text-white/50 text-xs">completed</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-400">
+                        {tasks.filter(t => !t?.completed && !t.title.includes('[COMPLETED]')).length}
+                      </div>
+                      <div className="text-white/50 text-xs">remaining</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!isPro && (
+                <button
+                  onClick={() => {
+                    setShowAccountModal(false);
+                    setTimeout(() => {
+                      const upgradeSection = document.getElementById('upgrade');
+                      if (upgradeSection) {
+                        upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }, 300);
+                  }}
+                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold mb-3"
+                >
+                  upgrade to pro — $10/month
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowAccountModal(false)}
+                className="w-full text-sm text-white/60 hover:text-white transition-colors"
+              >
+                close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pro Welcome Modal */}
+      <ProWelcomeModal
+        isOpen={showProWelcome}
+        onClose={() => setShowProWelcome(false)}
+      />
+
+      {/* Edit Task Modal */}
+      <AnimatePresence>
+        {editModalTask && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setEditModalTask(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 border border-white/20 rounded-xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-white mb-4">edit task</h3>
+              <input
+                type="text"
+                value={editModalTitle}
+                onChange={(e) => setEditModalTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveEditedTask()}
+                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-white/40 mb-4"
+                placeholder="Task title..."
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditModalTask(null)}
+                  className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                >
+                  cancel
+                </button>
+                <button
+                  onClick={saveEditedTask}
+                  className="flex-1 px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold"
+                >
+                  save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Schedule Task Modal */}
+      <AnimatePresence>
+        {scheduleModalTask && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setScheduleModalTask(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 border border-white/20 rounded-xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold text-white mb-1">schedule task</h3>
+              <p className="text-white/60 text-sm mb-4">{scheduleModalTask.title}</p>
+
+              <div className="space-y-4 mb-4">
+                <div>
+                  <label className="block text-sm text-white/80 mb-2">date & time</label>
+                  <input
+                    type="datetime-local"
+                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
+                    onChange={(e) => {
+                      const scheduledTime = new Date(e.target.value).toISOString();
+                      saveScheduledTask(scheduledTime, 60);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => setScheduleModalTask(null)}
+                className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+              >
+                cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

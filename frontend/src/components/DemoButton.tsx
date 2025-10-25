@@ -96,7 +96,7 @@ export default function DemoButton() {
                     setShowDemo(false);
                     setCurrentStep(0);
                   }}
-                  className="text-white/60 hover:text-white p-1"
+                  className="text-white/60 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all duration-200"
                 >
                   <X className="w-5 h-5" />
                 </button>

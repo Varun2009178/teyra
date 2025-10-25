@@ -5,13 +5,13 @@ import Groq from 'groq-sdk';
 export const dynamic = 'force-dynamic';
 
 const groq = new Groq({
-  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🧠 Mood task generation request received');
-    console.log('GROQ API Key configured:', !!process.env.NEXT_PUBLIC_GROQ_API_KEY);
+    console.log('GROQ API Key configured:', !!process.env.GROQ_API_KEY);
     
     const user = await currentUser();
     if (!user?.id) {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If GROQ API is not configured, return fallback tasks immediately
-    if (!process.env.NEXT_PUBLIC_GROQ_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       console.log('⚠️ GROQ API not configured, using fallback tasks');
       const fallbackTasks = getFallbackTasks(mood);
       return NextResponse.json({ 

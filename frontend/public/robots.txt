@@ -1,0 +1,17 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /contact
+Allow: /sustainability
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /sign-in/
+Disallow: /sign-up/
+Disallow: /welcome/
+Disallow: /admin/
+Disallow: /test/
+Disallow: /debug/
+Disallow: /simple/
+Disallow: /offline/
+
+Sitemap: https://teyra.vercel.app/sitemap.xml

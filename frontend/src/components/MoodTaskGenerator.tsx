@@ -137,7 +137,7 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
 
   if (isUsedToday && selectedMood) {
     return (
-      <div className="glass-dark-modern border-precise rounded-xl p-4">
+      <div className="liquid-glass-strong glass-gradient-pink rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${selectedMoodData?.color} flex items-center justify-center shadow-lg border border-white/20`}>
@@ -157,7 +157,7 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
         {/* Show generated tasks with individual add buttons */}
         <div className="space-y-2">
           {generatedTasks.map((task, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/20">
+            <div key={index} className="flex items-center justify-between p-3 liquid-glass-subtle rounded-lg">
               <span className="text-sm text-white flex-1 font-medium">{task}</span>
               <button
                 onClick={() => {
@@ -192,9 +192,9 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
             whileTap={{ scale: 0.98 }}
             className={`
               relative p-3 rounded-xl border-2 transition-all duration-200
-              ${selectedMood === mood.id 
-                ? 'border-white/40 bg-white/10 shadow-md ring-2 ring-white/20' 
-                : 'border-white/20 hover:border-white/30 bg-white/5 hover:bg-white/10'
+              ${selectedMood === mood.id
+                ? 'border-white/40 liquid-glass shadow-md ring-2 ring-white/20'
+                : 'border-white/20 hover:border-white/30 liquid-glass-subtle hover:liquid-glass'
               }
               ${isGenerating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}

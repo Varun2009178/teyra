@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -39,23 +39,47 @@ export async function POST(request: NextRequest) {
       console.error('Error parsing request body:', e);
       return {};
     });
-    
-    const { title, hasBeenSplit = false, limit } = body;
-    
+
+    const { title, hasBeenSplit = false, limit, scheduled_time, duration_minutes } = body;
+
     if (!title || typeof title !== 'string') {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
     const userId = user.id;
-    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit}, limit: ${limit})`);
-    
-    const newTask = await createTask(userId, title, Boolean(hasBeenSplit), limit);
-    
-    return NextResponse.json(newTask);
+    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit}, limit: ${limit}, scheduled: ${scheduled_time})`);
+
+    // If scheduled_time or duration_minutes are provided, use direct Supabase client
+    if (scheduled_time || duration_minutes) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { data: newTask, error } = await supabase
+        .from('tasks')
+        .insert({
+          user_id: userId,
+          title,
+          completed: false,
+          has_been_split: hasBeenSplit,
+          limit,
+          scheduled_time: scheduled_time || null,
+          duration_minutes: duration_minutes || null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json(newTask);
+    } else {
+      const newTask = await createTask(userId, title, limit, Boolean(hasBeenSplit));
+      return NextResponse.json(newTask);
+    }
   } catch (error) {
     console.error('Error creating task:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error', 
+    return NextResponse.json({
+      error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }

@@ -330,23 +330,23 @@ export default function HomePage() {
                 <div className="px-4 py-6 space-y-4">
                   {isLoaded && user ? (
                     <>
-                      <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           contact
                         </div>
                       </Link>
-                      <Link href="/sustainability" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/sustainability" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           sustainability
                         </div>
                       </Link>
-                      <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           dashboard
                         </div>
                       </Link>
                       <div className="pt-4 border-t border-white/10">
-                        <UserButton 
+                        <UserButton
                           appearance={{
                             elements: {
                               avatarBox: "w-12 h-12 border-2 border-white/20"
@@ -357,23 +357,23 @@ export default function HomePage() {
                     </>
                   ) : (
                     <>
-                      <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           contact
                         </div>
                       </Link>
-                      <Link href="/sustainability" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/sustainability" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           sustainability
                         </div>
                       </Link>
-                      <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-left px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
+                      <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item px-4 py-3 text-white hover:bg-white/10 rounded-lg transition-colors font-medium">
                           sign in
                         </div>
                       </Link>
-                      <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                        <div className="mobile-menu-item block w-full text-center px-4 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors font-semibold">
+                      <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)} className="block w-full">
+                        <div className="mobile-menu-item text-center px-4 py-3 bg-white text-black hover:bg-white/90 rounded-lg transition-colors font-semibold">
                           get started
                         </div>
                       </Link>
@@ -1091,9 +1091,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Focus Mode Demo Section */}
-      <section className="py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-red-500/5">
-        <div className="max-w-6xl mx-auto">
+      {/* Focus Mode Demo Section - Enhanced */}
+      <section className="py-12 sm:py-16 md:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-500/5 to-transparent pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
 
             {/* Left Side - Chrome Extension Mockup */}
@@ -1105,7 +1108,7 @@ export default function HomePage() {
               className="relative order-2 lg:order-1"
             >
               {/* Browser Window with Blocked Site */}
-              <div className="glass-dark-modern rounded-2xl overflow-hidden shadow-2xl">
+              <div className="glass-dark-modern rounded-2xl overflow-hidden shadow-2xl border border-white/10">
                 {/* Browser Chrome */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-white/5 border-b border-white/10">
                   <div className="flex gap-2">
@@ -1115,8 +1118,8 @@ export default function HomePage() {
                   </div>
                   <div className="ml-4 flex-1 bg-white/5 rounded-lg px-3 py-1.5 text-xs text-white/40 flex items-center gap-2">
                     <motion.div
-                      animate={{ x: [0, 200, 0] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      animate={{ x: [0, 150, 0] }}
+                      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
                       className="text-lg"
                     >
                       👆
@@ -1126,54 +1129,94 @@ export default function HomePage() {
                 </div>
 
                 {/* Blocked Page Content */}
-                <div className="p-12 flex flex-col items-center justify-center min-h-[400px] bg-gradient-to-b from-red-500/10 to-transparent">
+                <div className="p-8 sm:p-12 flex flex-col items-center justify-center min-h-[400px] bg-gradient-to-b from-red-500/10 via-red-500/5 to-transparent relative">
+                  {/* Animated pulse effect */}
                   <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="text-8xl mb-6"
+                    className="absolute inset-0 bg-red-400/5 rounded-full blur-3xl"
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.3, 0.5, 0.3]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0, rotate: -180 }}
+                    whileInView={{ scale: 1, opacity: 1, rotate: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2, type: "spring" }}
+                    viewport={{ once: true }}
+                    className="text-7xl sm:text-8xl mb-6 relative z-10"
                   >
                     🚫
                   </motion.div>
 
                   <motion.h3
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
-                    className="text-2xl font-bold text-white mb-3"
+                    viewport={{ once: true }}
+                    className="text-2xl sm:text-3xl font-bold text-white mb-3 relative z-10"
                   >
                     Site Blocked
                   </motion.h3>
 
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.6 }}
-                    className="text-white/60 text-center mb-8 max-w-sm"
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                    viewport={{ once: true }}
+                    className="text-white/70 text-center mb-8 max-w-sm relative z-10 text-sm sm:text-base"
                   >
                     Focus mode is active. This site is blocked to help you stay productive.
                   </motion.p>
 
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
-                    className="space-y-2 w-full max-w-sm"
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                    viewport={{ once: true }}
+                    className="space-y-2 w-full max-w-sm relative z-10"
                   >
-                    <div className="flex items-center justify-between p-3 bg-red-400/10 rounded-lg border border-red-400/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs">📱</div>
-                        <span className="text-sm text-white/90 font-medium">instagram.com</span>
-                      </div>
-                      <div className="text-xs text-red-400 font-semibold">BLOCKED</div>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-red-400/10 rounded-lg border border-red-400/30">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs">💬</div>
-                        <span className="text-sm text-white/90 font-medium">twitter.com</span>
-                      </div>
-                      <div className="text-xs text-red-400 font-semibold">BLOCKED</div>
-                    </div>
+                    {[
+                      { icon: '📱', site: 'instagram.com', delay: 0.7 },
+                      { icon: '💬', site: 'twitter.com', delay: 0.8 },
+                      { icon: '🎮', site: 'reddit.com', delay: 0.9 }
+                    ].map((item, index) => (
+                      <motion.div
+                        key={item.site}
+                        initial={{ opacity: 0, x: -20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: item.delay }}
+                        viewport={{ once: true }}
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        className="flex items-center justify-between p-3 bg-red-400/10 rounded-lg border border-red-400/30 backdrop-blur-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs">
+                            {item.icon}
+                          </div>
+                          <span className="text-sm text-white/90 font-medium">{item.site}</span>
+                        </div>
+                        <motion.div
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="text-xs text-red-400 font-semibold"
+                        >
+                          BLOCKED
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+
+                  {/* Pro badge indicator */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 1.0 }}
+                    viewport={{ once: true }}
+                    className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-full relative z-10"
+                  >
+                    <span className="text-xs font-semibold text-purple-300">✨ Customize blocklist with Pro</span>
                   </motion.div>
                 </div>
               </div>
@@ -1187,40 +1230,76 @@ export default function HomePage() {
               viewport={{ once: true }}
               className="space-y-4 sm:space-y-6 order-1 lg:order-2 text-center lg:text-left"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-400/10 border border-red-400/30">
-                <span className="text-sm font-semibold text-red-400">🚫 Focus Mode</span>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-400/10 border border-red-400/30"
+              >
+                <motion.span
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-base"
+                >
+                  🚫
+                </motion.span>
+                <span className="text-sm font-semibold text-red-400">Focus Mode</span>
+              </motion.div>
 
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-white">
                 block distractions,
                 <br />
-                <span className="text-red-400">boost productivity</span>
+                <span className="bg-gradient-to-r from-red-400 to-pink-500 bg-clip-text text-transparent">
+                  boost productivity
+                </span>
               </h2>
 
-              <p className="text-lg text-white/70">
-                one click to block social media and distracting websites. stay in the zone and earn XP for every focused session.
+              <p className="text-base sm:text-lg text-white/70 leading-relaxed">
+                one click to block social media and distracting websites. stay in the zone with our Chrome extension and earn XP for every focused session.
               </p>
 
-              <div className="space-y-3 max-w-md mx-auto lg:mx-0">
-                <div className="flex items-center gap-3 justify-center lg:justify-start">
-                  <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm">✓</span>
-                  </div>
-                  <span className="text-white/80 text-left">Instantly block distracting websites</span>
-                </div>
-                <div className="flex items-center gap-3 justify-center lg:justify-start">
-                  <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm">✓</span>
-                  </div>
-                  <span className="text-white/80 text-left">Customizable blocklist for your needs</span>
-                </div>
-                <div className="flex items-center gap-3 justify-center lg:justify-start">
-                  <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm">✓</span>
-                  </div>
-                  <span className="text-white/80 text-left">Works seamlessly with Pomodoro timer</span>
-                </div>
+              <div className="space-y-3 max-w-md mx-auto lg:mx-0 pt-4">
+                {[
+                  { icon: '⚡', text: 'Instantly block distracting websites', delay: 0.2 },
+                  { icon: '🎯', text: 'Customizable blocklist (Pro feature)', delay: 0.3 },
+                  { icon: '⏱️', text: 'Works seamlessly with Pomodoro timer', delay: 0.4 },
+                  { icon: '🏆', text: 'Earn +10 XP for every focused hour', delay: 0.5 }
+                ].map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: item.delay }}
+                    viewport={{ once: true }}
+                    whileHover={{ x: 4 }}
+                    className="flex items-center gap-3 justify-center lg:justify-start"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-red-400/20 flex items-center justify-center flex-shrink-0 border border-red-400/30">
+                      <span className="text-sm">{item.icon}</span>
+                    </div>
+                    <span className="text-white/80 text-left text-sm sm:text-base">{item.text}</span>
+                  </motion.div>
+                ))}
               </div>
+
+              {/* CTA to extension */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                viewport={{ once: true }}
+                className="pt-4"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => document.getElementById('chrome-extension')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="px-6 py-3 bg-red-400/10 hover:bg-red-400/20 border border-red-400/30 hover:border-red-400/50 rounded-lg text-red-300 font-medium transition-all duration-300 text-sm sm:text-base"
+                >
+                  Get Chrome Extension →
+                </motion.button>
+              </motion.div>
             </motion.div>
 
           </div>
@@ -1369,9 +1448,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Chrome Extension Coming Soon */}
-      <section id="chrome-extension" className="py-24 px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
+      {/* Chrome Extension - Download CTA */}
+      <section id="chrome-extension" className="py-24 px-6 lg:px-8 relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent pointer-events-none" />
+
+        <div className="max-w-4xl mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1379,33 +1461,113 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
+            {/* Chrome icon with animation */}
             <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="relative"
+              initial={{ scale: 0, rotate: -180 }}
+              whileInView={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center"
             >
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
-                chrome extension
-              </h2>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 rounded-full text-purple-300 text-sm font-medium mb-8"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-3 h-3 border border-purple-400 border-t-transparent rounded-full"
-                />
-                coming soon
-              </motion.div>
+              <span className="text-4xl">🌐</span>
             </motion.div>
 
-            <p className="hero-subtitle mb-12 max-w-2xl mx-auto">
-              mike will live in your browser, keeping you focused and on track
-            </p>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              viewport={{ once: true }}
+              className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-4 text-white"
+            >
+              get the chrome extension
+            </motion.h2>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-400/30 rounded-full text-green-300 text-sm font-medium mb-8"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-2 h-2 bg-green-400 rounded-full"
+              />
+              now available
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              viewport={{ once: true }}
+              className="hero-subtitle mb-8 max-w-2xl mx-auto"
+            >
+              bring mike, focus mode, and pomodoro timer directly to your browser. boost productivity wherever you work.
+            </motion.p>
+
+            {/* Big download button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              viewport={{ once: true }}
+              className="mb-12"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.open('https://tally.so/r/nr7G7l', '_blank')}
+                className="relative px-10 py-5 text-lg font-bold text-white rounded-xl overflow-hidden shadow-2xl group"
+              >
+                {/* Animated gradient background */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600"
+                  animate={{
+                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                  style={{
+                    backgroundSize: '200% 200%',
+                  }}
+                />
+
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  animate={{
+                    x: ['-100%', '100%'],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatDelay: 1
+                  }}
+                />
+
+                {/* Button content */}
+                <span className="relative z-10 flex items-center gap-3">
+                  <Rocket className="w-6 h-6" />
+                  Add to Chrome - It's Free
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </motion.button>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                viewport={{ once: true }}
+                className="text-white/40 text-xs mt-4"
+              >
+                Works with Chrome, Edge, Brave & other Chromium browsers
+              </motion.p>
+            </motion.div>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

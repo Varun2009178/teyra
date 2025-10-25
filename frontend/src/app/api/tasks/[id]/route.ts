@@ -47,13 +47,16 @@ export async function PATCH(
       console.error('Error parsing request body:', e);
       return {};
     });
-    
-    const { completed, title, hasBeenSplit } = body;
-    
+
+    const { completed, title, hasBeenSplit, scheduled_time, duration_minutes, google_event_id } = body;
+
     const updateData: any = {};
     if (typeof completed === 'boolean') updateData.completed = completed;
     if (typeof title === 'string') updateData.title = title;
     if (typeof hasBeenSplit === 'boolean') updateData.has_been_split = hasBeenSplit;
+    if (scheduled_time !== undefined) updateData.scheduled_time = scheduled_time;
+    if (typeof duration_minutes === 'number') updateData.duration_minutes = duration_minutes;
+    if (google_event_id !== undefined) updateData.google_event_id = google_event_id;
     
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

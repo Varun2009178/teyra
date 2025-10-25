@@ -80,7 +80,14 @@ export async function createTask(userId: string, title: string, limit?: string, 
   }
 }
 
-export async function updateTask(taskId: number, data: { completed?: boolean; title?: string; has_been_split?: boolean }) {
+export async function updateTask(taskId: number, data: {
+  completed?: boolean;
+  title?: string;
+  has_been_split?: boolean;
+  scheduled_time?: string;
+  duration_minutes?: number;
+  google_event_id?: string;
+}) {
   try {
     const updateData: any = {
       updated_at: new Date().toISOString()
@@ -95,6 +102,15 @@ export async function updateTask(taskId: number, data: { completed?: boolean; ti
     if (typeof data.has_been_split === 'boolean') {
       updateData.has_been_split = data.has_been_split
     }
+    if (data.scheduled_time !== undefined) {
+      updateData.scheduled_time = data.scheduled_time
+    }
+    if (typeof data.duration_minutes === 'number') {
+      updateData.duration_minutes = data.duration_minutes
+    }
+    if (data.google_event_id !== undefined) {
+      updateData.google_event_id = data.google_event_id
+    }
 
     const { data: updatedTask, error } = await serviceSupabase
       .from('tasks')
@@ -105,7 +121,7 @@ export async function updateTask(taskId: number, data: { completed?: boolean; ti
 
     if (error) throw error
     if (!updatedTask) throw new Error(`Task with ID ${taskId} not found`)
-    
+
     return updatedTask
   } catch (error) {
     console.error(`Error updating task ${taskId}:`, error)
