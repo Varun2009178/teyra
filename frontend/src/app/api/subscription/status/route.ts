@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
+import Stripe from 'stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,21 +43,37 @@ export async function GET(req: NextRequest) {
         console.error('Error creating user_progress:', createError);
       }
 
-      return NextResponse.json({ isPro: false });
+      return NextResponse.json({ isPro: false, cancelAtPeriodEnd: false });
     }
 
     if (error) {
       console.error('Error fetching subscription status:', error);
-      return NextResponse.json({ isPro: false });
+      return NextResponse.json({ isPro: false, cancelAtPeriodEnd: false });
+    }
+
+    // If user has a subscription, check if it's set to cancel
+    let cancelAtPeriodEnd = false;
+    let periodEnd = null;
+
+    if (data?.stripe_subscription_id) {
+      try {
+        const subscription = await stripe.subscriptions.retrieve(data.stripe_subscription_id);
+        cancelAtPeriodEnd = subscription.cancel_at_period_end;
+        periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      } catch (stripeError) {
+        console.error('Error fetching Stripe subscription:', stripeError);
+      }
     }
 
     return NextResponse.json({
       isPro: data?.is_pro || false,
       proSince: data?.pro_since,
       subscriptionId: data?.stripe_subscription_id,
+      cancelAtPeriodEnd,
+      periodEnd,
     });
   } catch (error) {
     console.error('Error in subscription status:', error);
-    return NextResponse.json({ isPro: false });
+    return NextResponse.json({ isPro: false, cancelAtPeriodEnd: false });
   }
 }

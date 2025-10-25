@@ -1673,8 +1673,19 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="py-8 text-center text-white/40 text-sm">
-        <div className="font-geist-mono">
-          &copy; {new Date().getFullYear()} teyra. crafted with care for human productivity.
+        <div className="font-geist-mono space-y-3">
+          <div className="flex items-center justify-center gap-4">
+            <a href="/privacy" className="hover:text-white/70 transition-colors">
+              privacy policy
+            </a>
+            <span>·</span>
+            <a href="/terms" className="hover:text-white/70 transition-colors">
+              terms of service
+            </a>
+          </div>
+          <div>
+            &copy; {new Date().getFullYear()} teyra. crafted with care for human productivity.
+          </div>
         </div>
       </footer>
     </div>

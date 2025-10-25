@@ -249,6 +249,7 @@ const TaskCard = React.memo(({
               <span>delete</span>
             </button>
 
+            {/* Calendar scheduling temporarily disabled - pending Google verification
             <div className="border-t border-white/10 my-1" />
 
             {onAISchedule && (
@@ -279,6 +280,7 @@ const TaskCard = React.memo(({
                 <span>schedule</span>
               </button>
             )}
+            */}
           </div>
         </motion.div>
       )}
@@ -330,9 +332,12 @@ export default function MVPDashboard() {
   const [hasCompletedFirstTask, setHasCompletedFirstTask] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showProWelcome, setShowProWelcome] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [editModalTask, setEditModalTask] = useState<Task | null>(null);
   const [editModalTitle, setEditModalTitle] = useState('');
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
@@ -496,7 +501,23 @@ export default function MVPDashboard() {
         });
         if (subRes.ok) {
           const subData = await subRes.json();
-          setIsPro(subData.isPro || false);
+          const isProStatus = subData.isPro || false;
+          setIsPro(isProStatus);
+          setCancelAtPeriodEnd(subData.cancelAtPeriodEnd || false);
+          setSubscriptionEndDate(subData.periodEnd);
+
+          // Send Pro status to Chrome extension
+          window.postMessage({
+            type: 'TEYRA_USER_SIGNIN',
+            source: 'teyra-webapp',
+            user: {
+              id: user.id,
+              email: user.primaryEmailAddress?.emailAddress,
+              isPro: isProStatus
+            },
+            tasks: tasksList
+          }, '*');
+          console.log('📤 Sent user data to extension:', { isPro: isProStatus });
         }
       } catch (error) {
         console.warn('Could not fetch subscription status:', error);
@@ -1255,13 +1276,13 @@ export default function MVPDashboard() {
                 All Tasks
               </button>
               <button
-                onClick={() => window.location.href = '/dashboard/calendar'}
+                onClick={() => toast.info('calendar feature coming soon! we\'re completing google verification.')}
                 className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium flex items-center gap-2"
               >
                 <Calendar className="w-4 h-4" />
                 Calendar
                 <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                  beta
+                  coming soon
                 </span>
               </button>
               {isPro && <ProBadgeDropdown />}
@@ -1398,9 +1419,8 @@ export default function MVPDashboard() {
                 </motion.p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   {[
-                    { title: "unlimited ai scheduling", desc: "schedule tasks automatically with ai (vs 3 free)", highlight: true },
-                    { title: "unlimited AI text → task", desc: "limited time only! (vs 5 per day free)", highlight: false },
-                    { title: "focus mode customization", desc: "block any websites you choose" },
+                    { title: "unlimited AI text → task", desc: "limited time only! (vs 5 per day free)", highlight: true },
+                    { title: "focus mode customization", desc: "block any websites you choose", highlight: false },
                     { title: "pomodoro timer", desc: "built-in focus sessions" },
                     { title: "priority support", desc: "faster response times" }
                   ].map((feature, i) => (
@@ -2204,6 +2224,27 @@ export default function MVPDashboard() {
                 </button>
               )}
 
+              {isPro && !cancelAtPeriodEnd && (
+                <button
+                  onClick={() => {
+                    setShowAccountModal(false);
+                    setShowCancelModal(true);
+                  }}
+                  className="w-full px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors font-medium mb-3"
+                >
+                  cancel subscription
+                </button>
+              )}
+
+              {isPro && cancelAtPeriodEnd && subscriptionEndDate && (
+                <div className="w-full px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-3">
+                  <div className="text-yellow-400 font-medium text-sm mb-1">Subscription Ending</div>
+                  <div className="text-yellow-400/70 text-xs">
+                    Pro access until {new Date(subscriptionEndDate).toLocaleDateString()}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => setShowAccountModal(false)}
                 className="w-full text-sm text-white/60 hover:text-white transition-colors"
@@ -2220,6 +2261,104 @@ export default function MVPDashboard() {
         isOpen={showProWelcome}
         onClose={() => setShowProWelcome(false)}
       />
+
+      {/* Cancel Subscription Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowCancelModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-gradient-to-br from-zinc-900 to-zinc-800 border border-red-500/30 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-6">
+                <div className="text-5xl mb-4">⚠️</div>
+                <h2 className="text-2xl font-bold text-white mb-2">cancel pro subscription?</h2>
+                <p className="text-white/60 text-sm">
+                  you'll keep pro access until{' '}
+                  {subscriptionEndDate && (
+                    <span className="text-white font-medium">
+                      {new Date(subscriptionEndDate).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-red-400">✗</span>
+                    <span className="text-white/70">no more unlimited ai scheduling</span>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-red-400">✗</span>
+                    <span className="text-white/70">no more custom blocked websites</span>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-green-400">✓</span>
+                    <span className="text-white/70">keeps working until period ends</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors font-medium"
+                >
+                  nevermind
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const token = await getToken();
+                      const response = await fetch('/api/stripe/cancel-subscription', {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json'
+                        }
+                      });
+
+                      if (response.ok) {
+                        const data = await response.json();
+                        setCancelAtPeriodEnd(true);
+                        toast.success(`subscription cancelled. pro access until ${data.accessUntil}`);
+                        setShowCancelModal(false);
+                      } else {
+                        const error = await response.json();
+                        toast.error(error.error || 'failed to cancel subscription');
+                      }
+                    } catch (error) {
+                      console.error('Error canceling subscription:', error);
+                      toast.error('failed to cancel subscription');
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-semibold"
+                >
+                  yes, cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Task Modal */}
       <AnimatePresence>
