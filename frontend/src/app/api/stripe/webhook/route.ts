@@ -35,10 +35,22 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId || session.client_reference_id;
+        const referralCode = session.metadata?.referralCode;
 
         if (!userId) {
           console.error('❌ No userId found in session');
           break;
+        }
+
+        // Log referral conversion if present
+        if (referralCode) {
+          console.log('🎯 REFERRAL CONVERSION:', {
+            referralCode,
+            userId,
+            subscriptionId: session.subscription,
+            amount: session.amount_total ? session.amount_total / 100 : 0,
+            timestamp: new Date().toISOString()
+          });
         }
 
         // Upsert user's subscription status in database (create or update)

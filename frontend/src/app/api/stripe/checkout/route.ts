@@ -14,6 +14,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get referral code from request body
+    const body = await req.json().catch(() => ({}));
+    const referralCode = body.referralCode || null;
+
+    // Create metadata object
+    const metadata: { userId: string; referralCode?: string } = {
+      userId,
+    };
+
+    // Add referral code if present
+    if (referralCode) {
+      metadata.referralCode = referralCode;
+      console.log('🎯 Creating checkout with referral code:', referralCode);
+    }
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -26,9 +41,7 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?pro_welcome=true&session_id={CHECKOUT_SESSION_ID}&upgrade=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=cancelled`,
-      metadata: {
-        userId,
-      },
+      metadata,
       client_reference_id: userId,
       // Enable test clock for easier testing
       allow_promotion_codes: true,

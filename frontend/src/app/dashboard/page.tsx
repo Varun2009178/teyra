@@ -1047,12 +1047,19 @@ export default function MVPDashboard() {
 
     try {
       const token = await getToken();
+
+      // Get referral code from sessionStorage if present
+      const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('teyra_referral') : null;
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          referralCode: referralCode || undefined
+        })
       });
 
       if (!response.ok) {
@@ -1468,12 +1475,9 @@ export default function MVPDashboard() {
                   disabled={true}
                   className="w-full px-6 sm:px-8 py-3 bg-white/20 text-white/40 font-semibold rounded-lg text-base transition-all duration-200 cursor-not-allowed relative overflow-hidden"
                 >
-                  <span className="relative z-10">upgrade to pro — $10/month</span>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-0.5 bg-white/40 rotate-12 transform scale-150"></div>
-                  </div>
-                  <div className="absolute bottom-1 right-2 text-[10px] text-white/30 font-normal">
-                    coming soon
+                  <div className="flex items-center justify-between w-full relative z-10">
+                    <span className="line-through">upgrade to pro — $10/month</span>
+                    <span className="text-[10px] text-white/30 font-normal ml-2">coming soon</span>
                   </div>
                 </motion.button>
               </motion.div>
@@ -1791,9 +1795,9 @@ export default function MVPDashboard() {
               className="liquid-glass-strong liquid-glass-depth rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <List className="w-6 h-6 text-white" />
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center space-x-3 flex-1">
+                  <List className="w-6 h-6 text-white flex-shrink-0" />
                   <h2 className="text-2xl font-bold text-white">All Tasks Summary</h2>
                   <span className="text-sm text-white/60 bg-white/10 px-3 py-1 rounded-full">
                     {tasks.filter(t => t?.completed || t.title.includes('[COMPLETED]')).length} completed all-time
@@ -1801,7 +1805,7 @@ export default function MVPDashboard() {
                 </div>
                 <button
                   onClick={() => setShowAllTasks(false)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                 >
                   <Plus className="w-5 h-5 rotate-45 text-white/60" />
                 </button>
@@ -2217,14 +2221,11 @@ export default function MVPDashboard() {
                 <button
                   onClick={() => toast.info('pro upgrades temporarily paused while we complete google calendar verification. coming soon!')}
                   disabled={true}
-                  className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold mb-3 cursor-not-allowed relative overflow-hidden"
+                  className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold mb-3 cursor-not-allowed"
                 >
-                  <span className="relative z-10">upgrade to pro — $10/month</span>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-0.5 bg-white/40 rotate-12 transform scale-150"></div>
-                  </div>
-                  <div className="absolute bottom-1 right-2 text-[10px] text-white/30 font-normal">
-                    coming soon
+                  <div className="flex items-center justify-between w-full">
+                    <span className="line-through">upgrade to pro — $10/month</span>
+                    <span className="text-[10px] text-white/30 font-normal ml-2">coming soon</span>
                   </div>
                 </button>
               )}
