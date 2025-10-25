@@ -12,8 +12,8 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-bold mb-4">Teyra Terms of Service</h1>
-        <p className="text-gray-400 mb-8">Last updated: January 24, 2025</p>
+        <h1 className="text-4xl font-bold mb-4">Teyra's Terms of Service</h1>
+        <p className="text-gray-400 mb-8">Last updated: October 24, 2025</p>
 
         <div className="space-y-8 text-gray-300 leading-relaxed">
           <p>
