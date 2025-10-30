@@ -13,7 +13,7 @@ export default function NotesPage() {
   const [noteId, setNoteId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPro, setIsPro] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(true); // Default to true, hide if seen before
 
   // Check if user is Pro
   useEffect(() => {
@@ -21,13 +21,19 @@ export default function NotesPage() {
     setIsPro(user.publicMetadata?.isPro === true);
   }, [user]);
 
-  // Show modal on first visit - wait for user to load
+  // Hide modal if already seen - wait for user to load
   useEffect(() => {
     if (!user) return;
 
     const hasSeenModal = localStorage.getItem('hasSeenNotesModal');
-    if (!hasSeenModal || hasSeenModal !== 'true') {
-      setShowModal(true);
+    console.log('🔍 Notes modal check:', { hasSeenModal, userId: user.id });
+
+    if (hasSeenModal === 'true') {
+      console.log('❌ Modal already seen, hiding it');
+      setShowModal(false);
+    } else {
+      console.log('✅ First visit, showing modal');
+      // Keep modal visible (already true by default)
     }
   }, [user]);
 
@@ -114,7 +120,8 @@ export default function NotesPage() {
       {/* Welcome Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
           onClick={handleCloseModal}
         >
           <motion.div
