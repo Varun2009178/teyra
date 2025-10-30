@@ -111,8 +111,8 @@ export default function SignUpPage() {
                 colorBorder: 'rgba(255, 255, 255, 0.2)',
               }
             }}
-            redirectUrl="/welcome"
-            afterSignUpUrl="/welcome"
+            redirectUrl="/dashboard"
+            afterSignUpUrl="/dashboard"
             afterSignInUrl="/dashboard"
             signInUrl="/sign-in"
           />

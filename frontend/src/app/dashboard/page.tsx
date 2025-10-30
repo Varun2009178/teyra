@@ -350,6 +350,7 @@ export default function MVPDashboard() {
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
   const [aiScheduleUsageCount, setAiScheduleUsageCount] = useState(0);
+  const [showMobileNotice, setShowMobileNotice] = useState(false);
 
   // Sustainable tasks state - very easy to complete
   const sustainableTasks = [
@@ -493,6 +494,21 @@ export default function MVPDashboard() {
     }
   }, []);
 
+  // Show mobile notice for iPhone users (once per session)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const hasSeenNotice = sessionStorage.getItem('mobile_notice_seen');
+    const isIPhone = /iPhone/.test(navigator.userAgent);
+
+    if (isIPhone && !hasSeenNotice) {
+      setTimeout(() => {
+        setShowMobileNotice(true);
+        sessionStorage.setItem('mobile_notice_seen', 'true');
+      }, 2000); // Show after 2 seconds
+    }
+  }, []);
+
   // Fetch user data - optimized for faster loading
   const fetchUserData = useCallback(async () => {
     if (!user || !isHydrated) return;
@@ -571,6 +587,7 @@ export default function MVPDashboard() {
 
     // Check if user just upgraded to Pro (coming back from Stripe)
     const checkProUpgrade = async () => {
+      if (typeof window === 'undefined') return;
       const urlParams = new URLSearchParams(window.location.search);
       const justUpgraded = urlParams.get('pro_welcome');
       const sessionId = urlParams.get('session_id');
@@ -634,6 +651,7 @@ export default function MVPDashboard() {
 
     // Handle checkout action from extension
     const handleCheckoutAction = async () => {
+      if (typeof window === 'undefined') return;
       const urlParams = new URLSearchParams(window.location.search);
       const action = urlParams.get('action');
 
@@ -652,7 +670,7 @@ export default function MVPDashboard() {
     handleCheckoutAction();
 
     // Scroll to upgrade section if hash is present
-    if (window.location.hash === '#upgrade') {
+    if (typeof window !== 'undefined' && window.location.hash === '#upgrade') {
       setTimeout(() => {
         const upgradeSection = document.getElementById('upgrade');
         if (upgradeSection) {
@@ -2461,6 +2479,47 @@ export default function MVPDashboard() {
           fetchTasks();
         }}
       />
+
+      {/* Mobile Notice for iPhone */}
+      <AnimatePresence>
+        {showMobileNotice && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end z-50"
+            onClick={() => setShowMobileNotice(false)}
+            style={{ zIndex: 9999 }}
+          >
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="w-full bg-gradient-to-br from-black/95 to-zinc-900/95 backdrop-blur-xl border-t border-white/10 rounded-t-3xl p-6 pb-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="max-w-md mx-auto">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="text-2xl">💻</div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold text-lg mb-1">best on desktop</h3>
+                    <p className="text-white/60 text-sm leading-relaxed">
+                      teyra works great on mobile, but the desktop experience is 10x better with more features and a bigger screen
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMobileNotice(false)}
+                  className="w-full mt-4 px-4 py-3 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-colors text-sm"
+                  style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
+                >
+                  got it
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
