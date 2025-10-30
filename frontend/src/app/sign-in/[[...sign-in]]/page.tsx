@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 
-
-export default function SignInPage() {
+function SignInContent() {
   const { isSignedIn, userId } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -152,5 +151,17 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
+        <div className="text-white/60">loading...</div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
