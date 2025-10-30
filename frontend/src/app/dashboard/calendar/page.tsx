@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarView } from '@/components/CalendarView';
@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const { user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -237,5 +237,17 @@ export default function CalendarPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen dark-gradient-bg flex items-center justify-center">
+        <div className="text-white/60">loading...</div>
+      </div>
+    }>
+      <CalendarPageContent />
+    </Suspense>
   );
 }
