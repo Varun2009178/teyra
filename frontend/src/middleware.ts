@@ -11,7 +11,13 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron(.*)',
 ]);
 
-export default clerkMiddleware();
+export default clerkMiddleware(async (auth, req) => {
+  // Allow public routes without auth
+  if (isPublicRoute(req)) return;
+
+  // Protect all other routes
+  await auth.protect();
+});
 
 export const config = {
   matcher: [
