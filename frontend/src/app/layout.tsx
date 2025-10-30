@@ -104,7 +104,6 @@ export default function RootLayout({
         <script src="/extension-bridge.js" defer></script>
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
-        <GoogleAnalytics />
         <ReferralTracker />
         <AuthProvider>
           {children}
