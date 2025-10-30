@@ -70,7 +70,7 @@ export function useNotifications() {
     }
   }, [isSupported]);
 
-  // Register service worker
+  // Register service worker (explicit opt-in only)
   const registerServiceWorker = useCallback(async () => {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Worker not supported');
@@ -263,24 +263,14 @@ export function useNotifications() {
     });
   }, [sendNotification]);
 
-  // Initialize notifications
+  // Initialize notifications (do not auto-register SW to avoid stale caches)
   useEffect(() => {
-    if (isSupported) {
-      // Check current permission
-      const currentPermission = Notification.permission;
-      const granted = currentPermission === 'granted';
-      
-      setPermission({
-        granted,
-        permission: currentPermission
-      });
+    if (!isSupported) return;
 
-      // If already granted, register service worker
-      if (granted) {
-        registerServiceWorker();
-      }
-    }
-  }, [isSupported, registerServiceWorker]);
+    const currentPermission = Notification.permission;
+    const granted = currentPermission === 'granted';
+    setPermission({ granted, permission: currentPermission });
+  }, [isSupported]);
 
   // Handle notification clicks
   useEffect(() => {
