@@ -683,17 +683,25 @@ export default function MVPDashboard() {
 
     // For existing users, ensure they get appropriate onboarding experiences
     const initializeUserExperience = () => {
+      if (typeof window === 'undefined') return;
       const userId = user.id;
-      
+
+      console.log('🎯 Initializing user experience for:', userId);
+
       // Check if this is a first visit for onboarding tour
       const hasSeenTour = localStorage.getItem(`dashboard_tour_${userId}`) === 'true';
-      
+
+      console.log('📊 Has seen tour?', hasSeenTour);
+
       // For existing users who have never seen the tour, show it
       if (!hasSeenTour) {
-        console.log('👋 New user detected - showing onboarding tour');
+        console.log('👋 New user detected - showing onboarding tour in 1 second');
         setTimeout(() => {
+          console.log('🚀 Triggering onboarding tour now');
           setShowOnboardingTour(true);
         }, 1000);
+      } else {
+        console.log('✅ User has already seen the tour');
       }
       
       // Set up first task completion trigger for smart notifications
