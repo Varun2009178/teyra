@@ -557,6 +557,12 @@ function showTemplateError(message) {
 
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🌵 Teyra popup loaded with Mike!');
+
+  // Track popup open
+  if (typeof trackEvent === 'function') {
+    trackEvent('popup_opened');
+  }
+
   checkAuthState();
   setupEventListeners();
   setupBackgroundListeners();
@@ -1068,103 +1074,25 @@ async function handleGoogleSignIn() {
 }
 
 async function handleEmailSignIn() {
-  const email = document.getElementById('signin-email').value.trim();
-  const password = document.getElementById('signin-password').value;
+  // Open Teyra sign-in page (uses Clerk)
+  chrome.tabs.create({ url: 'https://teyra.app/sign-in?extension=true' });
 
-  if (!email || !password) {
-    showToast('Please enter your email and password');
-    return;
-  }
+  // Store a flag that we're waiting for auth
+  await chrome.storage.local.set({ waiting_for_auth: true });
 
-  const btn = document.getElementById('email-signin');
-  btn.textContent = 'Signing in...';
-  btn.disabled = true;
-
-  try {
-    const response = await fetch('https://teyra.app/api/auth/signin', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      currentUser = userData;
-      await chrome.storage.local.set({ teyra_user: userData });
-
-      showToast('Signed in successfully!');
-      showDashboard();
-      await loadUserTasks();
-    } else {
-      const error = await response.json();
-      showToast(error.message || 'Invalid email or password');
-      btn.textContent = 'Sign In';
-      btn.disabled = false;
-    }
-  } catch (error) {
-    console.error('Error signing in:', error);
-    showToast('Failed to sign in. Please try again.');
-    btn.textContent = 'Sign In';
-    btn.disabled = false;
-  }
+  showToast('Opening Teyra sign-in...');
+  window.close();
 }
 
 async function handleEmailSignUp() {
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const confirm = document.getElementById('signup-confirm').value;
+  // Open Teyra sign-up page (uses Clerk)
+  chrome.tabs.create({ url: 'https://teyra.app/sign-up?extension=true' });
 
-  if (!email || !password || !confirm) {
-    showToast('Please fill in all fields');
-    return;
-  }
+  // Store a flag that we're waiting for auth
+  await chrome.storage.local.set({ waiting_for_auth: true });
 
-  if (password !== confirm) {
-    showToast('Passwords do not match');
-    return;
-  }
-
-  if (password.length < 8) {
-    showToast('Password must be at least 8 characters');
-    return;
-  }
-
-  const btn = document.getElementById('email-signup');
-  btn.textContent = 'Creating account...';
-  btn.disabled = true;
-
-  try {
-    const response = await fetch('https://teyra.app/api/auth/signup', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      currentUser = userData;
-      await chrome.storage.local.set({ teyra_user: userData });
-
-      showToast('Account created successfully!');
-      showNewUserWelcome();
-    } else {
-      const error = await response.json();
-      showToast(error.message || 'Failed to create account');
-      btn.textContent = 'Create Account';
-      btn.disabled = false;
-    }
-  } catch (error) {
-    console.error('Error signing up:', error);
-    showToast('Failed to create account. Please try again.');
-    btn.textContent = 'Create Account';
-    btn.disabled = false;
-  }
+  showToast('Opening Teyra sign-up...');
+  window.close();
 }
 
 async function handleSignOut() {
@@ -1902,6 +1830,11 @@ async function addTask(title) {
 
   try {
     console.log('Adding task:', title);
+
+    // Track task creation
+    if (typeof trackEvent === 'function') {
+      trackEvent('task_created', { method: 'manual' });
+    }
 
     // Optimistic UI update
     const tempTask = {

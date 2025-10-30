@@ -2,6 +2,45 @@
 
 console.log('Teyra background script starting...');
 
+// Google Analytics tracking
+const MEASUREMENT_ID = 'G-GH3FC37X57';
+
+async function getClientId() {
+  const result = await chrome.storage.local.get(['clientId']);
+  if (result.clientId) {
+    return result.clientId;
+  }
+  const clientId = self.crypto.randomUUID();
+  await chrome.storage.local.set({ clientId });
+  return clientId;
+}
+
+async function trackEvent(eventName, eventParams = {}) {
+  try {
+    const clientId = await getClientId();
+    const payload = {
+      client_id: clientId,
+      events: [{
+        name: eventName,
+        params: {
+          ...eventParams,
+          session_id: Date.now().toString(),
+          engagement_time_msec: '100'
+        }
+      }]
+    };
+
+    await fetch(`https://www.google-analytics.com/mp/collect?measurement_id=${MEASUREMENT_ID}`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    console.log('Analytics event tracked:', eventName);
+  } catch (error) {
+    console.error('Failed to track event:', error);
+  }
+}
+
 // Statistics tracking
 let websiteStats = {
   social: { blocked: 0, total: 0 },
@@ -27,6 +66,13 @@ let pomodoroSession = {
 // Extension lifecycle
 chrome.runtime.onInstalled.addListener(function(details) {
   console.log('Teyra extension installed:', details);
+
+  // Track installation
+  if (details.reason === 'install') {
+    trackEvent('extension_installed', { version: chrome.runtime.getManifest().version });
+  } else if (details.reason === 'update') {
+    trackEvent('extension_updated', { version: chrome.runtime.getManifest().version });
+  }
 
   // Set default settings
   chrome.storage.local.set({
@@ -620,7 +666,7 @@ async function handleOpenExtensionAndCloseTab(tabId, taskId) {
 async function handleQuickAddTask(text, url, title) {
   try {
     console.log('Quick adding task:', text);
-    
+
     // Check if user is logged in
     const result = await chrome.storage.local.get(['teyra_user']);
     if (!result.teyra_user) {
@@ -629,60 +675,85 @@ async function handleQuickAddTask(text, url, title) {
       return;
     }
 
-    // Create task object
-    const task = {
-      id: Date.now(), // Temporary ID
-      title: text,
-      completed: false,
-      created_at: new Date().toISOString(),
-      source: {
-        url: url,
-        pageTitle: title,
-        addedVia: 'extension'
-      }
-    };
+    // Use AI to parse the text into actionable tasks
+    const response = await fetch('https://teyra.app/api/ai/parse-tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text: text })
+    });
 
-    // Get current tasks and add new one
+    if (!response.ok) {
+      throw new Error('Failed to parse tasks');
+    }
+
+    const data = await response.json();
+
+    if (!data.tasks || data.tasks.length === 0) {
+      showNotification('No tasks found', 'Could not extract actionable tasks from the text');
+      return;
+    }
+
+    // Show notification about tasks found
+    showNotification(
+      `Found ${data.tasks.length} task${data.tasks.length > 1 ? 's' : ''}`,
+      data.tasks.map(t => t.title).join(', ')
+    );
+
+    // Get current tasks
     const tasksResult = await chrome.storage.local.get(['teyra_tasks']);
     let tasks = tasksResult.teyra_tasks || [];
-    tasks.push(task);
 
-    // Update local storage immediately
-    await chrome.storage.local.set({ teyra_tasks: tasks });
-
-    // Show success notification
-    showTaskAddedNotification(text);
-
-    // Try to sync with API in background
-    try {
-      const response = await fetch('https://teyra.app/api/tasks', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          title: text,
-          source: task.source
-        })
-      });
-
-      if (response.ok) {
-        const newTask = await response.json();
-        console.log('Task synced with API:', newTask);
-        
-        // Replace temp task with real task
-        const tempIndex = tasks.findIndex(t => t.id === task.id);
-        if (tempIndex !== -1) {
-          tasks[tempIndex] = newTask;
-          await chrome.storage.local.set({ teyra_tasks: tasks });
+    // Add each parsed task
+    for (const parsedTask of data.tasks) {
+      const task = {
+        id: Date.now() + Math.random(), // Temporary ID
+        title: parsedTask.title,
+        completed: false,
+        created_at: new Date().toISOString(),
+        source: {
+          url: url,
+          pageTitle: title,
+          addedVia: 'extension'
         }
-      } else {
-        console.log('API sync failed, but local task persisted');
+      };
+
+      tasks.push(task);
+
+      // Try to sync with API in background
+      try {
+        const response = await fetch('https://teyra.app/api/tasks', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: parsedTask.title,
+            source: task.source
+          })
+        });
+
+        if (response.ok) {
+          const newTask = await response.json();
+          console.log('Task synced with API:', newTask);
+
+          // Replace temp task with real task
+          const tempIndex = tasks.findIndex(t => t.id === task.id);
+          if (tempIndex !== -1) {
+            tasks[tempIndex] = newTask;
+          }
+        } else {
+          console.log('API sync failed for task, but local task persisted');
+        }
+      } catch (apiError) {
+        console.log('API sync failed for task:', apiError.message);
       }
-    } catch (apiError) {
-      console.log('API sync failed, but local task persisted:', apiError.message);
     }
+
+    // Update local storage with all tasks
+    await chrome.storage.local.set({ teyra_tasks: tasks });
 
   } catch (error) {
     console.error('Error adding task:', error);

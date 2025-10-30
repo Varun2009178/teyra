@@ -22,7 +22,8 @@
   ],
 
   "host_permissions": [
-    "<all_urls>"
+    "https://teyra.app/*",
+    "https://www.teyra.app/*"
   ],
 
   "externally_connectable": {
@@ -49,19 +50,13 @@
       "js": ["bridge-listener.js"],
       "run_at": "document_start",
       "all_frames": true
-    },
-    {
-      "matches": ["<all_urls>"],
-      "js": ["calendar.js", "content-detector.js", "content.js"],
-      "run_at": "document_end",
-      "all_frames": true
     }
   ],
 
   "web_accessible_resources": [
     {
       "resources": ["*.gif", "*.png", "*.jpg", "*.jpeg"],
-      "matches": ["<all_urls>"]
+      "matches": ["https://teyra.app/*", "https://www.teyra.app/*"]
     }
   ],
 

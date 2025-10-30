@@ -79,6 +79,7 @@ const filesToCopy = [
   'popup.css',
   'calendar.js',
   'supabase.js',
+  'analytics.js',
   'teyra-logo-64kb.png',
   'Happy.gif',
   'Neutral Calm.gif',

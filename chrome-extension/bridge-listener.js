@@ -8,7 +8,7 @@
     console.log('Bridge listener received message:', event.data, 'from origin:', event.origin);
 
     // Only accept messages from Teyra domains
-    if (event.origin !== 'https://teyra.app' && event.origin !== 'https://www.teyra.app' && event.origin !== 'http://localhost:3000') {
+    if (event.origin !== 'https://teyra.app' && event.origin !== 'https://www.teyra.app') {
       console.log('Rejected message from invalid origin:', event.origin);
       return;
     }

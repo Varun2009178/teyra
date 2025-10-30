@@ -480,6 +480,7 @@ export default function MVPDashboard() {
 
   // Check if confirmations have been dismissed
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const dismissed = localStorage.getItem('task_confirmations_dismissed');
     if (dismissed === 'true') {
       setConfirmationsDismissed(true);
@@ -488,6 +489,7 @@ export default function MVPDashboard() {
 
   // Load AI schedule usage count from localStorage
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const storedCount = localStorage.getItem('ai_schedule_usage_count');
     if (storedCount) {
       setAiScheduleUsageCount(parseInt(storedCount, 10));
