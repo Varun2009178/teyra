@@ -1,44 +1,58 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { SignUp, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-
-export default function SignUpPage() {
+function SignUpContent() {
   const { isSignedIn, userId } = useAuth();
   const router = useRouter();
-  
-  // Clean up any existing localStorage data when visiting sign-up page
+  const hasCleanedRef = useRef(false);
+
+  // Optimized localStorage cleanup with error handling
   useEffect(() => {
-    console.log('Cleaning up localStorage for fresh sign-up...');
-    
-    // Get all localStorage keys
-    const keys = Object.keys(localStorage);
-    
-    // Remove any user-specific data that might persist
-    keys.forEach(key => {
-      if (key.includes('user_') || key.includes('onboarding') || key.includes('mood') || 
-          key.includes('notification') || key.includes('welcome') || key.includes('insight') || 
+    // Only run once
+    if (hasCleanedRef.current) return;
+    hasCleanedRef.current = true;
+
+    // Defer cleanup to not block rendering
+    const cleanupTimeout = setTimeout(() => {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+
+        const keysToRemove = Object.keys(localStorage).filter(key =>
+          key.includes('user_') || key.includes('onboarding') || key.includes('mood') ||
+          key.includes('notification') || key.includes('welcome') || key.includes('insight') ||
           key.includes('reflection') || key.includes('dailyTask') || key.includes('commitment') ||
-          key.includes('split') || key.includes('tutorial')) {
-        localStorage.removeItem(key);
-        console.log(`Removed localStorage key: ${key}`);
+          key.includes('split') || key.includes('tutorial')
+        );
+
+        keysToRemove.forEach(key => {
+          try {
+            localStorage.removeItem(key);
+          } catch (e) {
+            // Silent fail for individual keys
+          }
+        });
+
+      } catch (error) {
+        // localStorage not available or quota exceeded - continue anyway
       }
-    });
-    
-    console.log('localStorage cleanup completed for fresh sign-up');
+    }, 100); // Defer by 100ms to not block initial render
+
+    return () => clearTimeout(cleanupTimeout);
   }, []);
-  
+
+  // Navigate to dashboard if already signed in
   useEffect(() => {
     if (isSignedIn && userId) {
-      router.push('/dashboard');
+      router.replace('/dashboard');
     }
   }, [isSignedIn, userId, router]);
-  
+
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">
       {/* Simple navbar matching the home page */}
@@ -53,6 +67,7 @@ export default function SignUpPage() {
                   width={32}
                   height={32}
                   className="w-8 h-8"
+                  priority
                 />
                 <span className="text-xl font-bold text-white">teyra</span>
               </Link>
@@ -68,20 +83,20 @@ export default function SignUpPage() {
           </div>
         </div>
       </nav>
-      
+
       <div className="flex-1 flex items-center justify-center px-4 pt-28 lg:pt-32">
         <div className="w-full max-w-md mx-auto">
           <div className="w-full animate-[fadeIn_500ms_ease-out]">
-            <SignUp 
+            <SignUp
             appearance={{
               elements: {
                 rootBox: "w-full",
                 card: "glass-dark-modern border-precise rounded-2xl transition-all duration-300 scale-[1.02] sm:scale-100",
                 headerTitle: "text-xl font-semibold text-white",
                 headerSubtitle: "text-white/60",
-                formButtonPrimary: 
+                formButtonPrimary:
                   "w-full bg-white hover:bg-white/90 text-black py-3 px-4 rounded-xl font-medium text-base",
-                formFieldInput: 
+                formFieldInput:
                   "w-full px-4 py-3 border border-white/20 rounded-xl focus:border-white/40 focus:ring-2 focus:ring-white/10 bg-white/5 text-white text-base placeholder:text-white/40",
                 socialButtonsIconButton: "w-full border border-white/20 hover:bg-white/5 rounded-xl p-3 text-base text-white",
                 socialButtonsBlockButton: "w-full border border-white/20 hover:bg-white/5 rounded-xl p-3 text-base text-white",
@@ -120,5 +135,42 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Optimized loading fallback
+const LoadingFallback = () => (
+  <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
+    <div className="text-white/60">loading...</div>
+  </div>
+);
+
+// Custom error fallback matching app theme
+const ErrorFallback = () => (
+  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
+    <div className="text-center p-8 glass-dark-modern border-precise rounded-2xl max-w-md">
+      <h2 className="text-2xl font-bold text-white mb-4">
+        something went wrong
+      </h2>
+      <p className="text-white/60 mb-6">
+        we encountered an error loading sign up. please refresh.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-white/90 font-medium transition-all"
+      >
+        refresh page
+      </button>
+    </div>
+  </div>
+);
+
+export default function SignUpPage() {
+  return (
+    <ErrorBoundary fallback={<ErrorFallback />}>
+      <Suspense fallback={<LoadingFallback />}>
+        <SignUpContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

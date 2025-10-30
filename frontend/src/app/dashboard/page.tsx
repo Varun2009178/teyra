@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import Image from 'next/image';
 import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
@@ -22,6 +22,7 @@ import ProWelcomeModal from '@/components/ProWelcomeModal';
 import { AITaskParser } from '@/components/AITaskParser';
 import * as gtag from '@/lib/gtag';
 import Navbar from '@/components/Navbar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface Task {
   id: number;
@@ -297,14 +298,17 @@ const TaskCard = React.memo(({
 
 TaskCard.displayName = 'TaskCard';
 
-export default function MVPDashboard() {
+function MVPDashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
-  const { 
-    permission, 
-    sendTaskCompletionNotification, 
+
+  // Initialize hooks normally (can't be conditional in React)
+  // The hooks themselves should handle lazy initialization internally
+  const {
+    permission,
+    sendTaskCompletionNotification,
     sendAchievementNotification,
-    sendFirstTaskNotification 
+    sendFirstTaskNotification
   } = useNotifications();
   const {
     trackTaskCreated,
@@ -314,8 +318,8 @@ export default function MVPDashboard() {
     trackSessionStart,
     trackMilestoneAchieved
   } = useBehaviorTracking();
-  
-  // Initialize smart notifications
+
+  // Smart notifications - runs on its own schedule
   useSmartNotifications();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
@@ -351,6 +355,7 @@ export default function MVPDashboard() {
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
   const [aiScheduleUsageCount, setAiScheduleUsageCount] = useState(0);
   const [showMobileNotice, setShowMobileNotice] = useState(false);
+  const [highlightMoodSelector, setHighlightMoodSelector] = useState(false);
 
   // Sustainable tasks state - very easy to complete
   const sustainableTasks = [
@@ -396,13 +401,6 @@ export default function MVPDashboard() {
         );
       });
       storedPoints = (completedRegularTasks.length * 10) + (completedSustainableTasks.length * 20);
-      
-      console.log('📊 Completed tasks analysis:', {
-        totalCompleted: completedTasks.length,
-        completedRegular: completedRegularTasks.length,
-        completedSustainable: completedSustainableTasks.length,
-        storedPoints
-      });
     }
     
     // Calculate current session points (regular = 10, sustainable = 20)
@@ -414,17 +412,7 @@ export default function MVPDashboard() {
     
     // Total = stored + current (this updates in real-time as tasks are toggled)
     const totalPoints = storedPoints + currentPoints;
-    
-    console.log('🔍 Real-time points calculation:', {
-      completedTasksCount: completedTasks.length,
-      storedPoints,
-      regularCompleted,
-      sustainableCompleted,
-      currentPoints,
-      totalPoints,
-      tasksLength: tasks.length
-    });
-    
+
     return totalPoints;
   }, [tasks]);
 
@@ -448,14 +436,6 @@ export default function MVPDashboard() {
       cactusState = 'neutral';
       maxPoints = 150;
     }
-
-    console.log('🎯 Milestone calculation:', {
-      rawTotalPoints,
-      currentMilestone,
-      displayPoints,
-      maxPoints,
-      cactusState
-    });
 
     return {
       milestone: currentMilestone,
@@ -511,7 +491,7 @@ export default function MVPDashboard() {
     }
   }, []);
 
-  // Fetch user data - optimized for faster loading
+  // Fetch user data - OPTIMIZED with parallel requests and timeout
   const fetchUserData = useCallback(async () => {
     if (!user || !isHydrated) return;
 
@@ -519,53 +499,67 @@ export default function MVPDashboard() {
       setIsLoading(true);
       const token = await getToken();
 
-      // Fetch tasks first (most important for UI)
-      const tasksRes = await fetch('/api/tasks', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // PARALLEL FETCH - fetch both tasks and subscription at the same time
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-      const tasksData = await tasksRes.json();
-      const tasksList = Array.isArray(tasksData) ? tasksData : tasksData.tasks || [];
-      setTasks(tasksList);
+      const [tasksRes, subRes] = await Promise.all([
+        fetch('/api/tasks', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal
+        }).catch(err => {
+          console.error('Tasks fetch failed:', err);
+          return null;
+        }),
+        fetch('/api/subscription/status', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: controller.signal
+        }).catch(err => {
+          console.error('Subscription fetch failed:', err);
+          return null;
+        })
+      ]);
 
-      // Fetch subscription status
-      try {
-        const subRes = await fetch('/api/subscription/status', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (subRes.ok) {
-          const subData = await subRes.json();
-          const isProStatus = subData.isPro || false;
-          setIsPro(isProStatus);
-          setCancelAtPeriodEnd(subData.cancelAtPeriodEnd || false);
-          setSubscriptionEndDate(subData.periodEnd);
+      clearTimeout(timeoutId);
 
-          // Send Pro status to Chrome extension
-          window.postMessage({
-            type: 'TEYRA_USER_SIGNIN',
-            source: 'teyra-webapp',
-            user: {
-              id: user.id,
-              email: user.primaryEmailAddress?.emailAddress,
-              isPro: isProStatus
-            },
-            tasks: tasksList
-          }, '*');
-          console.log('📤 Sent user data to extension:', { isPro: isProStatus });
-        }
-      } catch (error) {
-        console.warn('Could not fetch subscription status:', error);
+      // Process tasks
+      let tasksList: Task[] = [];
+      if (tasksRes && tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        tasksList = Array.isArray(tasksData) ? tasksData : tasksData.tasks || [];
+        setTasks(tasksList);
       }
 
-      // Immediately show UI with tasks, load progress in background
+      // Process subscription
+      if (subRes && subRes.ok) {
+        const subData = await subRes.json();
+        const isProStatus = subData.isPro || false;
+        setIsPro(isProStatus);
+        setCancelAtPeriodEnd(subData.cancelAtPeriodEnd || false);
+        setSubscriptionEndDate(subData.periodEnd);
+
+        // Send Pro status to Chrome extension
+        window.postMessage({
+          type: 'TEYRA_USER_SIGNIN',
+          source: 'teyra-webapp',
+          user: {
+            id: user.id,
+            email: user.primaryEmailAddress?.emailAddress,
+            isPro: isProStatus
+          },
+          tasks: tasksList
+        }, '*');
+      }
+
       setIsLoading(false);
 
-      // Note: User progress is now calculated client-side from tasks
-      // No need to fetch/create separate progress data
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        toast.error('Request timed out. Please check your connection.');
+      } else {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
+      }
       setIsLoading(false);
     }
   }, [user, getToken, isHydrated]);
@@ -1483,19 +1477,25 @@ export default function MVPDashboard() {
           {/* Left Column: Task Management */}
           <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
             {/* Mood-based Task Generator */}
-            <MoodTaskGenerator
-              currentTasks={tasks}
-              onTaskAdded={handleMoodTaskAdded}
-              onMoodSelected={(mood) => {
-                setCurrentMood(mood);
-                try {
-                  trackMoodSelected(mood.label, mood);
-                  gtag.trackMoodSelected(mood.label);
-                } catch (error) {
-                  console.warn('Mood tracking failed:', error);
-                }
-              }}
-            />
+            <div
+              data-mood-selector
+              className={`transition-all duration-500 ${highlightMoodSelector ? 'ring-4 ring-white/40 ring-offset-4 ring-offset-black rounded-2xl' : ''}`}
+            >
+              <MoodTaskGenerator
+                currentTasks={tasks}
+                onTaskAdded={handleMoodTaskAdded}
+                onMoodSelected={(mood) => {
+                  setCurrentMood(mood);
+                  setHighlightMoodSelector(false); // Remove highlight after selection
+                  try {
+                    trackMoodSelected(mood.label, mood);
+                    gtag.trackMoodSelected(mood.label);
+                  } catch (error) {
+                    console.warn('Mood tracking failed:', error);
+                  }
+                }}
+              />
+            </div>
 
             {/* Sustainable Task Generator */}
             <motion.div
@@ -2108,6 +2108,18 @@ export default function MVPDashboard() {
             setShowOnboardingTour(false);
             if (user?.id) {
               localStorage.setItem(`dashboard_tour_${user.id}`, 'true');
+
+              // NEW USER FLOW: After onboarding, prompt them to select their mood
+              setTimeout(() => {
+                setHighlightMoodSelector(true);
+                // Scroll to mood selector smoothly
+                const moodSection = document.querySelector('[data-mood-selector]');
+                if (moodSection) {
+                  moodSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                // Auto-remove highlight after 10 seconds
+                setTimeout(() => setHighlightMoodSelector(false), 10000);
+              }, 500);
             }
           }} />
         )}
@@ -2535,3 +2547,40 @@ export default function MVPDashboard() {
   );
 }
 
+// Loading fallback for Suspense
+const DashboardLoading = () => (
+  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
+    <div className="text-white/60 text-lg">loading dashboard...</div>
+  </div>
+);
+
+// Error fallback for ErrorBoundary
+const DashboardError = () => (
+  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center p-4">
+    <div className="text-center max-w-md glass-dark-modern border-precise rounded-2xl p-8">
+      <h2 className="text-2xl font-bold text-white mb-4">
+        something went wrong
+      </h2>
+      <p className="text-white/60 mb-6">
+        we encountered an error loading your dashboard. please refresh to try again.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-white/90 font-medium transition-all"
+      >
+        refresh dashboard
+      </button>
+    </div>
+  </div>
+);
+
+// Wrapped export with ErrorBoundary and Suspense for crash protection
+export default function DashboardPage() {
+  return (
+    <ErrorBoundary fallback={<DashboardError />}>
+      <Suspense fallback={<DashboardLoading />}>
+        <MVPDashboard />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}

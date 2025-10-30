@@ -177,9 +177,12 @@ export default function MoodTaskGenerator({ currentTasks, onTaskAdded, onMoodSel
 
   return (
     <div className="glass-dark-modern border-precise rounded-xl p-4">
-      <div className="flex items-center space-x-2 mb-4">
-        <Sparkles className="w-4 h-4 text-white/60" />
-        <span className="text-sm font-medium text-white">How are you feeling?</span>
+      <div className="mb-4">
+        <div className="flex items-center space-x-2 mb-2">
+          <Sparkles className="w-5 h-5 text-white/80" />
+          <span className="text-lg font-semibold text-white">What would you like to do today?</span>
+        </div>
+        <p className="text-sm text-white/60 ml-7">Select your current mood to get AI-powered task suggestions</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

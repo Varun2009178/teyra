@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function SignInContent() {
   const { isSignedIn, userId } = useAuth();
@@ -14,15 +14,30 @@ function SignInContent() {
   const isEmbed = searchParams.get('embed') === 'extension';
   const isExtension = searchParams.get('extension') === 'true';
 
+  // Prevent race conditions and duplicate executions
+  const [isProcessing, setIsProcessing] = useState(false);
+  const hasProcessedRef = useRef(false);
+
   useEffect(() => {
+    // Guard against duplicate runs
+    if (isProcessing || hasProcessedRef.current) return;
+
     const handleExtensionSignIn = async () => {
       if (isSignedIn && userId && isExtension) {
-        // Fetch user data and tasks to send to extension
+        setIsProcessing(true);
+        hasProcessedRef.current = true;
+
         try {
+          // Add timeout to prevent hanging on slow networks
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+
           const [userResponse, tasksResponse] = await Promise.all([
-            fetch('/api/user'),
-            fetch('/api/tasks')
+            fetch('/api/user', { signal: controller.signal }),
+            fetch('/api/tasks', { signal: controller.signal })
           ]);
+
+          clearTimeout(timeoutId);
 
           const userData = userResponse.ok ? await userResponse.json() : null;
           const tasksData = tasksResponse.ok ? await tasksResponse.json() : [];
@@ -35,18 +50,24 @@ function SignInContent() {
             tasks: tasksData
           }, '*');
 
-          console.log('📤 Sent sign-in data to extension');
-        } catch (error) {
-          console.error('Failed to fetch data for extension:', error);
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            console.warn('Request timed out');
+          } else {
+            console.error('Failed to fetch data for extension:', error);
+          }
+        } finally {
+          setIsProcessing(false);
         }
       } else if (isSignedIn && !isExtension) {
-        router.push('/dashboard');
+        // Use replace instead of push for faster navigation
+        router.replace('/dashboard');
       }
     };
 
     handleExtensionSignIn();
-  }, [isSignedIn, userId, router, isExtension]);
-  
+  }, [isSignedIn, userId, isExtension]); // Removed router to prevent re-runs
+
   // Show success message if user is signed in and came from extension
   if (isSignedIn && isExtension) {
     return (
@@ -84,6 +105,7 @@ function SignInContent() {
                     width={32}
                     height={32}
                     className="w-8 h-8"
+                    priority
                   />
                   <span className="text-xl font-bold text-white">teyra</span>
                 </Link>
@@ -104,16 +126,16 @@ function SignInContent() {
       <div className={`flex-1 flex items-center justify-center px-4 ${isEmbed ? 'pt-0' : 'pt-28 lg:pt-32'}`}>
         <div className="w-full max-w-md mx-auto">
           <div className="w-full animate-[fadeIn_500ms_ease-out]">
-            <SignIn 
+            <SignIn
             appearance={{
               elements: {
                 rootBox: "w-full",
                 card: "liquid-glass-strong liquid-glass-depth border-precise rounded-2xl shadow-xl",
                 headerTitle: "text-xl font-semibold text-white",
                 headerSubtitle: "text-white/60",
-                formButtonPrimary: 
+                formButtonPrimary:
                   "w-full bg-white hover:bg-white/90 text-black py-3 px-4 rounded-xl font-medium text-base",
-                formFieldInput: 
+                formFieldInput:
                   "w-full px-4 py-3 border border-white/20 rounded-xl focus:border-white/40 focus:ring-2 focus:ring-white/10 bg-white/5 text-white text-base placeholder:text-white/40",
                 socialButtonsIconButton: "w-full border border-white/20 hover:bg-white/5 rounded-xl p-3 text-base text-white",
                 socialButtonsBlockButton: "w-full border border-white/20 hover:bg-white/5 rounded-xl p-3 text-base text-white",
@@ -154,14 +176,39 @@ function SignInContent() {
   );
 }
 
+// Optimized loading fallback
+const LoadingFallback = () => (
+  <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
+    <div className="text-white/60">loading...</div>
+  </div>
+);
+
+// Custom error fallback matching app theme
+const ErrorFallback = () => (
+  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
+    <div className="text-center p-8 glass-dark-modern border-precise rounded-2xl max-w-md">
+      <h2 className="text-2xl font-bold text-white mb-4">
+        something went wrong
+      </h2>
+      <p className="text-white/60 mb-6">
+        we encountered an error loading sign in. please refresh.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-white/90 font-medium transition-all"
+      >
+        refresh page
+      </button>
+    </div>
+  </div>
+);
+
 export default function SignInPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
-        <div className="text-white/60">loading...</div>
-      </div>
-    }>
-      <SignInContent />
-    </Suspense>
+    <ErrorBoundary fallback={<ErrorFallback />}>
+      <Suspense fallback={<LoadingFallback />}>
+        <SignInContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
