@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarView } from '@/components/CalendarView';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { Calendar, List, Settings, HelpCircle, User as UserIcon, Trash2 } from 'lucide-react';
+import { Calendar } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 export default function CalendarPage() {
   const { user } = useUser();
@@ -16,9 +16,13 @@ export default function CalendarPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   useEffect(() => {
     checkConnection();
+    checkProStatus();
 
     // Handle OAuth callback
     if (searchParams.get('connected') === 'true') {
@@ -34,6 +38,16 @@ export default function CalendarPage() {
       router.replace('/dashboard/calendar');
     }
   }, [searchParams]);
+
+  async function checkProStatus() {
+    try {
+      const response = await fetch('/api/subscription/status');
+      const data = await response.json();
+      setIsPro(data.isPro || false);
+    } catch (error) {
+      console.error('Error checking Pro status:', error);
+    }
+  }
 
   async function checkConnection() {
     try {
@@ -64,6 +78,30 @@ export default function CalendarPage() {
     }
   }
 
+  async function disconnectCalendar() {
+    setIsDisconnecting(true);
+    try {
+      const response = await fetch('/api/calendar/disconnect', {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Google Calendar disconnected successfully');
+        setIsConnected(false);
+        setShowDisconnectModal(false);
+        router.push('/dashboard/calendar');
+      } else {
+        throw new Error(data.error || 'Failed to disconnect calendar');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to disconnect calendar');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
@@ -78,52 +116,8 @@ export default function CalendarPage() {
   if (!isConnected) {
     return (
       <div className="min-h-screen dark-gradient-bg noise-texture text-white">
-        {/* Header */}
-        <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/teyra-logo-64kb.png"
-                  alt="Teyra"
-                  width={40}
-                  height={40}
-                  className="w-10 h-10"
-                />
-              </div>
-              <div className="hidden sm:flex items-center gap-6 text-base">
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium"
-                >
-                  Dashboard
-                </button>
-                <button
-                  className="px-3 py-1 rounded-lg text-white border border-white/15 bg-white/5 transition-all duration-150 font-medium flex items-center gap-2"
-                >
-                  <Calendar className="w-4 h-4" />
-                  Calendar
-                  <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                    beta
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-9 h-9 rounded-full",
-                    userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                    userButtonTrigger: "rounded-full"
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </header>
+        {/* Navbar */}
+        <Navbar isPro={isPro} showSettings={true} />
 
         <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 80px)' }}>
         <motion.div
@@ -194,56 +188,54 @@ export default function CalendarPage() {
         <div className="absolute bottom-32 left-1/4 w-72 h-72 bg-pink-500 rounded-full filter blur-[110px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* Header */}
-      <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/teyra-logo-64kb.png"
-                alt="Teyra"
-                width={40}
-                height={40}
-                className="w-10 h-10"
-              />
-            </div>
-            <div className="hidden sm:flex items-center gap-6 text-base">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium"
-              >
-                Dashboard
-              </button>
-              <button
-                className="px-3 py-1 rounded-lg text-white border border-white/15 bg-white/5 transition-all duration-150 font-medium flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                Calendar
-                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                  beta
-                </span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-9 h-9 rounded-full",
-                  userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                  userButtonTrigger: "rounded-full"
-                }
-              }}
-            />
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar
+        isPro={isPro}
+        showSettings={true}
+        onSettingsClick={() => setShowDisconnectModal(true)}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6">
         <CalendarView />
       </main>
+
+      {/* Disconnect Modal */}
+      {showDisconnectModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-black/90 backdrop-blur-md border border-white/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
+          >
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-6 h-6 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Disconnect Google Calendar?</h2>
+              <p className="text-white/60 text-sm">
+                This will remove calendar sync and delete the connection to your Google Calendar. Your tasks will remain, but scheduled times will no longer sync.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDisconnectModal(false)}
+                disabled={isDisconnecting}
+                className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={disconnectCalendar}
+                disabled={isDisconnecting}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50"
+              >
+                {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

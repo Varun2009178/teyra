@@ -16,12 +16,36 @@ export default function SignInPage() {
   const isExtension = searchParams.get('extension') === 'true';
 
   useEffect(() => {
-    if (isSignedIn && userId) {
-      // If signing in from extension, show success message instead of redirecting
-      if (!isExtension) {
+    const handleExtensionSignIn = async () => {
+      if (isSignedIn && userId && isExtension) {
+        // Fetch user data and tasks to send to extension
+        try {
+          const [userResponse, tasksResponse] = await Promise.all([
+            fetch('/api/user'),
+            fetch('/api/tasks')
+          ]);
+
+          const userData = userResponse.ok ? await userResponse.json() : null;
+          const tasksData = tasksResponse.ok ? await tasksResponse.json() : [];
+
+          // Send auth success message to extension
+          window.postMessage({
+            type: 'TEYRA_USER_SIGNIN',
+            source: 'teyra-webapp',
+            user: userData,
+            tasks: tasksData
+          }, '*');
+
+          console.log('📤 Sent sign-in data to extension');
+        } catch (error) {
+          console.error('Failed to fetch data for extension:', error);
+        }
+      } else if (isSignedIn && !isExtension) {
         router.push('/dashboard');
       }
-    }
+    };
+
+    handleExtensionSignIn();
   }, [isSignedIn, userId, router, isExtension]);
   
   // Show success message if user is signed in and came from extension
@@ -35,9 +59,12 @@ export default function SignInPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold mb-2">Success!</h1>
-            <p className="text-white/60 text-lg">You're signed in. You can close this tab now.</p>
-            <p className="text-white/60 text-sm mt-4">Go back to your Chrome extension to continue</p>
+            <h1 className="text-3xl font-bold mb-2">success!</h1>
+            <p className="text-white/60 text-lg">you're signed in to teyra</p>
+            <p className="text-white/60 text-sm mt-4">click the teyra extension icon to continue, or close this tab</p>
+            <div className="mt-6 px-6 py-3 bg-white/5 border border-white/10 rounded-lg">
+              <p className="text-white/50 text-xs">your extension will automatically detect your login</p>
+            </div>
           </div>
         </div>
       </div>

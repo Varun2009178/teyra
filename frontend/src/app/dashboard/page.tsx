@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock } from 'lucide-react';
+import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { Cactus } from '@/components/Cactus';
@@ -19,7 +19,9 @@ import { NotificationSettings } from '@/components/NotificationSettings';
 import DailyNotificationPrompt from '@/components/DailyNotificationPrompt';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import ProWelcomeModal from '@/components/ProWelcomeModal';
+import { AITaskParser } from '@/components/AITaskParser';
 import * as gtag from '@/lib/gtag';
+import Navbar from '@/components/Navbar';
 
 interface Task {
   id: number;
@@ -255,15 +257,13 @@ const TaskCard = React.memo(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  toast.info('calendar feature coming soon! completing google verification.');
+                  onAISchedule(task.id);
                   setShowContextMenu(false);
                 }}
-                disabled={true}
-                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/30 text-sm cursor-not-allowed opacity-50"
+                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>ai schedule</span>
-                <span className="ml-auto text-xs text-white/20">coming soon</span>
               </button>
             )}
 
@@ -271,15 +271,13 @@ const TaskCard = React.memo(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  toast.info('calendar feature coming soon! completing google verification.');
+                  onManualSchedule(task.id);
                   setShowContextMenu(false);
                 }}
-                disabled={true}
-                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/30 text-sm cursor-not-allowed opacity-50"
+                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm"
               >
                 <Clock className="w-4 h-4" />
                 <span>schedule</span>
-                <span className="ml-auto text-xs text-white/20">coming soon</span>
               </button>
             )}
           </div>
@@ -341,6 +339,7 @@ export default function MVPDashboard() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [editModalTask, setEditModalTask] = useState<Task | null>(null);
   const [editModalTitle, setEditModalTitle] = useState('');
+  const [showAIParser, setShowAIParser] = useState(false);
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
 
@@ -1183,16 +1182,11 @@ export default function MVPDashboard() {
 
   // Handler for AI scheduling a single task
   const handleAIScheduleTask = async (taskId: number) => {
-    if (!isPro) {
-      toast.error('ai scheduling requires pro. upgrade to schedule tasks automatically');
-      return;
-    }
-
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    // Let the calendar page and API handle the Pro check and free usage limit
     toast.success('redirecting to calendar for ai scheduling...');
-    // Redirect to calendar page with auto-schedule flag
     window.location.href = '/dashboard/calendar?autoSchedule=true';
   };
 
@@ -1269,128 +1263,58 @@ export default function MVPDashboard() {
           backgroundSize: '20px 20px'
         }}
       />
-      {/* Premium Cursor-style header with liquid glass */}
-      <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <Image
-                src="/teyra-logo-64kb.png"
-                alt="Teyra"
-                width={40}
-                height={40}
-                className="w-10 h-10"
-              />
-            </div>
-            <div className="hidden sm:flex items-center gap-6 text-base">
-              <button
-                onClick={() => setShowAllTasks(true)}
-                className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium"
-              >
-                All Tasks
-              </button>
-              <button
-                onClick={() => toast.info('calendar feature coming soon! we\'re completing google verification.')}
-                className="px-3 py-1 rounded-lg text-white/70 hover:text-white border border-transparent hover:border-white/15 hover:bg-white/10 transition-all duration-150 font-medium flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                Calendar
-                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                  coming soon
-                </span>
-              </button>
-              {isPro && <ProBadgeDropdown />}
-              {currentMood && (
-                <div className="text-white/50 text-sm">
-                  {currentMood.emoji} {currentMood.label}
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Unified Navbar */}
+      <Navbar
+        isPro={isPro}
+        showSettings={true}
+        showAccountButton={true}
+        currentMood={currentMood}
+        onAccountClick={() => setShowAccountModal(true)}
+        onSettingsClick={() => setShowNotificationSettings(true)}
+        onHelpClick={() => setShowOnboardingTour(true)}
+        customDeleteHandler={async () => {
+          const confirmed = window.confirm(
+            "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
+          );
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAccountModal(true)}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-              title="Account Status"
-            >
-              <User className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowNotificationSettings(true)}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowOnboardingTour(true)}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-            >
-              <HelpCircle className="w-5 h-5" />
-            </button>
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-9 h-9 rounded-full",
-                  userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                  userButtonTrigger: "rounded-full"
+          if (confirmed) {
+            console.log('🗑️ User confirmed account deletion');
+
+            try {
+              const response = await fetch('/api/user/delete', {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json'
                 }
-              }}
-            >
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Delete Account"
-                  labelIcon={<Trash2 className="w-4 h-4" />}
-                  onClick={async () => {
-                    const confirmed = window.confirm(
-                      "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
-                    );
+              });
 
-                    if (confirmed) {
-                      console.log('🗑️ User confirmed account deletion');
+              console.log('📡 Delete response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+              });
 
-                      try {
-                        const response = await fetch('/api/user/delete', {
-                          method: 'DELETE',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          }
-                        });
+              if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Account deleted successfully:', result);
+                toast.success('Account deleted successfully');
+              } else {
+                const error = await response.json().catch(() => ({}));
+                console.error('❌ Account deletion failed:', error);
 
-                        console.log('📡 Delete response:', {
-                          status: response.status,
-                          statusText: response.statusText,
-                          ok: response.ok
-                        });
-
-                        if (response.ok) {
-                          const result = await response.json();
-                          console.log('✅ Account deleted successfully:', result);
-                          toast.success('Account deleted successfully');
-                          // User will be redirected by Clerk after deletion
-                        } else {
-                          const error = await response.json().catch(() => ({}));
-                          console.error('❌ Account deletion failed:', error);
-
-                          if (error.code === 'VERIFICATION_REQUIRED') {
-                            toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
-                          } else {
-                            toast.error(error.error || 'Failed to delete account');
-                          }
-                        }
-                      } catch (error) {
-                        console.error('❌ Error during account deletion:', error);
-                        toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
-                      }
-                    }
-                  }}
-                />
-              </UserButton.MenuItems>
-            </UserButton>
-          </div>
-        </div>
-      </header>
+                if (error.code === 'VERIFICATION_REQUIRED') {
+                  toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
+                } else {
+                  toast.error(error.error || 'Failed to delete account');
+                }
+              }
+            } catch (error) {
+              console.error('❌ Error during account deletion:', error);
+              toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
+            }
+          }
+        }}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Teyra Pro Banner - Only show if not Pro */}
@@ -1476,17 +1400,15 @@ export default function MVPDashboard() {
                 transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
                 className="flex flex-col items-center gap-3 w-full sm:w-auto lg:min-w-[180px]"
               >
-                <div className="relative w-full">
-                  <motion.button
-                    disabled={true}
-                    className="w-full px-6 sm:px-8 py-3 bg-white/20 text-white/40 font-semibold rounded-lg text-base transition-all duration-200 cursor-not-allowed relative"
-                  >
-                    <span className="line-through">upgrade to pro — $10/month</span>
-                  </motion.button>
-                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
-                    coming soon
-                  </span>
-                </div>
+                <motion.button
+                  onClick={(e) => handleUpgrade(e)}
+                  disabled={isUpgrading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUpgrading ? 'loading...' : 'upgrade to pro — $10/month'}
+                </motion.button>
               </motion.div>
             </div>
             </div>
@@ -1589,7 +1511,7 @@ export default function MVPDashboard() {
 
                   {/* Enhanced add button with sophisticated animations */}
                   <motion.button
-                    whileHover={{ 
+                    whileHover={{
                       scale: newTask.trim() ? 1.05 : 1,
                       rotate: newTask.trim() ? 5 : 0
                     }}
@@ -1602,11 +1524,11 @@ export default function MVPDashboard() {
                         : 'bg-white/20 text-white/40 cursor-not-allowed'
                     }`}
                     animate={{
-                      backgroundColor: newTask.trim() && !isInputSubmitting 
-                        ? 'rgba(255, 255, 255, 1)' 
+                      backgroundColor: newTask.trim() && !isInputSubmitting
+                        ? 'rgba(255, 255, 255, 1)'
                         : 'rgba(255, 255, 255, 0.2)',
-                      color: newTask.trim() && !isInputSubmitting 
-                        ? 'rgba(0, 0, 0, 1)' 
+                      color: newTask.trim() && !isInputSubmitting
+                        ? 'rgba(0, 0, 0, 1)'
                         : 'rgba(255, 255, 255, 0.4)'
                     }}
                   >
@@ -1618,7 +1540,7 @@ export default function MVPDashboard() {
                       />
                     ) : (
                       <motion.div
-                        animate={{ 
+                        animate={{
                           scale: newTask.trim() ? 1.1 : 1,
                           rotate: newTask.trim() ? 0 : 0
                         }}
@@ -1627,7 +1549,7 @@ export default function MVPDashboard() {
                         <Plus className="w-5 h-5" />
                       </motion.div>
                     )}
-                    
+
                     {/* Subtle glow effect when ready to add */}
                     {newTask.trim() && !isInputSubmitting && (
                       <motion.div
@@ -1638,6 +1560,32 @@ export default function MVPDashboard() {
                       />
                     )}
                   </motion.button>
+
+                  {/* AI Parser Button - REMOVED: Use Notes > Action Mode instead */}
+                  {/* <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowAIParser(true)}
+                    className="relative w-12 h-12 flex items-center justify-center rounded-xl liquid-glass-subtle transition-all duration-300 group"
+                    title="Import tasks from text"
+                  >
+                    <Sparkles className="w-5 h-5 text-white/80 group-hover:text-white" />
+
+                    <motion.div
+                      className="absolute inset-0 rounded-xl bg-white/10"
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    />
+
+                    <motion.div
+                      className="absolute inset-0 rounded-xl bg-white/5"
+                      animate={{
+                        opacity: [0.3, 0.5, 0.3],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </motion.button> */}
                 </motion.div>
 
                 {/* Character count indicator */}
@@ -2225,17 +2173,20 @@ export default function MVPDashboard() {
               </div>
 
               {!isPro && (
-                <div className="relative mb-3">
-                  <button
-                    disabled={true}
-                    className="w-full px-4 py-3 bg-white/20 text-white/40 rounded-lg font-semibold cursor-not-allowed"
-                  >
-                    <span className="line-through">upgrade to pro — $10/month</span>
-                  </button>
-                  <span className="absolute -top-2 -right-2 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
-                    coming soon
-                  </span>
-                </div>
+                <button
+                  onClick={() => {
+                    setShowAccountModal(false);
+                    setTimeout(() => {
+                      const upgradeSection = document.getElementById('upgrade');
+                      if (upgradeSection) {
+                        upgradeSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }, 300);
+                  }}
+                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold mb-3"
+                >
+                  upgrade to pro — $10/month
+                </button>
               )}
 
               {isPro && !cancelAtPeriodEnd && (
@@ -2464,6 +2415,16 @@ export default function MVPDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI Task Parser Modal */}
+      <AITaskParser
+        isOpen={showAIParser}
+        onClose={() => setShowAIParser(false)}
+        onTasksCreated={() => {
+          // Refresh tasks after AI parser adds them
+          fetchTasks();
+        }}
+      />
 
     </div>
   );

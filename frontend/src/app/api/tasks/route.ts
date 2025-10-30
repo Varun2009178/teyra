@@ -40,13 +40,41 @@ export async function POST(request: NextRequest) {
       return {};
     });
 
+    const userId = user.id;
+
+    // Handle bulk task creation (from AI parser)
+    if (body.tasks && Array.isArray(body.tasks)) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const tasksToInsert = body.tasks.map((task: any) => ({
+        user_id: userId,
+        title: task.title,
+        completed: false,
+        has_been_split: false,
+        // Store priority and deadline in the title for now, or you can add columns
+      }));
+
+      const { data: newTasks, error } = await supabase
+        .from('tasks')
+        .insert(tasksToInsert)
+        .select();
+
+      if (error) throw error;
+
+      console.log(`✅ Created ${newTasks.length} tasks for user ${userId}`);
+      return NextResponse.json({ tasks: newTasks, count: newTasks.length });
+    }
+
+    // Handle single task creation (existing functionality)
     const { title, hasBeenSplit = false, limit, scheduled_time, duration_minutes } = body;
 
     if (!title || typeof title !== 'string') {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const userId = user.id;
     console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit}, limit: ${limit}, scheduled: ${scheduled_time})`);
 
     // If scheduled_time or duration_minutes are provided, use direct Supabase client

@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
 import AuthProvider from '@/components/auth/AuthProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { ReferralTracker } from '@/components/ReferralTracker'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -104,6 +105,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
         <GoogleAnalytics />
+        <ReferralTracker />
         <AuthProvider>
           {children}
         </AuthProvider>
