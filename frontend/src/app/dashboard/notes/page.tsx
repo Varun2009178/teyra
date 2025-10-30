@@ -21,13 +21,15 @@ export default function NotesPage() {
     setIsPro(user.publicMetadata?.isPro === true);
   }, [user]);
 
-  // Show modal on first visit
+  // Show modal on first visit - wait for user to load
   useEffect(() => {
+    if (!user) return;
+
     const hasSeenModal = localStorage.getItem('hasSeenNotesModal');
-    if (!hasSeenModal) {
+    if (!hasSeenModal || hasSeenModal !== 'true') {
       setShowModal(true);
     }
-  }, []);
+  }, [user]);
 
   // Load existing note
   useEffect(() => {
@@ -111,11 +113,15 @@ export default function NotesPage() {
 
       {/* Welcome Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={handleCloseModal}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="bg-black/90 backdrop-blur-md border border-white/20 rounded-2xl p-8 max-w-lg w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl flex items-center justify-center">
@@ -149,7 +155,8 @@ export default function NotesPage() {
             </div>
             <button
               onClick={handleCloseModal}
-              className="w-full bg-white text-black font-medium py-3 rounded-xl hover:bg-gray-200 transition-colors"
+              className="w-full bg-white hover:bg-white/90 text-black font-medium py-3 rounded-xl transition-colors"
+              style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
             >
               start writing
             </button>

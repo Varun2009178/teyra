@@ -41,7 +41,8 @@ const TaskCard = React.memo(({
   onManualSchedule,
   isSustainable = false,
   isDeleting = false,
-  isPro = false
+  isPro = false,
+  aiScheduleUsageCount = 0
 }: {
   task: Task & { isNew?: boolean };
   onToggle: (id: number) => void;
@@ -52,6 +53,7 @@ const TaskCard = React.memo(({
   isSustainable?: boolean;
   isDeleting?: boolean;
   isPro?: boolean;
+  aiScheduleUsageCount?: number;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -264,6 +266,11 @@ const TaskCard = React.memo(({
               >
                 <Sparkles className="w-4 h-4" />
                 <span>ai schedule</span>
+                {!isPro && aiScheduleUsageCount >= 3 && (
+                  <span className="ml-auto px-2 py-0.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold rounded uppercase tracking-wide">
+                    pro
+                  </span>
+                )}
               </button>
             )}
 
@@ -342,6 +349,7 @@ export default function MVPDashboard() {
   const [showAIParser, setShowAIParser] = useState(false);
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
+  const [aiScheduleUsageCount, setAiScheduleUsageCount] = useState(0);
 
   // Sustainable tasks state - very easy to complete
   const sustainableTasks = [
@@ -474,6 +482,14 @@ export default function MVPDashboard() {
     const dismissed = localStorage.getItem('task_confirmations_dismissed');
     if (dismissed === 'true') {
       setConfirmationsDismissed(true);
+    }
+  }, []);
+
+  // Load AI schedule usage count from localStorage
+  useEffect(() => {
+    const storedCount = localStorage.getItem('ai_schedule_usage_count');
+    if (storedCount) {
+      setAiScheduleUsageCount(parseInt(storedCount, 10));
     }
   }, []);
 
@@ -1185,8 +1201,27 @@ export default function MVPDashboard() {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Let the calendar page and API handle the Pro check and free usage limit
-    toast.success('redirecting to calendar for ai scheduling...');
+    // Check if user has exceeded free uses and is not Pro
+    if (!isPro && aiScheduleUsageCount >= 3) {
+      toast.error('upgrade to pro for unlimited ai scheduling');
+      setShowAccountModal(true);
+      return;
+    }
+
+    // Increment usage count
+    const newCount = aiScheduleUsageCount + 1;
+    setAiScheduleUsageCount(newCount);
+    localStorage.setItem('ai_schedule_usage_count', newCount.toString());
+
+    // Show remaining uses toast
+    if (!isPro && newCount < 3) {
+      toast.success(`ai scheduling... ${3 - newCount} free uses left`);
+    } else if (!isPro && newCount === 3) {
+      toast.success('redirecting to calendar... last free use!');
+    } else {
+      toast.success('redirecting to calendar for ai scheduling...');
+    }
+
     window.location.href = '/dashboard/calendar?autoSchedule=true';
   };
 
@@ -1658,6 +1693,7 @@ export default function MVPDashboard() {
                             isSustainable={sustainableTasks.includes(task.title)}
                             isDeleting={deletingTaskIds.has(task.id as number)}
                             isPro={isPro}
+                            aiScheduleUsageCount={aiScheduleUsageCount}
                           />
                         </div>
                       ))}
