@@ -1,4 +1,4 @@
-// Notification utilities for cross-platform compatibility
+// Notification utilities for cross-platform compatibility - MOBILE SAFE
 export interface TeyraNotificationOptions {
   title: string;
   body: string;
@@ -8,65 +8,60 @@ export interface TeyraNotificationOptions {
   timeOfDay?: 'morning' | 'afternoon' | 'evening';
 }
 
-// Safari and iOS specific notification settings
+// Safari and iOS specific notification settings - MOBILE SAFE
 export const createTeyraNotification = async (options: TeyraNotificationOptions): Promise<Notification | null> => {
-  if (Notification.permission !== 'granted') {
+  // CRITICAL: Check if Notification exists
+  if (typeof window === 'undefined' || !('Notification' in window)) {
     return null;
   }
 
-  const { title, body, type, completedCount, mood, timeOfDay } = options;
-
-  // Enhanced notification options for better cross-platform support
-  const notificationOptions: NotificationOptions = {
-    body,
-    icon: '/teyra-logo-64kb.png',
-    badge: '/teyra-logo-64kb.png',
-    tag: `teyra-${type}`,
-    requireInteraction: true, // Stay longer - important for iOS
-    silent: false,
-    renotify: type === 'celebration' || type === 'milestone',
-    data: {
-      url: '/dashboard',
-      type,
-      completedCount,
-      mood,
-      timeOfDay,
-      timestamp: Date.now()
-    }
-  };
-
-  // Add image for supported browsers (enhances macOS notifications)
-  if ('image' in Notification.prototype) {
-    notificationOptions.image = '/teyra-logo-64kb.png';
-  }
-
-  // Add vibration for mobile devices
-  if ('vibrate' in navigator) {
-    notificationOptions.vibrate = type === 'celebration' 
-      ? [200, 100, 200, 100, 200] // Celebration pattern
-      : [300, 100, 300]; // Standard pattern
-  }
-
   try {
+    if (Notification.permission !== 'granted') {
+      return null;
+    }
+
+    const { title, body, type, completedCount, mood, timeOfDay } = options;
+
+    // Enhanced notification options for better cross-platform support
+    const notificationOptions: NotificationOptions = {
+      body,
+      icon: '/teyra-logo-64kb.png',
+      badge: '/teyra-logo-64kb.png',
+      tag: `teyra-${type}`,
+      requireInteraction: true,
+      silent: false,
+      renotify: type === 'celebration' || type === 'milestone',
+      data: {
+        url: '/dashboard',
+        type,
+        completedCount,
+        mood,
+        timeOfDay,
+        timestamp: Date.now()
+      }
+    };
+
+    // Add image for supported browsers
+    if ('image' in Notification.prototype) {
+      notificationOptions.image = '/teyra-logo-64kb.png';
+    }
+
+    // Add vibration for mobile devices
+    if ('vibrate' in navigator) {
+      notificationOptions.vibrate = type === 'celebration'
+        ? [200, 100, 200, 100, 200]
+        : [300, 100, 300];
+    }
+
     const notification = new Notification(title, notificationOptions);
-    
-    // Add click handler
+
     notification.onclick = () => {
       window.focus();
       notification.close();
-      
-      // Track notification interaction
-      console.log(`📱 ${type} notification clicked`);
     };
 
-    // Add error handler
     notification.onerror = (error) => {
       console.error(`❌ ${type} notification error:`, error);
-    };
-
-    // Add show handler for logging
-    notification.onshow = () => {
-      console.log(`✅ ${type} notification displayed successfully`);
     };
 
     return notification;
@@ -79,7 +74,7 @@ export const createTeyraNotification = async (options: TeyraNotificationOptions)
 // Get occasion-specific messages
 export const getOccasionMessage = (type: string, context?: any): { title: string; body: string } => {
   const currentHour = new Date().getHours();
-  
+
   switch (type) {
     case 'welcome':
       const timeOfDay = currentHour < 12 ? 'morning' : currentHour < 17 ? 'afternoon' : 'evening';
@@ -101,10 +96,10 @@ export const getOccasionMessage = (type: string, context?: any): { title: string
         9: 'Outstanding progress! 9 tasks done. Mike says you\'re growing into a productivity powerhouse! 🌳',
         12: 'Incredible dedication! 12+ tasks completed. You\'ve exceeded all expectations today! 🏆✨'
       };
-      
-      const message = celebrationMessages[count as keyof typeof celebrationMessages] || 
+
+      const message = celebrationMessages[count as keyof typeof celebrationMessages] ||
         `Amazing consistency! ${count} tasks completed. Mike the Cactus believes in your growth! 🌵`;
-      
+
       return {
         title: 'Teyra',
         body: message
@@ -154,45 +149,80 @@ export const getOccasionMessage = (type: string, context?: any): { title: string
   }
 };
 
-// Check if browser/device supports enhanced notifications
+// Check if browser/device supports enhanced notifications - MOBILE SAFE
 export const getNotificationCapabilities = () => {
-  const capabilities = {
-    supported: 'Notification' in window,
-    permission: Notification.permission,
-    serviceWorker: 'serviceWorker' in navigator,
-    vibration: 'vibrate' in navigator,
-    image: 'image' in Notification.prototype,
-    requireInteraction: 'requireInteraction' in Notification.prototype,
-    badge: 'badge' in Notification.prototype,
-    actions: 'actions' in Notification.prototype
-  };
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return {
+      supported: false,
+      permission: 'denied' as NotificationPermission,
+      serviceWorker: false,
+      vibration: false,
+      image: false,
+      requireInteraction: false,
+      badge: false,
+      actions: false,
+      safari: false,
+      ios: false,
+      mobile: false
+    };
+  }
 
-  // Detect Safari/iOS for special handling
-  const userAgent = navigator.userAgent.toLowerCase();
-  capabilities.safari = userAgent.includes('safari') && !userAgent.includes('chrome');
-  capabilities.ios = /iphone|ipad|ipod/.test(userAgent);
-  capabilities.mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent);
+  try {
+    const capabilities: any = {
+      supported: true,
+      permission: Notification.permission,
+      serviceWorker: 'serviceWorker' in navigator,
+      vibration: 'vibrate' in navigator,
+      image: 'image' in Notification.prototype,
+      requireInteraction: 'requireInteraction' in Notification.prototype,
+      badge: 'badge' in Notification.prototype,
+      actions: 'actions' in Notification.prototype
+    };
 
-  return capabilities;
+    // Detect Safari/iOS for special handling
+    const userAgent = navigator.userAgent.toLowerCase();
+    capabilities.safari = userAgent.includes('safari') && !userAgent.includes('chrome');
+    capabilities.ios = /iphone|ipad|ipod/.test(userAgent);
+    capabilities.mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/.test(userAgent);
+
+    return capabilities;
+  } catch (e) {
+    return {
+      supported: false,
+      permission: 'denied' as NotificationPermission,
+      serviceWorker: false,
+      vibration: false,
+      image: false,
+      requireInteraction: false,
+      badge: false,
+      actions: false,
+      safari: false,
+      ios: false,
+      mobile: false
+    };
+  }
 };
 
-// Safari-specific notification helper
+// Safari-specific notification helper - MOBILE SAFE
 export const createSafariNotification = async (options: TeyraNotificationOptions): Promise<boolean> => {
   const capabilities = getNotificationCapabilities();
-  
-  if (!capabilities.supported || Notification.permission !== 'granted') {
+
+  if (!capabilities.supported || typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
 
-  const { title, body } = getOccasionMessage(options.type, options);
-  
   try {
-    // Safari prefers simpler notification options
+    if (Notification.permission !== 'granted') {
+      return false;
+    }
+
+    const { title, body } = getOccasionMessage(options.type, options);
+
     const notification = new Notification(title, {
       body,
       icon: '/teyra-logo-64kb.png',
       tag: `teyra-${options.type}`,
-      requireInteraction: true, // Critical for Safari/iOS
+      requireInteraction: true,
       silent: false
     });
 
@@ -201,12 +231,6 @@ export const createSafariNotification = async (options: TeyraNotificationOptions
       notification.close();
     };
 
-    // Safari notifications need explicit timing
-    if (capabilities.safari || capabilities.ios) {
-      // Don't auto-close on Safari/iOS - let the system handle it
-      console.log('🍎 Safari/iOS notification created with extended duration');
-    }
-
     return true;
   } catch (error) {
     console.error('Safari notification failed:', error);
@@ -214,36 +238,45 @@ export const createSafariNotification = async (options: TeyraNotificationOptions
   }
 };
 
-// Request notification permission with iOS install guide support
-export const requestNotificationPermission = async (): Promise<{ 
-  permission: NotificationPermission; 
-  showIOSGuide: boolean; 
-  capabilities: any 
+// Request notification permission with iOS install guide support - MOBILE SAFE
+export const requestNotificationPermission = async (): Promise<{
+  permission: NotificationPermission;
+  showIOSGuide: boolean;
+  capabilities: any
 }> => {
   const capabilities = getNotificationCapabilities();
-  
-  if (!capabilities.supported) {
-    return { 
-      permission: 'denied', 
-      showIOSGuide: false, 
-      capabilities 
+
+  if (!capabilities.supported || typeof window === 'undefined' || !('Notification' in window)) {
+    return {
+      permission: 'denied',
+      showIOSGuide: false,
+      capabilities
     };
   }
 
-  // Check if already granted
-  if (Notification.permission === 'granted') {
-    return { 
-      permission: 'granted', 
-      showIOSGuide: false, 
-      capabilities 
+  try {
+    // Check if already granted
+    if (Notification.permission === 'granted') {
+      return {
+        permission: 'granted',
+        showIOSGuide: false,
+        capabilities
+      };
+    }
+
+    // Request permission
+    const permission = await Notification.requestPermission();
+
+    // Show iOS guide if on iOS/Safari and permission granted
+    const showIOSGuide = permission === 'granted' && (capabilities.ios || capabilities.safari);
+
+    return { permission, showIOSGuide, capabilities };
+  } catch (error) {
+    console.error('Notification permission request failed:', error);
+    return {
+      permission: 'denied',
+      showIOSGuide: false,
+      capabilities
     };
   }
-
-  // Request permission
-  const permission = await Notification.requestPermission();
-  
-  // Show iOS guide if on iOS/Safari and permission granted
-  const showIOSGuide = permission === 'granted' && (capabilities.ios || capabilities.safari);
-  
-  return { permission, showIOSGuide, capabilities };
 };
