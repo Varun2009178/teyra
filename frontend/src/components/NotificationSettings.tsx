@@ -63,21 +63,22 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
 
   const handlePushToggle = async () => {
     if (!user?.id) return;
-    
-    if (!pushEnabled && permission.state !== 'granted') {
+
+    // MOBILE SAFE: Check permission.granted instead of permission.state
+    if (!pushEnabled && !permission.granted) {
       const granted = await requestPermission();
       if (!granted) return;
     }
-    
+
     const newState = !pushEnabled;
     setPushEnabled(newState);
     localStorage.setItem(`push_notifications_${user.id}`, newState.toString());
-    
+
     // Also update the notification permission state if enabling
-    if (newState && permission.state !== 'granted') {
+    if (newState && !permission.granted) {
       await requestPermission();
     }
-    
+
     console.log(`Push notifications ${newState ? 'enabled' : 'disabled'} for user ${user.id}`);
   };
 
@@ -182,13 +183,11 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
           </div>
 
           {/* Permission Status */}
-          {permission.state && (
-            <div className="mt-6 p-3 bg-white/5 rounded-lg">
-              <p className="text-xs text-white/60">
-                Browser notification permission: <span className="text-white font-medium">{permission.state}</span>
-              </p>
-            </div>
-          )}
+          <div className="mt-6 p-3 bg-white/5 rounded-lg">
+            <p className="text-xs text-white/60">
+              Browser notification permission: <span className="text-white font-medium">{permission.permission}</span>
+            </p>
+          </div>
         </motion.div>
 
         {/* PWA Installation Guide */}
