@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
@@ -566,7 +566,11 @@ function MVPDashboard() {
 
   // Hydration effect - ensures client-side hydration is complete
   useEffect(() => {
-    setIsHydrated(true);
+    // Small delay to ensure DOM is ready on all devices
+    const timer = setTimeout(() => {
+      setIsHydrated(true);
+    }, 50);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -2111,11 +2115,17 @@ function MVPDashboard() {
 
               // NEW USER FLOW: After onboarding, prompt them to select their mood
               setTimeout(() => {
+                if (typeof window === 'undefined') return; // Safety check
+
                 setHighlightMoodSelector(true);
                 // Scroll to mood selector smoothly
-                const moodSection = document.querySelector('[data-mood-selector]');
-                if (moodSection) {
-                  moodSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                try {
+                  const moodSection = document.querySelector('[data-mood-selector]');
+                  if (moodSection && moodSection.scrollIntoView) {
+                    moodSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                } catch (error) {
+                  console.warn('Scroll failed:', error);
                 }
                 // Auto-remove highlight after 10 seconds
                 setTimeout(() => setHighlightMoodSelector(false), 10000);
@@ -2547,13 +2557,6 @@ function MVPDashboard() {
   );
 }
 
-// Loading fallback for Suspense
-const DashboardLoading = () => (
-  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
-    <div className="text-white/60 text-lg">loading dashboard...</div>
-  </div>
-);
-
 // Error fallback for ErrorBoundary
 const DashboardError = () => (
   <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center p-4">
@@ -2574,13 +2577,12 @@ const DashboardError = () => (
   </div>
 );
 
-// Wrapped export with ErrorBoundary and Suspense for crash protection
+// Wrapped export with ErrorBoundary for crash protection
+// Note: No Suspense wrapper - the dashboard has its own loading states and is a client component
 export default function DashboardPage() {
   return (
     <ErrorBoundary fallback={<DashboardError />}>
-      <Suspense fallback={<DashboardLoading />}>
-        <MVPDashboard />
-      </Suspense>
+      <MVPDashboard />
     </ErrorBoundary>
   );
 }
