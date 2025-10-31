@@ -15,11 +15,13 @@ export function useNotifications() {
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [platform, setPlatform] = useState<'android' | 'ios' | 'desktop' | 'unknown'>('unknown');
 
-  // Detect platform
+  // Detect platform - MOBILE SAFE
   useEffect(() => {
-    const detectPlatform = () => {
+    if (typeof window === 'undefined') return;
+
+    try {
       const userAgent = navigator.userAgent.toLowerCase();
-      
+
       if (/android/.test(userAgent)) {
         setPlatform('android');
       } else if (/iphone|ipad|ipod/.test(userAgent)) {
@@ -29,19 +31,26 @@ export function useNotifications() {
       } else {
         setPlatform('unknown');
       }
-    };
-
-    detectPlatform();
+    } catch (e) {
+      setPlatform('unknown');
+    }
   }, []);
 
-  // Check if notifications are supported
+  // Check if notifications are supported - MOBILE SAFE
   useEffect(() => {
-    setIsSupported('Notification' in window && 'serviceWorker' in navigator);
+    if (typeof window === 'undefined') return;
+
+    try {
+      const supported = 'Notification' in window && 'serviceWorker' in navigator;
+      setIsSupported(supported);
+    } catch (e) {
+      setIsSupported(false);
+    }
   }, []);
 
-  // Request notification permission
+  // Request notification permission - MOBILE SAFE
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) {
+    if (!isSupported || typeof window === 'undefined' || !('Notification' in window)) {
       toast.error('Notifications not supported in this browser');
       return false;
     }
@@ -49,7 +58,7 @@ export function useNotifications() {
     try {
       const result = await Notification.requestPermission();
       const granted = result === 'granted';
-      
+
       setPermission({
         granted,
         permission: result
@@ -70,36 +79,35 @@ export function useNotifications() {
     }
   }, [isSupported]);
 
-  // Register service worker (explicit opt-in only)
+  // Register service worker (explicit opt-in only) - MOBILE SAFE
   const registerServiceWorker = useCallback(async () => {
-    if (!('serviceWorker' in navigator)) {
-      console.log('Service Worker not supported');
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
       return null;
     }
 
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered successfully:', registration);
       setSwRegistration(registration);
       return registration;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
-      toast.error('Failed to register service worker');
       return null;
     }
   }, []);
 
-  // Send local notification
+  // Send local notification - MOBILE SAFE
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
     if (!permission.granted) {
-      toast.error('Please enable notifications first');
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('Notification' in window)) {
       return;
     }
 
     try {
       // Use service worker notification if available, otherwise fallback to regular notification
       if (swRegistration && 'showNotification' in swRegistration) {
-        // Service worker notification (supports actions)
         swRegistration.showNotification(title, {
           icon: '/teyra-logo-64kb.png',
           badge: '/teyra-logo-64kb.png',
@@ -107,23 +115,19 @@ export function useNotifications() {
           ...options
         });
       } else {
-        // Regular browser notification (no actions support)
         const notification = new Notification(title, {
           icon: '/teyra-logo-64kb.png',
           badge: '/teyra-logo-64kb.png',
           vibrate: [200, 100, 200],
-          // Remove actions for regular notifications
           ...options
         });
 
-        // Auto-close after 5 seconds
         setTimeout(() => {
           notification.close();
         }, 5000);
       }
     } catch (error) {
-      console.error('Error sending notification:', error);
-      toast.error('Failed to send notification');
+      // Silent fail on mobile
     }
   }, [permission.granted, swRegistration]);
 
@@ -131,12 +135,8 @@ export function useNotifications() {
   const sendTaskCompletionNotification = useCallback((taskTitle: string) => {
     const title = 'Task Completed! 🎉';
     const body = `Great job completing: "${taskTitle}"`;
-    
-    console.log('Sending task completion notification:', { title, body, swRegistration });
-    
+
     if (swRegistration && 'showNotification' in swRegistration) {
-      // Service worker notification with actions
-      console.log('Using service worker notification');
       swRegistration.showNotification(title, {
         body,
         icon: '/teyra-logo-64kb.png',
@@ -152,8 +152,6 @@ export function useNotifications() {
         ]
       });
     } else {
-      // Fallback to regular notification without actions
-      console.log('Using fallback notification (no actions)');
       sendNotification(title, {
         body,
         tag: 'task-completion',
@@ -166,9 +164,8 @@ export function useNotifications() {
   const sendAchievementNotification = useCallback((achievement: string) => {
     const title = 'Achievement Unlocked! 🏆';
     const body = achievement;
-    
+
     if (swRegistration && 'showNotification' in swRegistration) {
-      // Service worker notification with actions
       swRegistration.showNotification(title, {
         body,
         icon: '/teyra-logo-64kb.png',
@@ -184,7 +181,6 @@ export function useNotifications() {
         ]
       });
     } else {
-      // Fallback to regular notification without actions
       sendNotification(title, {
         body,
         tag: 'achievement',
@@ -196,8 +192,8 @@ export function useNotifications() {
   // Send first task notification
   const sendFirstTaskNotification = useCallback((taskTitle: string) => {
     const title = 'First Task Added! 🚀';
-    const body = `You\'ve started your productivity journey with: "${taskTitle}"`;
-    
+    const body = `You've started your productivity journey with: "${taskTitle}"`;
+
     if (swRegistration && 'showNotification' in swRegistration) {
       swRegistration.showNotification(title, {
         body,
@@ -225,8 +221,8 @@ export function useNotifications() {
   // Send mood selection notification
   const sendMoodSelectionNotification = useCallback((mood: string) => {
     const title = 'Mood Set! 💫';
-    const body = `Your mood is now set to: ${mood}. We\'ll suggest tasks based on how you\'re feeling!`;
-    
+    const body = `Your mood is now set to: ${mood}. We'll suggest tasks based on how you're feeling!`;
+
     if (swRegistration && 'showNotification' in swRegistration) {
       swRegistration.showNotification(title, {
         body,
@@ -255,7 +251,7 @@ export function useNotifications() {
   const sendReminderNotification = useCallback((message: string) => {
     const title = 'Reminder ⏰';
     const body = message;
-    
+
     sendNotification(title, {
       body,
       tag: 'reminder',
@@ -263,31 +259,41 @@ export function useNotifications() {
     });
   }, [sendNotification]);
 
-  // Initialize notifications (do not auto-register SW to avoid stale caches)
+  // Initialize notifications - MOBILE SAFE - THIS WAS THE BUG!
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isSupported || typeof window === 'undefined') return;
 
-    const currentPermission = Notification.permission;
-    const granted = currentPermission === 'granted';
-    setPermission({ granted, permission: currentPermission });
+    try {
+      // CRITICAL FIX: Check if Notification exists before accessing
+      if ('Notification' in window) {
+        const currentPermission = Notification.permission;
+        const granted = currentPermission === 'granted';
+        setPermission({ granted, permission: currentPermission });
+      }
+    } catch (e) {
+      // Silent fail on mobile browsers that don't support notifications
+    }
   }, [isSupported]);
 
-  // Handle notification clicks
+  // Handle notification clicks - MOBILE SAFE
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleNotificationClick = (event: Event) => {
-      const notification = event.target as Notification;
-      
-      if (notification.tag === 'task-completion') {
-        // Navigate to dashboard
-        window.focus();
-        window.location.href = '/dashboard';
-      } else if (notification.tag === 'achievement') {
-        // Handle achievement celebration
-        toast.success('🎉 Achievement celebrated!');
+      try {
+        const notification = event.target as Notification;
+
+        if (notification.tag === 'task-completion') {
+          window.focus();
+          window.location.href = '/dashboard';
+        } else if (notification.tag === 'achievement') {
+          toast.success('🎉 Achievement celebrated!');
+        }
+      } catch (e) {
+        // Silent fail
       }
     };
 
-    // Listen for notification clicks
     document.addEventListener('notificationclick', handleNotificationClick);
 
     return () => {
