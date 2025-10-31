@@ -1,57 +1,21 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect } from 'react';
 import { SignUp, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 
 function SignUpContent() {
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
-  const hasCleanedRef = useRef(false);
 
-  // Optimized localStorage cleanup with error handling
   useEffect(() => {
-    // Only run once
-    if (hasCleanedRef.current) return;
-    hasCleanedRef.current = true;
-
-    // Defer cleanup to not block rendering
-    const cleanupTimeout = setTimeout(() => {
-      try {
-        if (typeof window === 'undefined' || !window.localStorage) return;
-
-        const keysToRemove = Object.keys(localStorage).filter(key =>
-          key.includes('user_') || key.includes('onboarding') || key.includes('mood') ||
-          key.includes('notification') || key.includes('welcome') || key.includes('insight') ||
-          key.includes('reflection') || key.includes('dailyTask') || key.includes('commitment') ||
-          key.includes('split') || key.includes('tutorial')
-        );
-
-        keysToRemove.forEach(key => {
-          try {
-            localStorage.removeItem(key);
-          } catch (e) {
-            // Silent fail for individual keys
-          }
-        });
-
-      } catch (error) {
-        // localStorage not available or quota exceeded - continue anyway
-      }
-    }, 100); // Defer by 100ms to not block initial render
-
-    return () => clearTimeout(cleanupTimeout);
-  }, []);
-
-  // Navigate to dashboard if already signed in
-  useEffect(() => {
-    if (isSignedIn && userId) {
-      router.replace('/dashboard');
+    if (isSignedIn) {
+      router.push('/dashboard');
     }
-  }, [isSignedIn, userId, router]);
+  }, [isSignedIn, router]);
 
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">
@@ -67,7 +31,6 @@ function SignUpContent() {
                   width={32}
                   height={32}
                   className="w-8 h-8"
-                  priority
                 />
                 <span className="text-xl font-bold text-white">teyra</span>
               </Link>
@@ -138,39 +101,10 @@ function SignUpContent() {
   );
 }
 
-// Optimized loading fallback
-const LoadingFallback = () => (
-  <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
-    <div className="text-white/60">loading...</div>
-  </div>
-);
-
-// Custom error fallback matching app theme
-const ErrorFallback = () => (
-  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
-    <div className="text-center p-8 glass-dark-modern border-precise rounded-2xl max-w-md">
-      <h2 className="text-2xl font-bold text-white mb-4">
-        something went wrong
-      </h2>
-      <p className="text-white/60 mb-6">
-        we encountered an error loading sign up. please refresh.
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-white/90 font-medium transition-all"
-      >
-        refresh page
-      </button>
-    </div>
-  </div>
-);
-
 export default function SignUpPage() {
   return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
-      <Suspense fallback={<LoadingFallback />}>
-        <SignUpContent />
-      </Suspense>
-    </ErrorBoundary>
+    <VisibleErrorBoundary>
+      <SignUpContent />
+    </VisibleErrorBoundary>
   );
 }

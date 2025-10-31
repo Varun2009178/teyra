@@ -1,95 +1,24 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { SignIn, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 
+// Separate component for content that uses useSearchParams
 function SignInContent() {
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isEmbed = searchParams.get('embed') === 'extension';
-  const isExtension = searchParams.get('extension') === 'true';
-
-  // Prevent race conditions and duplicate executions
-  const [isProcessing, setIsProcessing] = useState(false);
-  const hasProcessedRef = useRef(false);
+  const isEmbed = searchParams?.get('embed') === 'extension';
 
   useEffect(() => {
-    // Guard against duplicate runs
-    if (isProcessing || hasProcessedRef.current) return;
-
-    const handleExtensionSignIn = async () => {
-      if (isSignedIn && userId && isExtension) {
-        setIsProcessing(true);
-        hasProcessedRef.current = true;
-
-        try {
-          // Add timeout to prevent hanging on slow networks
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-          const [userResponse, tasksResponse] = await Promise.all([
-            fetch('/api/user', { signal: controller.signal }),
-            fetch('/api/tasks', { signal: controller.signal })
-          ]);
-
-          clearTimeout(timeoutId);
-
-          const userData = userResponse.ok ? await userResponse.json() : null;
-          const tasksData = tasksResponse.ok ? await tasksResponse.json() : [];
-
-          // Send auth success message to extension
-          window.postMessage({
-            type: 'TEYRA_USER_SIGNIN',
-            source: 'teyra-webapp',
-            user: userData,
-            tasks: tasksData
-          }, '*');
-
-        } catch (error: any) {
-          if (error.name === 'AbortError') {
-            console.warn('Request timed out');
-          } else {
-            console.error('Failed to fetch data for extension:', error);
-          }
-        } finally {
-          setIsProcessing(false);
-        }
-      } else if (isSignedIn && !isExtension) {
-        // Use replace instead of push for faster navigation
-        router.replace('/dashboard');
-      }
-    };
-
-    handleExtensionSignIn();
-  }, [isSignedIn, userId, isExtension]); // Removed router to prevent re-runs
-
-  // Show success message if user is signed in and came from extension
-  if (isSignedIn && isExtension) {
-    return (
-      <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col items-center justify-center px-4">
-        <div className="text-center space-y-6 animate-[fadeIn_500ms_ease-out]">
-          <div className="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-            <svg className="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold mb-2">success!</h1>
-            <p className="text-white/60 text-lg">you're signed in to teyra</p>
-            <p className="text-white/60 text-sm mt-4">click the teyra extension icon to continue, or close this tab</p>
-            <div className="mt-6 px-6 py-3 bg-white/5 border border-white/10 rounded-lg">
-              <p className="text-white/50 text-xs">your extension will automatically detect your login</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (isSignedIn) {
+      router.push('/dashboard');
+    }
+  }, [isSignedIn, router]);
 
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">
@@ -105,15 +34,13 @@ function SignInContent() {
                     width={32}
                     height={32}
                     className="w-8 h-8"
-                    priority
                   />
                   <span className="text-xl font-bold text-white">teyra</span>
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
                 <Link href="/sign-up">
-                  <button className="px-6 py-2.5 text-sm font-semibold bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200"
-                    style={{ outline: 'none', boxShadow: 'none' }}>
+                  <button className="px-6 py-2.5 text-sm font-semibold bg-white hover:bg-white/90 text-black rounded-lg transition-all duration-200">
                     get started
                   </button>
                 </Link>
@@ -125,8 +52,7 @@ function SignInContent() {
 
       <div className={`flex-1 flex items-center justify-center px-4 ${isEmbed ? 'pt-0' : 'pt-28 lg:pt-32'}`}>
         <div className="w-full max-w-md mx-auto">
-          <div className="w-full animate-[fadeIn_500ms_ease-out]">
-            <SignIn
+          <SignIn
             appearance={{
               elements: {
                 rootBox: "w-full",
@@ -169,46 +95,23 @@ function SignInContent() {
             afterSignInUrl="/dashboard"
             signUpUrl="/sign-up"
           />
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Optimized loading fallback
-const LoadingFallback = () => (
-  <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
-    <div className="text-white/60">loading...</div>
-  </div>
-);
-
-// Custom error fallback matching app theme
-const ErrorFallback = () => (
-  <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
-    <div className="text-center p-8 glass-dark-modern border-precise rounded-2xl max-w-md">
-      <h2 className="text-2xl font-bold text-white mb-4">
-        something went wrong
-      </h2>
-      <p className="text-white/60 mb-6">
-        we encountered an error loading sign in. please refresh.
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-white/90 font-medium transition-all"
-      >
-        refresh page
-      </button>
-    </div>
-  </div>
-);
-
+// Wrap in Suspense for mobile compatibility (useSearchParams requirement)
 export default function SignInPage() {
   return (
-    <ErrorBoundary fallback={<ErrorFallback />}>
-      <Suspense fallback={<LoadingFallback />}>
+    <VisibleErrorBoundary>
+      <Suspense fallback={
+        <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
+          <div className="text-white/60">loading...</div>
+        </div>
+      }>
         <SignInContent />
       </Suspense>
-    </ErrorBoundary>
+    </VisibleErrorBoundary>
   );
 }

@@ -22,7 +22,7 @@ import ProWelcomeModal from '@/components/ProWelcomeModal';
 import { AITaskParser } from '@/components/AITaskParser';
 import * as gtag from '@/lib/gtag';
 import Navbar from '@/components/Navbar';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 
 interface Task {
   id: number;
@@ -458,38 +458,50 @@ function MVPDashboard() {
     }).length;
   }, [tasks]);
 
-  // Check if confirmations have been dismissed
+  // Check if confirmations have been dismissed - MOBILE SAFE
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const dismissed = localStorage.getItem('task_confirmations_dismissed');
-    if (dismissed === 'true') {
-      setConfirmationsDismissed(true);
+    if (!isHydrated || typeof window === 'undefined') return;
+    try {
+      const dismissed = localStorage.getItem('task_confirmations_dismissed');
+      if (dismissed === 'true') {
+        setConfirmationsDismissed(true);
+      }
+    } catch (e) {
+      // Ignore localStorage errors
     }
-  }, []);
+  }, [isHydrated]);
 
-  // Load AI schedule usage count from localStorage
+  // Load AI schedule usage count from localStorage - MOBILE SAFE
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedCount = localStorage.getItem('ai_schedule_usage_count');
-    if (storedCount) {
-      setAiScheduleUsageCount(parseInt(storedCount, 10));
+    if (!isHydrated || typeof window === 'undefined') return;
+    try {
+      const storedCount = localStorage.getItem('ai_schedule_usage_count');
+      if (storedCount) {
+        setAiScheduleUsageCount(parseInt(storedCount, 10));
+      }
+    } catch (e) {
+      // Ignore localStorage errors
     }
-  }, []);
+  }, [isHydrated]);
 
-  // Show mobile notice for iPhone users (once per session)
+  // Show mobile notice for iPhone users (once per session) - MOBILE SAFE
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!isHydrated || typeof window === 'undefined') return;
 
-    const hasSeenNotice = sessionStorage.getItem('mobile_notice_seen');
-    const isIPhone = /iPhone/.test(navigator.userAgent);
+    try {
+      const hasSeenNotice = sessionStorage.getItem('mobile_notice_seen');
+      const isIPhone = /iPhone/.test(navigator.userAgent);
 
-    if (isIPhone && !hasSeenNotice) {
-      setTimeout(() => {
-        setShowMobileNotice(true);
-        sessionStorage.setItem('mobile_notice_seen', 'true');
-      }, 2000); // Show after 2 seconds
+      if (isIPhone && !hasSeenNotice) {
+        setTimeout(() => {
+          setShowMobileNotice(true);
+          sessionStorage.setItem('mobile_notice_seen', 'true');
+        }, 2000);
+      }
+    } catch (e) {
+      // Ignore storage errors on mobile
     }
-  }, []);
+  }, [isHydrated]);
 
   // Fetch user data - OPTIMIZED with parallel requests and timeout
   const fetchUserData = useCallback(async () => {
@@ -2577,12 +2589,11 @@ const DashboardError = () => (
   </div>
 );
 
-// Wrapped export with ErrorBoundary for crash protection
-// Note: No Suspense wrapper - the dashboard has its own loading states and is a client component
+// Wrap in visible error boundary so errors show ON SCREEN
 export default function DashboardPage() {
   return (
-    <ErrorBoundary fallback={<DashboardError />}>
+    <VisibleErrorBoundary>
       <MVPDashboard />
-    </ErrorBoundary>
+    </VisibleErrorBoundary>
   );
 }
