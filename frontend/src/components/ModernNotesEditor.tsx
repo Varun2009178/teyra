@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Zap, Brain, CheckCircle, Plus } from 'lucide-react';
+import { Sparkles, Zap, Brain, CheckCircle, Plus, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@clerk/nextjs';
 
 interface ModernNotesEditorProps {
   initialContent?: string;
   onContentChange: (content: string) => void;
   isSaving?: boolean;
+  isPro?: boolean;
 }
 
 interface DetectedTask {
@@ -19,15 +21,22 @@ interface DetectedTask {
 export default function ModernNotesEditor({
   initialContent = '',
   onContentChange,
-  isSaving = false
+  isSaving = false,
+  isPro = false
 }: ModernNotesEditorProps) {
+  const { userId } = useAuth();
   const [content, setContent] = useState(initialContent);
   const [detectedTasks, setDetectedTasks] = useState<DetectedTask[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mode, setMode] = useState<'braindump' | 'action' | 'reflection'>('braindump');
   const [showModeInfo, setShowModeInfo] = useState(true);
+  const [actionModeUses, setActionModeUses] = useState(0);
+  const [reflectionModeUses, setReflectionModeUses] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const LIFETIME_LIMIT = 3;
 
   const modeDescriptions = {
     braindump: {
@@ -51,7 +60,15 @@ export default function ModernNotesEditor({
     if (editorRef.current) {
       editorRef.current.focus();
     }
-  }, []);
+
+    // Load usage counts from localStorage
+    if (typeof window !== 'undefined' && userId) {
+      const actionUses = localStorage.getItem(`action_mode_uses_${userId}`);
+      const reflectionUses = localStorage.getItem(`reflection_mode_uses_${userId}`);
+      setActionModeUses(actionUses ? parseInt(actionUses) : 0);
+      setReflectionModeUses(reflectionUses ? parseInt(reflectionUses) : 0);
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -212,33 +229,31 @@ export default function ModernNotesEditor({
         </button>
         <button
           type="button"
-          onClick={() => {
-            setMode('action');
-            setShowModeInfo(true);
-          }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all lowercase cursor-pointer ${
-            mode === 'action'
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-              : 'text-white/50 hover:text-white/70'
-          }`}
-          style={{ outline: 'none', border: mode === 'action' ? '1px solid rgba(168,85,247,0.3)' : 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
+          disabled={true}
+          className="px-4 py-2 rounded-lg text-sm font-medium transition-all lowercase cursor-not-allowed relative text-white/30 opacity-50"
+          style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
         >
-          📋 action mode
+          <span className="flex items-center gap-1.5">
+            📋 action mode
+            <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[9px] font-bold rounded uppercase">beta</span>
+          </span>
+          {!isPro && actionModeUses >= LIFETIME_LIMIT && (
+            <Crown className="w-3 h-3 absolute -top-1 -right-1 text-yellow-400" />
+          )}
         </button>
         <button
           type="button"
-          onClick={() => {
-            setMode('reflection');
-            setShowModeInfo(true);
-          }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all lowercase cursor-pointer ${
-            mode === 'reflection'
-              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-              : 'text-white/50 hover:text-white/70'
-          }`}
-          style={{ outline: 'none', border: mode === 'reflection' ? '1px solid rgba(59,130,246,0.3)' : 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
+          disabled={true}
+          className="px-4 py-2 rounded-lg text-sm font-medium transition-all lowercase cursor-not-allowed relative text-white/30 opacity-50"
+          style={{ outline: 'none', border: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
         >
-          🌿 reflection
+          <span className="flex items-center gap-1.5">
+            🌿 reflection
+            <span className="px-1.5 py-0.5 bg-orange-500/20 border border-orange-400/40 text-orange-300 text-[9px] font-bold rounded uppercase">beta</span>
+          </span>
+          {!isPro && reflectionModeUses >= LIFETIME_LIMIT && (
+            <Crown className="w-3 h-3 absolute -top-1 -right-1 text-yellow-400" />
+          )}
         </button>
       </div>
 
@@ -345,6 +360,63 @@ export default function ModernNotesEditor({
           {content.split(/\s+/).filter(w => w).length} words
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowUpgradeModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-gradient-to-br from-purple-900/90 to-pink-900/90 backdrop-blur-md border-2 border-purple-400/50 rounded-2xl p-8 max-w-md w-full shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Crown className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-white mb-2 text-center lowercase">
+                limit reached
+              </h3>
+              <p className="text-white/80 mb-6 text-center lowercase">
+                you've used your <strong>{LIFETIME_LIMIT} free uses</strong> of this mode.
+                <br />
+                upgrade to pro for <strong>unlimited access!</strong>
+              </p>
+
+              <div className="bg-black/30 rounded-lg p-4 mb-6">
+                <p className="text-sm text-white/70 mb-3 lowercase">✨ pro benefits:</p>
+                <ul className="text-left text-sm text-white/90 space-y-2 lowercase">
+                  <li>✓ <strong>unlimited</strong> action mode <span className="text-xs text-white/50">(beta)</span></li>
+                  <li>✓ <strong>unlimited</strong> reflection mode <span className="text-xs text-white/50">(beta)</span></li>
+                  <li>✓ <strong>unlimited</strong> AI text-to-task parsing <span className="text-xs text-white/50">(chrome ext)</span></li>
+                  <li>✓ <strong>3 AI mood tasks</strong> per day <span className="text-xs text-white/50">(vs 1 free)</span></li>
+                  <li>✓ focus mode customization <span className="text-xs text-white/50">(chrome ext)</span></li>
+                  <li>✓ chrome extension with quick capture <span className="text-xs text-white/50">(pending approval)</span></li>
+                  <li>✓ priority support</li>
+                </ul>
+              </div>
+
+              <a href="/upgrade">
+                <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 shadow-lg lowercase">
+                  upgrade to pro - $10/month
+                </button>
+              </a>
+
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="mt-4 w-full text-white/60 hover:text-white text-sm transition-colors lowercase"
+              >
+                maybe later
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Remove all focus outlines and blue lines */}
       <style jsx global>{`

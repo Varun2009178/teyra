@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
 
     const stats = {
       dailyResets: 0,
-      dailyEmails: 0,
       notifications: 0,
       errors: 0
     };
@@ -180,37 +179,6 @@ async function performDailyReset(supabase: any, userId: string, stats: any) {
       })
       .eq('user_id', userId);
 
-    // Send daily reset email
-    try {
-      // Get user email from Clerk (you'd need to implement this)
-      const userEmail = await getUserEmail(userId);
-      const userName = await getUserName(userId);
-      
-      if (userEmail) {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-daily-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: userEmail,
-            name: userName || 'there',
-            type: 'daily_reset_trigger',
-            userData: { userId },
-            taskSummary: {
-              completedTasks: completedTasks.length,
-              totalTasks,
-              totalPoints,
-              mikeState: totalPoints >= 200 ? 'Happy (Maxed!)' : totalPoints >= 150 ? 'Happy' : totalPoints >= 100 ? 'Neutral' : 'Growing'
-            }
-          })
-        });
-        
-        console.log(`📧 Sent daily reset email to ${userEmail}`);
-        stats.dailyEmails++;
-      }
-    } catch (emailError) {
-      console.error(`❌ Error sending reset email for user ${userId}:`, emailError);
-    }
-
     stats.dailyResets++;
     console.log(`✅ Daily reset completed for user ${userId}`);
 
@@ -221,48 +189,8 @@ async function performDailyReset(supabase: any, userId: string, stats: any) {
 }
 
 async function checkAndSendMotivationalEmail(supabase: any, userId: string, userProgress: any, stats: any) {
-  try {
-    // Check when user last had activity
-    const { data: recentTasks } = await supabase
-      .from('tasks')
-      .select('updated_at')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-      .limit(1);
-
-    const lastActivity = recentTasks?.[0]?.updated_at || userProgress.created_at;
-    const hoursSinceActivity = (new Date().getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60);
-
-    // Send motivational email if inactive for 12+ hours (but not more than once per day)
-    if (hoursSinceActivity >= 12) {
-      const lastEmailDate = new Date(userProgress.last_reset_date).toDateString();
-      const today = new Date().toDateString();
-      
-      if (lastEmailDate !== today) {
-        const userEmail = await getUserEmail(userId);
-        const userName = await getUserName(userId);
-        
-        if (userEmail) {
-          await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-daily-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: userEmail,
-              name: userName || 'there',
-              type: 'daily_checkin',
-              hoursSinceActivity: Math.round(hoursSinceActivity),
-              userData: { userId }
-            })
-          });
-          
-          console.log(`📧 Sent motivational email to ${userEmail} (${hoursSinceActivity.toFixed(1)}h inactive)`);
-          stats.dailyEmails++;
-        }
-      }
-    }
-  } catch (error) {
-    console.error(`❌ Error checking motivational email for user ${userId}:`, error);
-  }
+  // Motivational emails disabled
+  return;
 }
 
 async function sendPersonalizedNotifications(supabase: any, userId: string, stats: any) {
@@ -312,27 +240,6 @@ async function sendFirebaseNotification(userId: string, notification: any) {
     // Implementation depends on your Firebase setup
   } catch (error) {
     console.error('❌ Error sending Firebase notification:', error);
-  }
-}
-
-async function getUserEmail(userId: string): Promise<string | null> {
-  try {
-    // This would integrate with Clerk to get user email
-    // For now, return null to skip email sending
-    return null;
-  } catch (error) {
-    console.error('❌ Error getting user email:', error);
-    return null;
-  }
-}
-
-async function getUserName(userId: string): Promise<string | null> {
-  try {
-    // This would integrate with Clerk to get user name
-    return null;
-  } catch (error) {
-    console.error('❌ Error getting user name:', error);
-    return null;
   }
 }
 

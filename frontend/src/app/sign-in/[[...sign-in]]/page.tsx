@@ -1,24 +1,24 @@
 'use client';
 
-import React, { useEffect, Suspense } from 'react';
-import { SignIn, useAuth } from '@clerk/nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { Suspense, useState, useEffect } from 'react';
+import { SignIn } from '@clerk/nextjs';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 
 // Separate component for content that uses useSearchParams
 function SignInContent() {
-  const { isSignedIn } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const isEmbed = searchParams?.get('embed') === 'extension';
+  const [mounted, setMounted] = useState(false);
+  const [isEmbed, setIsEmbed] = useState(false);
 
   useEffect(() => {
-    if (isSignedIn) {
-      router.push('/dashboard');
-    }
-  }, [isSignedIn, router]);
+    setMounted(true);
+    setIsEmbed(searchParams?.get('embed') === 'extension');
+  }, [searchParams]);
+
+  // Removed redundant redirect - Clerk handles this automatically with afterSignInUrl
 
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">

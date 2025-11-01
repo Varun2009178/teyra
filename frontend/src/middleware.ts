@@ -11,6 +11,8 @@ const isPublicRoute = createRouteMatcher([
   '/privacy(.*)',
   '/api/webhooks(.*)',
   '/api/cron(.*)',
+  '/api/calendar/callback', // Google OAuth callback - validates auth internally
+  '/api/stripe/callback', // Stripe checkout return - handles auth internally
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

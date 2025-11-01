@@ -1,21 +1,13 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { SignUp, useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import React from 'react';
+import { SignUp } from '@clerk/nextjs';
 import Link from 'next/link';
 import Image from 'next/image';
 import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 
 function SignUpContent() {
-  const { isSignedIn } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isSignedIn) {
-      router.push('/dashboard');
-    }
-  }, [isSignedIn, router]);
+  // Removed redundant redirect - Clerk handles this automatically with afterSignUpUrl
 
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">

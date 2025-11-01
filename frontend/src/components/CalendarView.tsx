@@ -6,6 +6,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, 
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useProStatus } from '@/hooks/useProStatus';
+import AIUpgradeModal from './AIUpgradeModal';
 
 interface CalendarEvent {
   id: string;
@@ -44,8 +45,6 @@ export function CalendarView() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; task: Task | null; googleEvent?: CalendarEvent } | null>(null);
   const [hoveredSlot, setHoveredSlot] = useState<{ day: Date; hour: number } | null>(null);
-  const [isAutoScheduling, setIsAutoScheduling] = useState(false);
-  const [showAutoSchedulePreview, setShowAutoSchedulePreview] = useState(false);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showMobileWarning, setShowMobileWarning] = useState(false);
@@ -432,60 +431,6 @@ export function CalendarView() {
     }
   }
 
-  function showAutoSchedulePreviewModal() {
-    if (unscheduledTasks.length === 0) {
-      toast.info('No unscheduled tasks to schedule!');
-      return;
-    }
-    setShowAutoSchedulePreview(true);
-  }
-
-  async function autoScheduleTasks() {
-    setShowAutoSchedulePreview(false);
-    setIsAutoScheduling(true);
-    console.log('🤖 Starting auto-schedule for', unscheduledTasks.length, 'tasks...');
-
-    try {
-      // Get user's timezone
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      console.log('🌍 Sending timezone to AI:', userTimezone);
-
-      const response = await fetch('/api/calendar/auto-schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timezone: userTimezone }),
-      });
-
-      const result = await response.json();
-      console.log('✅ Auto-schedule result:', result);
-
-      // Check if upgrade is required (403 status or error field)
-      if (result.error === 'upgrade_required' || response.status === 403) {
-        setShowUpgradeModal(true);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to auto-schedule');
-      }
-
-      if (result.scheduledCount > 0) {
-        const usesMsg = result.isPro
-          ? ''
-          : ` (${result.usesRemaining} free use${result.usesRemaining !== 1 ? 's' : ''} remaining)`;
-        toast.success(`scheduled ${result.scheduledCount} task${result.scheduledCount !== 1 ? 's' : ''}${usesMsg}`, { duration: 4000 });
-        // Reload calendar to show newly scheduled tasks
-        await loadData();
-      } else {
-        toast.info(result.message || 'No tasks were scheduled');
-      }
-    } catch (error) {
-      console.error('❌ Auto-schedule error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to auto-schedule tasks');
-    } finally {
-      setIsAutoScheduling(false);
-    }
-  }
 
   function getEventsForSlot(day: Date, hour: number) {
     const slotStart = new Date(day);
@@ -562,33 +507,9 @@ export function CalendarView() {
             <h3 className="text-sm font-medium text-gray-300">
               Your Teyra Tasks ({unscheduledTasks.length} unscheduled)
             </h3>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={showAutoSchedulePreviewModal}
-                disabled={isAutoScheduling || unscheduledTasks.length === 0}
-                className="px-4 py-1.5 bg-white hover:bg-white/90 text-black text-xs font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isAutoScheduling ? (
-                  <>
-                    <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    scheduling...
-                  </>
-                ) : (
-                  <>
-                    ai schedule
-                    {!isPro && (
-                      <span className="px-1.5 py-0.5 bg-black/20 text-[9px] font-bold rounded">PRO</span>
-                    )}
-                  </>
-                )}
-              </button>
-              <span className="text-xs text-gray-500">
-                Drag to calendar to schedule
-              </span>
-            </div>
+            <span className="text-xs text-gray-500">
+              Drag to calendar to schedule
+            </span>
           </div>
           {unscheduledTasks.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -1022,91 +943,6 @@ export function CalendarView() {
         )}
       </AnimatePresence>
 
-      {/* Auto-Schedule Preview Modal */}
-      <AnimatePresence>
-        {showAutoSchedulePreview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-            onClick={() => setShowAutoSchedulePreview(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-zinc-900 border border-white/20 rounded-xl p-6 max-w-2xl w-full mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-2xl font-semibold text-white mb-6">ai smart scheduling</h3>
-
-              {/* How it works */}
-              <div className="space-y-3 mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-1 h-1 rounded-full bg-white/40 mt-2"></div>
-                  <div>
-                    <div className="text-white text-sm font-medium">reads task deadlines</div>
-                    <div className="text-gray-400 text-xs">understands "by 6pm tomorrow" and schedules before deadline</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-1 h-1 rounded-full bg-white/40 mt-2"></div>
-                  <div>
-                    <div className="text-white text-sm font-medium">analyzes your patterns</div>
-                    <div className="text-gray-400 text-xs">schedules during your most productive hours</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-1 h-1 rounded-full bg-white/40 mt-2"></div>
-                  <div>
-                    <div className="text-white text-sm font-medium">avoids conflicts</div>
-                    <div className="text-gray-400 text-xs">checks existing calendar and leaves breathing room</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tasks Preview */}
-              <div className="border-t border-white/10 pt-4 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm text-gray-400">{unscheduledTasks.length} tasks will be scheduled</div>
-                  <span className="text-xs text-gray-500">next 7 days</span>
-                </div>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {unscheduledTasks.slice(0, 6).map((task, index) => (
-                    <div key={task.id} className="flex items-center gap-2 text-sm text-gray-300 hover:bg-white/5 rounded px-2 py-1.5 transition-colors">
-                      <div className="w-1 h-1 rounded-full bg-blue-400/60"></div>
-                      <span className="flex-1 truncate">{task.title}</span>
-                      <span className="text-xs text-gray-500">{task.duration_minutes || 60}m</span>
-                    </div>
-                  ))}
-                  {unscheduledTasks.length > 6 && (
-                    <div className="text-xs text-gray-500 px-2 pt-1">
-                      +{unscheduledTasks.length - 6} more tasks
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAutoSchedulePreview(false)}
-                  className="flex-1 px-4 py-2.5 border border-white/20 text-white/60 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-sm font-medium"
-                >
-                  cancel
-                </button>
-                <button
-                  onClick={autoScheduleTasks}
-                  className="flex-1 px-4 py-2.5 bg-white hover:bg-white/90 text-black rounded-lg transition-colors text-sm font-medium"
-                >
-                  schedule tasks
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Context Menu */}
       {contextMenu && (
         <div
@@ -1159,93 +995,13 @@ export function CalendarView() {
         </div>
       )}
 
-      {/* Upgrade Modal for AI Scheduling Limit */}
-      <AnimatePresence>
-        {showUpgradeModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowUpgradeModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", duration: 0.3 }}
-              className="bg-zinc-900 border border-white/20 rounded-2xl p-8 max-w-md w-full shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-white mb-2">upgrade to pro</h2>
-                <p className="text-white/60 text-sm">you've used all 3 free ai scheduling sessions</p>
-              </div>
-
-              {/* Features */}
-              <div className="space-y-3 mb-8">
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/60 mt-2"></div>
-                  <div className="text-sm text-white/80">
-                    <strong className="text-white">unlimited ai scheduling</strong> - schedule tasks automatically with ai
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/60 mt-2"></div>
-                  <div className="text-sm text-white/80">
-                    <strong className="text-white">advanced task splitting</strong> - break down complex tasks into smaller steps
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/60 mt-2"></div>
-                  <div className="text-sm text-white/80">
-                    <strong className="text-white">priority support</strong> - get help when you need it
-                  </div>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="bg-white/5 rounded-xl p-4 mb-6 text-center">
-                <div className="text-3xl font-bold text-white mb-1">$10<span className="text-lg text-white/60">/month</span></div>
-                <div className="text-xs text-white/40">cancel anytime</div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowUpgradeModal(false)}
-                  className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium"
-                >
-                  maybe later
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/stripe/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                      const { url } = await response.json();
-                      if (url) window.location.href = url;
-                    } catch (error) {
-                      toast.error('failed to start upgrade');
-                    }
-                  }}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-all text-sm font-semibold shadow-lg"
-                >
-                  upgrade now
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* UNIFIED AI UPGRADE MODAL - Used across all AI features */}
+      <AIUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        featureName="AI auto-scheduling"
+        currentLimit={3}
+      />
 
       {/* Mobile Warning Modal */}
       <AnimatePresence>

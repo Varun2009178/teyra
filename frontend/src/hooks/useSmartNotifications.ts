@@ -10,9 +10,16 @@ export function useSmartNotifications() {
   const checkForSmartNotifications = useCallback(async () => {
     if (!user?.id || !permission.granted) return;
 
+    // Check if user has notifications enabled in settings
+    const pushEnabled = localStorage.getItem(`push_notifications_${user.id}`) === 'true';
+    if (!pushEnabled) {
+      console.log('🔕 Push notifications disabled by user');
+      return;
+    }
+
     try {
       const token = await getToken();
-      
+
       // Check if user should receive a notification
       const response = await fetch('/api/smart-notifications', {
         method: 'GET',
@@ -23,7 +30,7 @@ export function useSmartNotifications() {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.shouldNotify) {
           // Trigger smart notification
           const notificationResponse = await fetch('/api/smart-notifications', {
@@ -31,7 +38,8 @@ export function useSmartNotifications() {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
-            }
+            },
+            body: JSON.stringify({ pushEnabled: true })
           });
 
           if (notificationResponse.ok) {
@@ -63,6 +71,12 @@ export function useSmartNotifications() {
 
   const sendInactivityReminder = useCallback(async () => {
     if (!user?.id || !permission.granted) return;
+
+    // Check if user has notifications enabled
+    const pushEnabled = localStorage.getItem(`push_notifications_${user.id}`) === 'true';
+    if (!pushEnabled) {
+      return;
+    }
 
     try {
       const token = await getToken();

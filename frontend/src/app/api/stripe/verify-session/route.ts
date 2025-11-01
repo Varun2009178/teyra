@@ -34,8 +34,10 @@ export async function POST(req: NextRequest) {
 
     // If payment is successful, ensure user is marked as Pro
     if (session.payment_status === 'paid' || session.status === 'complete') {
+      // Payment successful, updating database
+
       // Update user in database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_progress')
         .upsert({
           user_id: userId,
@@ -46,7 +48,8 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id'
-        });
+        })
+        .select();
 
       if (error) {
         console.error('❌ Error updating user to Pro:', error);
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
         }, { status: 500 });
       }
 
-      console.log('✅ User successfully upgraded to Pro:', userId);
+      // User successfully upgraded to Pro
 
       return NextResponse.json({
         success: true,

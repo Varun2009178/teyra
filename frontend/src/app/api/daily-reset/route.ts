@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic';
 // Initialize Supabase client with service role key for admin operations
 // Use fallback during build time if service role key is not available
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:3000',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'fallback'
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: NextRequest) {
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
           daily_start_time: new Date().toISOString(),
           current_mood: null,
           daily_mood_checks: 0,
+          daily_parses: 0,
           is_locked: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
         daily_start_time: now.toISOString(),
         current_mood: null, // Reset mood so user can select again
         daily_mood_checks: 0,
+        daily_parses: 0, // Reset AI task parsing counter
         is_locked: false,
         updated_at: now.toISOString()
       })
@@ -202,6 +204,7 @@ export async function POST(request: NextRequest) {
             daily_start_time: now.toISOString(),
             current_mood: null,
             daily_mood_checks: 0,
+            daily_parses: 0, // Reset AI task parsing counter
             is_locked: false,
             updated_at: now.toISOString()
           })
@@ -215,44 +218,6 @@ export async function POST(request: NextRequest) {
           details: results[results.length - 1].reason 
         }, { status: 500 });
       }
-    }
-
-    // Send reset email with task summary
-    try {
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-reset-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': request.headers.get('Authorization') || ''
-        },
-        body: JSON.stringify({
-          taskSummary: {
-            total: todaysTasks?.length || 0,
-            completed_count: completedTasks.length,
-            incomplete_count: incompleteTasks.length,
-            completed: completedTasks.map(t => t.title),
-            incomplete: incompleteTasks.map(t => t.title)
-          },
-          userStats: {
-            completed_count: completedTasks.length,
-            points_earned: pointsToAdd,
-            reset_time: now.toISOString()
-          }
-        })
-      });
-
-      if (emailResponse.ok) {
-        const emailResult = await emailResponse.json();
-        if (emailResult.emailSkipped) {
-          console.log('📧 Reset email skipped (API key not configured)');
-        } else {
-          console.log('✅ Reset email sent successfully');
-        }
-      } else {
-        console.warn('⚠️ Failed to send reset email:', await emailResponse.text());
-      }
-    } catch (emailError) {
-      console.warn('⚠️ Error sending reset email:', emailError);
     }
 
     console.log(`✅ Daily reset completed successfully for user: ${userId}`);

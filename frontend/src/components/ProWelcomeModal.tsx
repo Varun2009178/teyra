@@ -13,26 +13,26 @@ interface ProWelcomeModalProps {
 const proFeatures = [
   {
     icon: '✨',
-    title: 'Unlimited AI Text → Task',
-    description: 'Convert unlimited text to tasks with AI - no daily limits!',
+    title: 'unlimited AI text → task parsing',
+    description: 'chrome extension (vs 5 per day free)',
     badge: 'LIMITED TIME'
   },
   {
+    icon: '💭',
+    title: '3 AI mood tasks per day',
+    description: 'what you like to do today feature',
+    badge: null
+  },
+  {
     icon: '🎯',
-    title: 'Custom Focus Mode',
-    description: 'Block any websites you choose during focus sessions',
+    title: 'focus mode customization',
+    description: 'chrome extension - block any websites',
     badge: null
   },
   {
-    icon: '⏱️',
-    title: 'Pomodoro Timer',
-    description: 'Built-in focus sessions to boost productivity',
-    badge: null
-  },
-  {
-    icon: '⚡',
-    title: 'Priority Support',
-    description: 'Get faster response times for all your questions',
+    icon: '🔌',
+    title: 'chrome extension',
+    description: 'quick capture (pending approval)',
     badge: null
   }
 ];
@@ -86,15 +86,15 @@ export default function ProWelcomeModal({ isOpen, onClose }: ProWelcomeModalProp
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="relative w-full max-w-2xl bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl liquid-glass-strong liquid-glass-depth border-precise rounded-2xl p-8 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Animated background gradient */}
@@ -142,18 +142,18 @@ export default function ProWelcomeModal({ isOpen, onClose }: ProWelcomeModalProp
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-4xl font-bold text-white mb-3"
+              className="text-3xl font-bold text-white mb-2 lowercase"
             >
-              Welcome to Pro! 🎉
+              welcome to teyra pro
             </motion.h2>
 
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-white/70 text-lg"
+              className="text-white/60 text-base lowercase"
             >
-              You now have access to all premium features
+              you've unlocked all premium features
             </motion.p>
           </div>
 
@@ -165,15 +165,15 @@ export default function ProWelcomeModal({ isOpen, onClose }: ProWelcomeModalProp
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
-                className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
+                className="p-4 liquid-glass-subtle liquid-glass-hover rounded-lg transition-all"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center flex-shrink-0 border border-white/10">
-                    <span className="text-2xl">{feature.icon}</span>
+                  <div className="w-10 h-10 rounded-lg liquid-glass-subtle flex items-center justify-center flex-shrink-0 border border-white/10">
+                    <span className="text-xl">{feature.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-white font-semibold text-sm">{feature.title}</h3>
+                      <h3 className="text-white font-semibold text-sm lowercase">{feature.title}</h3>
                       {feature.badge && (
                         <motion.span
                           animate={{ opacity: [0.6, 1, 0.6] }}
@@ -184,7 +184,7 @@ export default function ProWelcomeModal({ isOpen, onClose }: ProWelcomeModalProp
                         </motion.span>
                       )}
                     </div>
-                    <p className="text-white/60 text-xs leading-relaxed">{feature.description}</p>
+                    <p className="text-white/60 text-xs leading-relaxed lowercase">{feature.description}</p>
                   </div>
                 </div>
               </motion.div>
@@ -200,12 +200,12 @@ export default function ProWelcomeModal({ isOpen, onClose }: ProWelcomeModalProp
           >
             <button
               onClick={onClose}
-              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+              className="px-6 py-3 bg-white hover:bg-white/90 text-black font-semibold rounded-lg transition-all text-sm lowercase"
             >
-              Start Using Pro Features 🚀
+              let's go
             </button>
-            <p className="text-white/40 text-xs mt-4">
-              You can access your Pro features anytime from the PRO badge in the navbar
+            <p className="text-white/40 text-xs mt-3 lowercase">
+              check the PRO badge anytime for your status
             </p>
           </motion.div>
         </div>

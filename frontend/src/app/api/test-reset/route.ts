@@ -115,7 +115,12 @@ export async function POST(request: NextRequest) {
 
     // Send reset email with task summary
     try {
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-reset-email`, {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
+      if (!baseUrl) {
+        throw new Error('NEXT_PUBLIC_APP_URL must be configured in production');
+      }
+
+      const emailResponse = await fetch(`${baseUrl}/api/send-reset-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

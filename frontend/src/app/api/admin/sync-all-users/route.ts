@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
         const email = clerkUser.emailAddresses[0]?.emailAddress || 'unknown@example.com';
         const firstName = clerkUser.firstName || 'Unknown';
         const lastName = clerkUser.lastName || 'User';
-        
-        console.log(`👤 Processing user: ${firstName} ${lastName} (${email})`);
+
+        // Processing user sync
         
         // Check if user already exists in user_progress
         const { data: existingUser, error: checkError } = await supabase

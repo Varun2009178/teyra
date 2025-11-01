@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Upsert user's subscription status in database (create or update)
-        const { error } = await supabase
+        // Updating database, setting is_pro: true
+
+        const { data, error } = await supabase
           .from('user_progress')
           .upsert({
             user_id: userId,
@@ -65,12 +67,11 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString(),
           }, {
             onConflict: 'user_id'
-          });
+          })
+          .select();
 
         if (error) {
           console.error('❌ Error updating user progress:', error);
-        } else {
-          console.log('✅ User upgraded to Pro:', userId);
         }
         break;
       }

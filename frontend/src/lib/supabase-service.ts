@@ -61,7 +61,9 @@ export async function createTask(userId: string, title: string, limit?: string, 
 
     // If this is their first task, lock them for 24 hours
     if (isFirstTask) {
-      console.log(`🔒 Locking user ${userId} after first task creation`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔒 Locking user ${userId.slice(-8)} after first task creation`)
+      }
       
       await serviceSupabase
         .from('user_progress')
@@ -131,7 +133,7 @@ export async function updateTask(taskId: number, data: {
 
 export async function deleteTask(taskId: number) {
   try {
-    console.log(`🗑️ Attempting to delete task with ID: ${taskId}`)
+    // Attempting to delete task
     
     // First check if the task exists and get its user_id
     const { data: existingTask, error: fetchError } = await serviceSupabase
@@ -362,50 +364,17 @@ export async function updateUserMood(userId: string, mood: string) {
   try {
     // First ensure user progress exists
     let userProgressData = await getUserProgress(userId)
-    
+
     if (!userProgressData) {
       userProgressData = await createUserProgress(userId)
     }
 
-    // Check if we need to reset daily counters (new day)
-    const today = new Date().toDateString()
-    const lastResetDate = new Date(userProgressData.last_reset_date).toDateString()
-    const isNewDay = today !== lastResetDate
-    
-    // If it's a new day, reset everything and allow mood updates
-    if (isNewDay) {
-      console.log(`🔄 New day detected for user ${userId}, resetting counters and unlocking`)
-      userProgressData.is_locked = false
-      userProgressData.daily_start_time = null
-      userProgressData.daily_mood_checks = 0
-    }
-    
-    // Check if user is locked (only if it's the same day)
-    if (!isNewDay && userProgressData.is_locked && userProgressData.daily_start_time) {
-      throw new Error('User is locked and cannot change mood until next reset')
-    }
-    
-    let dailyMoodChecks = userProgressData.daily_mood_checks
-    
-    // Increment daily mood checks
-    dailyMoodChecks += 1
-    
-    // If this is their first mood check of the day and they're not locked yet, lock them
-    const isFirstMoodCheck = dailyMoodChecks === 1 && !userProgressData.is_locked
-
-    const updateData: any = {
+    // Simply update the mood - don't increment counters or lock
+    // Counter increments happen in check-mood-limit endpoint
+    const updateData = {
       current_mood: mood,
-      daily_mood_checks: dailyMoodChecks,
       last_mood_update: new Date().toISOString(),
-      last_reset_date: new Date().toISOString(), // Always update to current time
       updated_at: new Date().toISOString()
-    }
-
-    // Lock user if this is their first mood check of the day
-    if (isFirstMoodCheck) {
-      console.log(`🔒 Locking user ${userId} after first mood update of the day`)
-      updateData.is_locked = true
-      updateData.daily_start_time = new Date().toISOString()
     }
 
     const { data, error } = await serviceSupabase

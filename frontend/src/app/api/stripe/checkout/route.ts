@@ -29,7 +29,26 @@ export async function POST(req: NextRequest) {
       console.log('🎯 Creating checkout with referral code:', referralCode);
     }
 
+    // Determine base URL based on environment
+    // Use localhost for development/sandbox, production URL otherwise
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const baseUrl = isDevelopment
+      ? (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000')
+      : process.env.NEXT_PUBLIC_APP_URL;
+
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_APP_URL must be configured in production' },
+        { status: 500 }
+      );
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔗 Stripe redirect URLs using base:', baseUrl, '(development:', isDevelopment, ')');
+    }
+
     // Create Stripe checkout session
+    // Use dedicated callback route to handle auth properly
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -39,8 +58,8 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?pro_welcome=true&session_id={CHECKOUT_SESSION_ID}&upgrade=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgrade=cancelled`,
+      success_url: `${baseUrl}/api/stripe/callback?pro_welcome=true&session_id={CHECKOUT_SESSION_ID}&upgrade=success`,
+      cancel_url: `${baseUrl}/api/stripe/callback?upgrade=cancelled`,
       metadata,
       client_reference_id: userId,
       // Enable test clock for easier testing

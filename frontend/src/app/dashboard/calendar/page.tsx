@@ -19,8 +19,15 @@ function CalendarPageContent() {
   const [isPro, setIsPro] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     checkConnection();
     checkProStatus();
 
@@ -37,7 +44,7 @@ function CalendarPageContent() {
       toast.error(`Connection failed: ${error}`);
       router.replace('/dashboard/calendar');
     }
-  }, [searchParams]);
+  }, [searchParams, mounted]);
 
   async function checkProStatus() {
     try {

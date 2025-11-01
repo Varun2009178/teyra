@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 
@@ -8,9 +8,14 @@ function UpgradeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !mounted) return;
 
     // Get referral code from URL
     const referralCode = searchParams.get('ref');
@@ -42,7 +47,7 @@ function UpgradeContent() {
       console.log('→ Redirecting to sign-in');
       router.push('/sign-in');
     }
-  }, [isSignedIn, isLoaded, searchParams, router]);
+  }, [isSignedIn, isLoaded, searchParams, router, mounted]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center">

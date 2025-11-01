@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Loader2, Check, Trash2, Edit2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import AIUpgradeModal from './AIUpgradeModal';
 
 interface ParsedTask {
   title: string;
@@ -23,6 +24,7 @@ export function AITaskParser({ isOpen, onClose, onTasksCreated }: AITaskParserPr
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const handleAnalyze = async () => {
     if (!inputText.trim()) {
@@ -32,6 +34,21 @@ export function AITaskParser({ isOpen, onClose, onTasksCreated }: AITaskParserPr
 
     setIsAnalyzing(true);
     try {
+      // CHECK PARSE LIMIT FIRST (Pro users bypass)
+      const limitCheck = await fetch('/api/progress/check-parse-limit', {
+        method: 'POST'
+      });
+
+      const limitData = await limitCheck.json();
+
+      if (!limitData.canParse) {
+        // FREE USER HIT LIMIT - SHOW UPGRADE
+        toast.error(limitData.message || 'Daily AI parsing limit reached');
+        setShowUpgradePrompt(true);
+        setIsAnalyzing(false);
+        return;
+      }
+
       const response = await fetch('/api/ai/parse-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -325,6 +342,14 @@ export function AITaskParser({ isOpen, onClose, onTasksCreated }: AITaskParserPr
               )}
             </div>
           </motion.div>
+
+          {/* UNIFIED AI UPGRADE MODAL - Used across all AI features */}
+          <AIUpgradeModal
+            isOpen={showUpgradePrompt}
+            onClose={() => setShowUpgradePrompt(false)}
+            featureName="AI task parsing"
+            currentLimit={2}
+          />
         </>
       )}
     </AnimatePresence>

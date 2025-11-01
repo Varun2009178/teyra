@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import Script from 'next/script'
 import { GA_TRACKING_ID, pageview } from '@/lib/gtag'
@@ -8,15 +8,20 @@ import { GA_TRACKING_ID, pageview } from '@/lib/gtag'
 function GoogleAnalyticsContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (GA_TRACKING_ID) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (GA_TRACKING_ID && mounted) {
       const url = pathname + searchParams.toString()
       pageview(url)
     }
-  }, [pathname, searchParams])
+  }, [pathname, searchParams, mounted])
 
-  if (!GA_TRACKING_ID) {
+  if (!GA_TRACKING_ID || !mounted) {
     return null
   }
 

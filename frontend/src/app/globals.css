@@ -88,6 +88,9 @@
   button, a, [role="button"] {
     min-height: 44px;
     min-width: 44px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
   }
   
   /* Better focus styles for accessibility */
@@ -250,7 +253,7 @@ button.button-shimmer:hover::before {
   animation: float 6s ease-in-out infinite;
 }
 
-/* Enhanced text selection */
+/* Enhanced text selection - disabled for buttons */
 ::selection {
   background: rgba(239, 68, 68, 0.2);
   color: inherit;
@@ -258,6 +261,15 @@ button.button-shimmer:hover::before {
 
 ::-moz-selection {
   background: rgba(239, 68, 68, 0.2);
+  color: inherit;
+}
+
+/* Disable text selection on buttons to prevent uneven highlights */
+button::selection,
+button::-moz-selection,
+button *::selection,
+button *::-moz-selection {
+  background: transparent;
   color: inherit;
 }
 

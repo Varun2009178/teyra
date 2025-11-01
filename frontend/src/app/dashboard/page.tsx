@@ -38,23 +38,19 @@ const TaskCard = React.memo(({
   onToggle,
   onDelete,
   onEdit,
-  onAISchedule,
   onManualSchedule,
   isSustainable = false,
   isDeleting = false,
   isPro = false,
-  aiScheduleUsageCount = 0
 }: {
   task: Task & { isNew?: boolean };
   onToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit?: (id: number) => void;
-  onAISchedule?: (id: number) => void;
   onManualSchedule?: (id: number) => void;
   isSustainable?: boolean;
   isDeleting?: boolean;
   isPro?: boolean;
-  aiScheduleUsageCount?: number;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -176,12 +172,29 @@ const TaskCard = React.memo(({
           </motion.div>
         )}
 
+        {/* Edit button with smooth reveal */}
+        {onEdit && (
+          <motion.button
+            onClick={() => onEdit(task.id)}
+            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-blue-400 transition-all duration-300 liquid-glass-subtle rounded-lg"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: isHovered ? 1 : 0.3,
+              scale: isHovered ? 1 : 0.9
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Edit className="w-4 h-4" />
+          </motion.button>
+        )}
+
         {/* Delete button with smooth reveal */}
         <motion.button
           onClick={() => onDelete(task.id)}
           className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-red-400 transition-all duration-300 liquid-glass-subtle rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
           initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ 
+          animate={{
             opacity: isHovered ? 1 : 0.3,
             scale: isHovered ? 1 : 0.9
           }}
@@ -255,25 +268,6 @@ const TaskCard = React.memo(({
             </button>
 
             <div className="border-t border-white/10 my-1" />
-
-            {onAISchedule && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAISchedule(task.id);
-                  setShowContextMenu(false);
-                }}
-                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>ai schedule</span>
-                {!isPro && aiScheduleUsageCount >= 3 && (
-                  <span className="ml-auto px-2 py-0.5 bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold rounded uppercase tracking-wide">
-                    pro
-                  </span>
-                )}
-              </button>
-            )}
 
             {onManualSchedule && (
               <button
@@ -353,7 +347,6 @@ function MVPDashboard() {
   const [showAIParser, setShowAIParser] = useState(false);
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
-  const [aiScheduleUsageCount, setAiScheduleUsageCount] = useState(0);
   const [showMobileNotice, setShowMobileNotice] = useState(false);
   const [highlightMoodSelector, setHighlightMoodSelector] = useState(false);
 
@@ -471,18 +464,6 @@ function MVPDashboard() {
     }
   }, [isHydrated]);
 
-  // Load AI schedule usage count from localStorage - MOBILE SAFE
-  useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      const storedCount = localStorage.getItem('ai_schedule_usage_count');
-      if (storedCount) {
-        setAiScheduleUsageCount(parseInt(storedCount, 10));
-      }
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-  }, [isHydrated]);
 
   // Show mobile notice for iPhone users (once per session) - MOBILE SAFE
   useEffect(() => {
@@ -586,27 +567,19 @@ function MVPDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id || !isHydrated) 
+    if (!user?.id || !isHydrated)
       return;
-
-    fetchUserData();
-    // Track session start
-    try {
-      trackSessionStart();
-    } catch (error) {
-      console.warn('Session tracking failed:', error);
-    }
 
     // Check if user just upgraded to Pro (coming back from Stripe)
     const checkProUpgrade = async () => {
-      if (typeof window === 'undefined') return;
+      if (typeof window === 'undefined') return false;
       const urlParams = new URLSearchParams(window.location.search);
       const justUpgraded = urlParams.get('pro_welcome');
       const sessionId = urlParams.get('session_id');
       const upgradeStatus = urlParams.get('upgrade');
 
       if (justUpgraded === 'true' && sessionId) {
-        console.log('🎉 User returned from Stripe checkout!');
+        // User returned from Stripe checkout
 
         try {
           const token = await getToken();
@@ -627,21 +600,17 @@ function MVPDashboard() {
             console.log('✅ Session verified:', verifyData);
 
             if (verifyData.isPro) {
-              // Step 2: Refresh subscription status
-              const subRes = await fetch('/api/subscription/status', {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
+              // Set Pro status immediately
+              setIsPro(true);
 
-              if (subRes.ok) {
-                const subData = await subRes.json();
-                setIsPro(true);
+              // Refresh all user data to get updated Pro status
+              await fetchUserData();
 
-                // Show welcome modal with confetti
-                setTimeout(() => {
-                  setShowProWelcome(true);
-                  toast.success('🎉 Welcome to Teyra Pro!');
-                }, 800);
-              }
+              // Show welcome modal with confetti
+              setTimeout(() => {
+                setShowProWelcome(true);
+                toast.success('🎉 Welcome to Teyra Pro!');
+              }, 800);
             } else {
               toast.error('Payment verification failed. Please contact support.');
             }
@@ -653,13 +622,32 @@ function MVPDashboard() {
 
         // Clean up URL
         window.history.replaceState({}, '', '/dashboard');
+        return true; // Indicate upgrade flow was handled
       } else if (upgradeStatus === 'cancelled') {
         toast.info('Upgrade cancelled. You can upgrade anytime!');
         window.history.replaceState({}, '', '/dashboard');
       }
+      return false;
     };
 
-    checkProUpgrade();
+    // Run upgrade check first, then fetch data if not upgrading
+    const initializeDashboard = async () => {
+      const wasUpgrading = await checkProUpgrade();
+
+      // If not in upgrade flow, fetch data normally
+      if (!wasUpgrading) {
+        fetchUserData();
+      }
+
+      // Track session start
+      try {
+        trackSessionStart();
+      } catch (error) {
+        console.warn('Session tracking failed:', error);
+      }
+    };
+
+    initializeDashboard();
 
     // Handle checkout action from extension
     const handleCheckoutAction = async () => {
@@ -696,29 +684,16 @@ function MVPDashboard() {
       if (typeof window === 'undefined') return;
       const userId = user.id;
 
-      console.log('🎯 Initializing user experience for:', userId);
+      // Initializing user experience
 
       // Check if this is a first visit for onboarding tour
       const hasSeenTour = localStorage.getItem(`dashboard_tour_${userId}`) === 'true';
 
-      console.log('📊 Has seen tour?', hasSeenTour);
-
       // For existing users who have never seen the tour, show it
       if (!hasSeenTour) {
-        console.log('👋 New user detected - showing onboarding tour in 1 second');
         setTimeout(() => {
-          console.log('🚀 Triggering onboarding tour now');
           setShowOnboardingTour(true);
         }, 1000);
-      } else {
-        console.log('✅ User has already seen the tour');
-      }
-      
-      // Set up first task completion trigger for smart notifications
-      // This doesn't show immediately but prepares for when they complete their first task
-      const hasSeenSmartSetup = localStorage.getItem(`smart_setup_${userId}`) === 'true';
-      if (!hasSeenSmartSetup) {
-        console.log('📱 User hasn\'t seen smart notification setup - will show after first task');
       }
     };
 
@@ -729,7 +704,7 @@ function MVPDashboard() {
   useEffect(() => {
     if (user?.id && isLoading) {
       const timeout = setTimeout(() => {
-        console.log('Forcing loading completion for user:', user.id);
+        // Forcing loading completion
         setIsLoading(false);
       }, 3000); // Max 3 seconds loading
       
@@ -1176,14 +1151,12 @@ function MVPDashboard() {
       toast.error('Failed to delete task');
     }
     finally {
-      // small delay to avoid fast delete spam on adjacent items
-      setTimeout(() => {
-        setDeletingTaskIds(prev => {
-          const next = new Set(prev);
-          next.delete(taskId);
-          return next;
-        });
-      }, 250);
+      // Release delete lock immediately for faster UX
+      setDeletingTaskIds(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
     }
   };
 
@@ -1235,34 +1208,6 @@ function MVPDashboard() {
   };
 
   // Handler for AI scheduling a single task
-  const handleAIScheduleTask = async (taskId: number) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    // Check if user has exceeded free uses and is not Pro
-    if (!isPro && aiScheduleUsageCount >= 3) {
-      toast.error('upgrade to pro for unlimited ai scheduling');
-      setShowAccountModal(true);
-      return;
-    }
-
-    // Increment usage count
-    const newCount = aiScheduleUsageCount + 1;
-    setAiScheduleUsageCount(newCount);
-    localStorage.setItem('ai_schedule_usage_count', newCount.toString());
-
-    // Show remaining uses toast
-    if (!isPro && newCount < 3) {
-      toast.success(`ai scheduling... ${3 - newCount} free uses left`);
-    } else if (!isPro && newCount === 3) {
-      toast.success('redirecting to calendar... last free use!');
-    } else {
-      toast.success('redirecting to calendar for ai scheduling...');
-    }
-
-    window.location.href = '/dashboard/calendar?autoSchedule=true';
-  };
-
   // Handler for manually scheduling a single task
   const handleManualScheduleTask = async (taskId: number) => {
     const task = tasks.find(t => t.id === taskId);
@@ -1351,7 +1296,7 @@ function MVPDashboard() {
           );
 
           if (confirmed) {
-            console.log('🗑️ User confirmed account deletion');
+            // User confirmed account deletion
 
             try {
               const response = await fetch('/api/user/delete', {
@@ -1430,10 +1375,10 @@ function MVPDashboard() {
                 </motion.p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   {[
-                    { title: "unlimited AI text → task", desc: "limited time only! (vs 5 per day free)", highlight: true },
-                    { title: "ai calendar scheduling", desc: "schedule tasks automatically with ai", highlight: false },
-                    { title: "focus mode customization", desc: "block any websites you choose", highlight: false },
-                    { title: "pomodoro timer", desc: "built-in focus sessions", highlight: false },
+                    { title: "unlimited AI text → task parsing", desc: "chrome extension (vs 5 per day free)", highlight: true },
+                    { title: "3 AI mood tasks per day", desc: "what you like to do today feature", highlight: false },
+                    { title: "focus mode customization", desc: "chrome extension - block any websites", highlight: false },
+                    { title: "chrome extension", desc: "quick capture (pending approval)", highlight: false },
                     { title: "priority support", desc: "faster response times", highlight: false }
                   ].map((feature, i) => (
                     <motion.div
@@ -1732,12 +1677,10 @@ function MVPDashboard() {
                             onToggle={handleToggleTask}
                             onDelete={handleDeleteTask}
                             onEdit={handleEditTask}
-                            onAISchedule={handleAIScheduleTask}
                             onManualSchedule={handleManualScheduleTask}
                             isSustainable={sustainableTasks.includes(task.title)}
                             isDeleting={deletingTaskIds.has(task.id as number)}
                             isPro={isPro}
-                            aiScheduleUsageCount={aiScheduleUsageCount}
                           />
                         </div>
                       ))}
@@ -2164,7 +2107,7 @@ function MVPDashboard() {
               }
               if (user?.id) {
                 localStorage.setItem(`push_notifications_${user.id}`, 'true');
-                console.log('✅ Push notifications enabled for user:', user.id);
+                // Push notifications enabled
               }
               toast.success('Smart notifications enabled! 🔔');
             }}
@@ -2177,7 +2120,7 @@ function MVPDashboard() {
               }).catch(console.error);
               if (user?.id) {
                 localStorage.setItem(`email_notifications_${user.id}`, 'true');
-                console.log('✅ Email notifications enabled for user:', user.id);
+                // Email notifications enabled
               }
               toast.success('Daily emails enabled! 📧');
             }}
@@ -2231,7 +2174,7 @@ function MVPDashboard() {
                     {isPro ? 'teyra pro' : 'teyra free'}
                   </p>
                   <p className="text-white/50 text-xs mt-1">
-                    {isPro ? 'unlimited AI text → task, pomodoro timer, and more' : '5 AI text → task per day'}
+                    {isPro ? 'unlimited AI parsing, 3 mood tasks/day, chrome ext' : '5 AI parses, 1 mood task per day'}
                   </p>
                 </div>
 

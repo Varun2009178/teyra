@@ -47,23 +47,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if user has notifications enabled (from request body since we can't access localStorage from server)
+    const body = await request.json().catch(() => ({}));
+    const pushEnabled = body?.pushEnabled === true;
+
+    if (!pushEnabled) {
+      return NextResponse.json({
+        success: false,
+        message: 'User has notifications disabled'
+      });
+    }
+
     // Generate and send a personalized notification
     const notification = await generatePersonalizedNotification(user.id);
-    
+
     if (notification) {
       // Send via Firebase (implement based on your setup)
       await sendFirebaseNotification(user.id, notification);
-      
+
       // Track notification sent
       await trackNotificationSent(user.id, notification);
-      
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         success: true,
         notification,
         timestamp: new Date().toISOString()
       });
     } else {
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: false,
         message: 'No notification needed at this time'
       });
