@@ -45,11 +45,30 @@ export default function Navbar({
       return;
     }
 
+    // First confirmation with strong warnings
     const confirmed = window.confirm(
-      "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
+      "⚠️ DELETE ACCOUNT?\n\n" +
+      "This will PERMANENTLY delete:\n" +
+      "• All your tasks and progress\n" +
+      "• Your Mike the Cactus\n" +
+      "• All account data\n\n" +
+      "IMPORTANT:\n" +
+      "• Active subscriptions will continue until the end of your billing period\n" +
+      "• NO REFUNDS will be issued\n" +
+      "• This action CANNOT be undone\n\n" +
+      "Are you absolutely sure?"
     );
 
-    if (confirmed) {
+    if (!confirmed) return;
+
+    // Second confirmation to prevent accidents
+    const doubleConfirmed = window.confirm(
+      "⚠️ FINAL WARNING\n\n" +
+      "This is your last chance to cancel.\n\n" +
+      "Type DELETE to confirm or click Cancel to go back."
+    );
+
+    if (doubleConfirmed) {
       try {
         const response = await fetch('/api/user/delete', {
           method: 'DELETE',
@@ -60,6 +79,8 @@ export default function Navbar({
 
         if (response.ok) {
           toast.success('Account deleted successfully');
+          // Redirect to home page after deletion
+          setTimeout(() => window.location.href = '/', 1500);
         } else {
           const error = await response.json().catch(() => ({}));
           if (error.code === 'VERIFICATION_REQUIRED') {

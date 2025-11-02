@@ -21,10 +21,7 @@ export async function GET(request: NextRequest) {
     // Check if user data exists in database
     try {
       const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      // Using shared singleton
 
       const tables = ['tasks', 'user_progress', 'user_behavior_events', 'user_behavior_analysis'];
       const checks = await Promise.allSettled(

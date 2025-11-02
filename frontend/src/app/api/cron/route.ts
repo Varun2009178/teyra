@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Import Supabase service
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Using shared singleton
 
     console.log('📊 Fetching users for cron processing...');
 

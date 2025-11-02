@@ -2,14 +2,7 @@ import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createUserProgress } from '@/lib/supabase-service';
-import { createClient } from '@supabase/supabase-js';
-
-// Service role client for admin operations (bypasses RLS)
-const serviceSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createUserProgress, serviceSupabase } from '@/lib/supabase-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';

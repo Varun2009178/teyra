@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Using shared singleton
 
 export async function POST(request: NextRequest) {
   try {

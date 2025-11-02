@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
 
 // Initialize Supabase client with service role key for admin operations
 // Use fallback during build time if service role key is not available
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Using shared singleton
 
 export async function POST(request: NextRequest) {
   try {

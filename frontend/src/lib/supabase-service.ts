@@ -1,11 +1,26 @@
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 
-// Service role client for admin operations
+// SINGLETON: Service role client for admin operations
+// Shared across all API routes to prevent connection pool exhaustion
 const serviceSupabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    },
+    global: {
+      headers: {
+        'x-application-name': 'teyra-service'
+      }
+    }
+  }
 )
+
+// Export singleton for use across all API routes
+export { serviceSupabase }
 
 // Task-related operations
 export async function getUserTasks(userId: string) {
@@ -369,8 +384,8 @@ export async function updateUserMood(userId: string, mood: string) {
       userProgressData = await createUserProgress(userId)
     }
 
-    // Simply update the mood - don't increment counters or lock
-    // Counter increments happen in check-mood-limit endpoint
+    // Simply update the mood - don't increment counters or lock here
+    // Counter increments happen in /api/mood endpoint after this function
     const updateData = {
       current_mood: mood,
       last_mood_update: new Date().toISOString(),

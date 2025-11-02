@@ -1,7 +1,7 @@
 // API Route: Handle Google OAuth callback
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokensFromCode } from '@/lib/google-calendar';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
@@ -63,10 +63,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ Tokens received from Google');
 
     // Store tokens in Supabase
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Using shared singleton
 
     // First, check if user_progress record exists
     const { data: existingProgress } = await supabase

@@ -1,7 +1,7 @@
 // API Route: Fetch Google Calendar events
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCalendarEvents, refreshAccessToken } from '@/lib/google-calendar';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 import { auth } from '@clerk/nextjs/server';
 
 export async function GET(request: NextRequest) {
@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('end') || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Get user's calendar tokens from Supabase
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Using shared singleton
 
     const { data: userData, error: userError } = await supabase
       .from('user_progress')

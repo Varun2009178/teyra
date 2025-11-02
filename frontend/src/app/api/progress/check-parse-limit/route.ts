@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { getUserProgress } from '@/lib/supabase-service';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
 
 const DAILY_PARSE_LIMIT = 5; // FREE users: 5 AI parses per day (Pro = unlimited)
+
+// Using shared singleton
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,34 +18,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // PRO USERS GET UNLIMITED - Check subscription status
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
-      if (!baseUrl) {
-        throw new Error('NEXT_PUBLIC_APP_URL must be configured in production');
-      }
-      const subResponse = await fetch(`${baseUrl}/api/subscription/status`, {
-        headers: {
-          'Authorization': `Bearer ${user.id}`
-        }
+    // Check Pro status DIRECTLY from database - no HTTP call needed!
+    const { data: proData } = await supabase
+      .from('user_progress')
+      .select('is_pro')
+      .eq('user_id', user.id)
+      .single();
+
+    const isPro = proData?.is_pro || false;
+
+    // PRO USERS GET UNLIMITED
+    if (isPro) {
+      return NextResponse.json({
+        success: true,
+        message: 'Pro user - unlimited access',
+        canParse: true,
+        isPro: true,
+        unlimited: true
       });
-
-      if (subResponse.ok) {
-        const subData = await subResponse.json();
-        const isPro = subData.isPro || false;
-
-        if (isPro) {
-          return NextResponse.json({
-            success: true,
-            message: 'Pro user - unlimited access',
-            canParse: true,
-            isPro: true,
-            unlimited: true
-          });
-        }
-      }
-    } catch (error) {
-      console.warn('Could not check Pro status, proceeding with limit check:', error);
     }
 
     const userProgressData = await getUserProgress(user.id);

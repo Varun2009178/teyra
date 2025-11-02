@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
@@ -96,33 +96,23 @@ Rules:
 
     // Increment daily_parses counter for usage tracking (only for free users)
     try {
-      // Check Pro status
-      let isPro = false;
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
-        if (!baseUrl) {
-          throw new Error('NEXT_PUBLIC_APP_URL must be configured in production');
-        }
-        const subResponse = await fetch(`${baseUrl}/api/subscription/status`, {
-          headers: {
-            'Authorization': `Bearer ${userId}`
-          }
-        });
+      // Check Pro status DIRECTLY from database
+      const supabaseClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
 
-        if (subResponse.ok) {
-          const subData = await subResponse.json();
-          isPro = subData.isPro || false;
-        }
-      } catch (error) {
-        console.warn('Could not check Pro status for increment, assuming free user:', error);
-      }
+      const { data: proData } = await supabaseClient
+        .from('user_progress')
+        .select('is_pro')
+        .eq('user_id', userId)
+        .single();
+
+      const isPro = proData?.is_pro || false;
 
       // Only increment for non-Pro users
       if (!isPro) {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
+        // Using shared singleton
 
         const { data: userProgress } = await supabase
           .from('user_progress')

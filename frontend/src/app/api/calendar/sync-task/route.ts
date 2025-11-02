@@ -1,7 +1,7 @@
 // API Route: Sync Teyra task to Google Calendar
 import { NextRequest, NextResponse } from 'next/server';
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, refreshAccessToken } from '@/lib/google-calendar';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 import { auth } from '@clerk/nextjs/server';
 
 export async function POST(request: NextRequest) {
@@ -14,10 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { taskId, action } = body; // action: 'create' | 'update' | 'delete'
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Using shared singleton
 
     // Get user's calendar tokens
     const { data: userData } = await supabase

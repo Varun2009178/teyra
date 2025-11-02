@@ -6,26 +6,26 @@ import { Check, Sparkles } from 'lucide-react';
 
 const proFeatures = [
   {
-    title: 'unlimited ai scheduling',
-    description: 'schedule tasks automatically with ai (vs 3 free)',
+    title: 'unlimited AI text → task parsing',
+    description: 'chrome extension (vs 5 per day free)',
     highlight: true,
-    icon: '🤖'
-  },
-  {
-    title: 'unlimited AI text → task',
-    description: 'limited time only! (vs 5 per day free)',
-    highlight: false,
     icon: '✨'
   },
   {
-    title: 'focus mode customization',
-    description: 'block any websites you choose',
-    icon: '🎯'
+    title: '3 AI mood tasks per day',
+    description: 'what you like to do today feature (vs 1 free)',
+    highlight: false,
+    icon: '💭'
   },
   {
     title: 'pomodoro timer',
-    description: 'built-in focus sessions',
+    description: 'chrome extension - built-in focus sessions',
     icon: '⏱️'
+  },
+  {
+    title: 'focus mode customization',
+    description: 'chrome extension - block any websites you choose',
+    icon: '🎯'
   },
   {
     title: 'priority support',
@@ -109,11 +109,8 @@ export default function ProBadgeDropdown() {
 
               {/* Footer */}
               <div className="mt-4 pt-3 border-t border-white/10">
-                <p className="text-white/40 text-xs text-center mb-2">
+                <p className="text-white/40 text-xs text-center">
                   Thank you for supporting teyra! 💜
-                </p>
-                <p className="text-white/50 text-xs text-center">
-                  ✨ Many Pro features available in Chrome extension (coming soon)
                 </p>
               </div>
             </div>

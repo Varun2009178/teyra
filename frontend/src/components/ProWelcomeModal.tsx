@@ -20,19 +20,19 @@ const proFeatures = [
   {
     icon: '💭',
     title: '3 AI mood tasks per day',
-    description: 'what you like to do today feature',
+    description: 'what you like to do today feature (vs 1 free)',
+    badge: null
+  },
+  {
+    icon: '⏱️',
+    title: 'pomodoro timer',
+    description: 'chrome extension - built-in focus sessions',
     badge: null
   },
   {
     icon: '🎯',
     title: 'focus mode customization',
-    description: 'chrome extension - block any websites',
-    badge: null
-  },
-  {
-    icon: '🔌',
-    title: 'chrome extension',
-    description: 'quick capture (pending approval)',
+    description: 'chrome extension - block any websites you choose',
     badge: null
   }
 ];

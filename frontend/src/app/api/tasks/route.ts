@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { getUserTasks, createTask } from '@/lib/supabase-service';
-import { createClient } from '@supabase/supabase-js';
+import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -44,10 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Handle bulk task creation (from AI parser)
     if (body.tasks && Array.isArray(body.tasks)) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      // Using shared singleton
 
       const tasksToInsert = body.tasks.map((task: any) => ({
         user_id: userId,
@@ -79,10 +76,7 @@ export async function POST(request: NextRequest) {
 
     // If scheduled_time or duration_minutes are provided, use direct Supabase client
     if (scheduled_time || duration_minutes) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+      // Using shared singleton
 
       const { data: newTask, error } = await supabase
         .from('tasks')
@@ -129,10 +123,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Using shared singleton
 
     // Delete all tasks for user
     const { error } = await supabase

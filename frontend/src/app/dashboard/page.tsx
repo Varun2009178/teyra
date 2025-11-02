@@ -16,7 +16,6 @@ import { useSmartNotifications } from '@/hooks/useSmartNotifications';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { SmartNotificationSetup } from '@/components/SmartNotificationSetup';
 import { NotificationSettings } from '@/components/NotificationSettings';
-import DailyNotificationPrompt from '@/components/DailyNotificationPrompt';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import ProWelcomeModal from '@/components/ProWelcomeModal';
 import { AITaskParser } from '@/components/AITaskParser';
@@ -84,8 +83,12 @@ const TaskCard = React.memo(({
     <>
       <motion.div
         className={`liquid-glass-task liquid-glass-task-hover rounded-xl p-4 mb-3 ${
-          task.isNew ? 'new-task' : ''
-        } ${isCompleting ? 'opacity-50' : ''}`}
+          isCompleting ? 'opacity-50' : ''
+        }`}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.1 }}
         whileHover={{ scale: 1.02 }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
@@ -294,7 +297,7 @@ TaskCard.displayName = 'TaskCard';
 
 function MVPDashboard() {
   const { user } = useUser();
-  const { getToken } = useAuth();
+  // Note: Clerk uses cookie-based auth, no need for Bearer tokens
 
   // Initialize hooks normally (can't be conditional in React)
   // The hooks themselves should handle lazy initialization internally
@@ -490,7 +493,6 @@ function MVPDashboard() {
 
     try {
       setIsLoading(true);
-      const token = await getToken();
 
       // PARALLEL FETCH - fetch both tasks and subscription at the same time
       const controller = new AbortController();
@@ -498,14 +500,12 @@ function MVPDashboard() {
 
       const [tasksRes, subRes] = await Promise.all([
         fetch('/api/tasks', {
-          headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         }).catch(err => {
           console.error('Tasks fetch failed:', err);
           return null;
         }),
         fetch('/api/subscription/status', {
-          headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal
         }).catch(err => {
           console.error('Subscription fetch failed:', err);
@@ -555,7 +555,7 @@ function MVPDashboard() {
       }
       setIsLoading(false);
     }
-  }, [user, getToken, isHydrated]);
+  }, [user, isHydrated]);
 
   // Hydration effect - ensures client-side hydration is complete
   useEffect(() => {
@@ -582,14 +582,11 @@ function MVPDashboard() {
         // User returned from Stripe checkout
 
         try {
-          const token = await getToken();
-
           // Step 1: Verify the Stripe session and ensure user is marked as Pro
           console.log('🔍 Verifying Stripe session...');
           const verifyRes = await fetch('/api/stripe/verify-session', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ sessionId })
@@ -611,6 +608,11 @@ function MVPDashboard() {
                 setShowProWelcome(true);
                 toast.success('🎉 Welcome to Teyra Pro!');
               }, 800);
+
+              // Force page reload after showing modal to refresh all Pro features (counters, limits, etc)
+              setTimeout(() => {
+                window.location.reload();
+              }, 3000);
             } else {
               toast.error('Payment verification failed. Please contact support.');
             }
@@ -712,12 +714,10 @@ function MVPDashboard() {
     }
   }, [user?.id, isLoading]);
 
-  // Add task - Sophisticated optimistic updates with smooth animations
-  const [isInputSubmitting, setIsInputSubmitting] = useState(false);
-  const [recentlyAddedTask, setRecentlyAddedTask] = useState<number | null>(null);
+  // Add task - Fast optimistic updates
 
   const handleAddTask = async () => {
-    if (!newTask.trim() || !user || isInputSubmitting || isAddLocked) return;
+    if (!newTask.trim() || !user || isAddLocked) return;
 
     // Check daily limit before adding
     if (dailyTasksCount >= 10) {
@@ -726,79 +726,53 @@ function MVPDashboard() {
     }
 
     const taskTitle = newTask.trim();
-    setIsInputSubmitting(true);
-    setIsAddLocked(true);
 
-    // Create optimistic task with new flag for special animation
-    const optimisticTask: Task & { isNew?: boolean } = {
-      id: Date.now(), // Temporary ID
+    // Create optimistic task - simple, no animations
+    const optimisticTask: Task = {
+      id: Date.now() + Math.random(),
       title: taskTitle,
       completed: false,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      isNew: true // Flag for special new task animation
+      updated_at: new Date().toISOString()
     };
 
-    // Add to UI instantly with smooth animation
+    // Add to UI and clear input immediately
     setTasks(prev => [optimisticTask, ...prev]);
-    setRecentlyAddedTask(optimisticTask.id);
-    
-    // Clear input with smooth animation
     setNewTask('');
 
-    // Send notification for first task
-    if (tasks.length === 0 && permission.granted) {
-      sendFirstTaskNotification(taskTitle);
-    }
+    // Brief lock to prevent double-adds
+    setIsAddLocked(true);
+    setTimeout(() => setIsAddLocked(false), 150);
 
-    // Remove the "new" flag after animation completes
-    setTimeout(() => {
-      setTasks(prev => prev.map(t => 
-        t.id === optimisticTask.id ? { ...t, isNew: false } : t
-      ));
-      setRecentlyAddedTask(null);
-    }, 2000);
+    // Fire-and-forget API call
+    (async () => {
+      try {
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: taskTitle })
+        });
 
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ title: taskTitle })
-      });
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(prev => prev.map(task =>
+            task.id === optimisticTask.id ? data : task
+          ));
 
-      if (response.ok) {
-        const data = await response.json();
-        // Replace optimistic task with real data
-        setTasks(prev => prev.map(task =>
-          task.id === optimisticTask.id ? data : task
-        ));
-
-        // Track successful task creation (non-blocking)
-        try {
-          trackTaskCreated(taskTitle, data.id);
-          gtag.trackTaskCreated(taskTitle);
-        } catch (error) {
-          console.warn('Behavior tracking failed:', error);
+          // Track in background
+          try {
+            trackTaskCreated(taskTitle, data.id);
+            gtag.trackTaskCreated(taskTitle);
+          } catch {}
+        } else {
+          setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+          toast.error('Failed to add task');
         }
-      } else {
-        // Remove optimistic task on failure
+      } catch (error) {
         setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
-        const error = await response.json();
-        toast.error(error.error || 'Failed to add task');
+        toast.error('Failed to add task');
       }
-    } catch (error) {
-      // Remove optimistic task on failure
-      setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
-      toast.error('Failed to add task');
-    } finally {
-      setIsInputSubmitting(false);
-      // brief lock to prevent spam add
-      setTimeout(() => setIsAddLocked(false), 350);
-    }
+    })();
   };
 
   // Toggle task completion - with confirmation popup
@@ -904,12 +878,10 @@ function MVPDashboard() {
 
     // Background API call
     try {
-      const token = await getToken();
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ completed: newCompletedState })
       });
@@ -983,12 +955,10 @@ function MVPDashboard() {
     toast.success('Sustainable task added! Complete it for 20 points! 🌱');
 
     try {
-      const token = await getToken();
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: randomTask })
       });
@@ -1026,14 +996,12 @@ function MVPDashboard() {
     
     // Add to UI
     setTasks(prev => [optimisticTask, ...prev]);
-    
+
     try {
-      const token = await getToken();
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: taskTitle })
       });
@@ -1074,8 +1042,6 @@ function MVPDashboard() {
     setIsUpgrading(true);
 
     try {
-      const token = await getToken();
-
       // Get referral code from sessionStorage if present
       const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('teyra_referral') : null;
 
@@ -1088,7 +1054,6 @@ function MVPDashboard() {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1115,43 +1080,56 @@ function MVPDashboard() {
 
   // Delete task
   const handleDeleteTask = async (taskId: number) => {
-    if (deletingTaskIds.has(taskId)) return; // ignore rapid double clicks
-    setDeletingTaskIds(prev => new Set(prev).add(taskId));
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+    if (deletingTaskIds.has(taskId)) {
+      console.log(`⚠️ Task ${taskId} already being deleted, ignoring duplicate click`);
+      return;
+    }
 
-    // Soft-remove with smoother experience: optimistic remove, but keep delete lock
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+      console.log(`⚠️ Task ${taskId} not found in state`);
+      return;
+    }
+
+    console.log(`🗑️ Frontend: Deleting task ${taskId}: "${task.title}"`);
+
+    // Mark as deleting
+    setDeletingTaskIds(prev => new Set(prev).add(taskId));
+
+    // Remove from UI immediately
     setTasks(prev => prev.filter(t => t.id !== taskId));
 
     try {
-      const token = await getToken();
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Ensure cookies are sent
       });
 
+      console.log(`📡 DELETE /api/tasks/${taskId} - Status: ${response.status}`);
+
       if (!response.ok) {
-        // Restore task if failed
-        setTasks(prev => [task, ...prev]);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`❌ Failed to delete task ${taskId}:`, errorData);
+
+        // Restore task on failure
+        setTasks(prev => [...prev, task].sort((a, b) => a.id - b.id));
         toast.error('Failed to delete task');
       } else {
-        toast.success('Task deleted');
-        // Track successful task deletion
+        console.log(`✅ Task ${taskId} deleted successfully`);
+        // Track deletion silently
         try {
           trackTaskDeleted(task.title, taskId);
-        } catch (error) {
-          console.warn('Task deletion tracking failed:', error);
+        } catch (e) {
+          console.warn('Failed to track deletion:', e);
         }
       }
     } catch (error) {
-      // Restore task if failed
-      setTasks(prev => [task, ...prev]);
-      toast.error('Failed to delete task');
-    }
-    finally {
-      // Release delete lock immediately for faster UX
+      console.error(`❌ Network error deleting task ${taskId}:`, error);
+      // Restore task on error
+      setTasks(prev => [...prev, task].sort((a, b) => a.id - b.id));
+      toast.error('Network error - task not deleted');
+    } finally {
+      // Remove from deleting set
       setDeletingTaskIds(prev => {
         const next = new Set(prev);
         next.delete(taskId);
@@ -1183,11 +1161,9 @@ function MVPDashboard() {
     setEditModalTask(null);
 
     try {
-      const token = await getToken();
       const response = await fetch(`/api/tasks/${editModalTask.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: newTitle })
@@ -1220,11 +1196,9 @@ function MVPDashboard() {
     if (!scheduleModalTask) return;
 
     try {
-      const token = await getToken();
       const response = await fetch(`/api/tasks/${scheduleModalTask.id}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -1237,9 +1211,7 @@ function MVPDashboard() {
         toast.success('task scheduled! view in calendar');
         setScheduleModalTask(null);
         // Refresh tasks to update the list
-        const tasksResponse = await fetch('/api/tasks', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const tasksResponse = await fetch('/api/tasks');
         if (tasksResponse.ok) {
           const updatedTasks = await tasksResponse.json();
           setTasks(updatedTasks);
@@ -1291,13 +1263,30 @@ function MVPDashboard() {
         onSettingsClick={() => setShowNotificationSettings(true)}
         onHelpClick={() => setShowOnboardingTour(true)}
         customDeleteHandler={async () => {
+          // First confirmation with strong warnings
           const confirmed = window.confirm(
-            "Are you sure you want to delete your account? This will permanently delete all your tasks, progress, and account data. This action cannot be undone."
+            "⚠️ DELETE ACCOUNT?\n\n" +
+            "This will PERMANENTLY delete:\n" +
+            "• All your tasks and progress\n" +
+            "• Your Mike the Cactus\n" +
+            "• All account data\n\n" +
+            "IMPORTANT:\n" +
+            "• Active subscriptions will continue until the end of your billing period\n" +
+            "• NO REFUNDS will be issued\n" +
+            "• This action CANNOT be undone\n\n" +
+            "Are you absolutely sure?"
           );
 
-          if (confirmed) {
-            // User confirmed account deletion
+          if (!confirmed) return;
 
+          // Second confirmation to prevent accidents
+          const doubleConfirmed = window.confirm(
+            "⚠️ FINAL WARNING\n\n" +
+            "This is your last chance to cancel.\n\n" +
+            "Click OK to permanently delete your account or Cancel to go back."
+          );
+
+          if (doubleConfirmed) {
             try {
               const response = await fetch('/api/user/delete', {
                 method: 'DELETE',
@@ -1306,20 +1295,12 @@ function MVPDashboard() {
                 }
               });
 
-              console.log('📡 Delete response:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
-              });
-
               if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Account deleted successfully:', result);
                 toast.success('Account deleted successfully');
+                // Redirect to home page after deletion
+                setTimeout(() => window.location.href = '/', 1500);
               } else {
                 const error = await response.json().catch(() => ({}));
-                console.error('❌ Account deletion failed:', error);
-
                 if (error.code === 'VERIFICATION_REQUIRED') {
                   toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
                 } else {
@@ -1327,7 +1308,6 @@ function MVPDashboard() {
                 }
               }
             } catch (error) {
-              console.error('❌ Error during account deletion:', error);
               toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
             }
           }
@@ -1376,9 +1356,9 @@ function MVPDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   {[
                     { title: "unlimited AI text → task parsing", desc: "chrome extension (vs 5 per day free)", highlight: true },
-                    { title: "3 AI mood tasks per day", desc: "what you like to do today feature", highlight: false },
+                    { title: "3 AI mood tasks per day", desc: "what you like to do today feature (vs 1 free)", highlight: false },
+                    { title: "pomodoro timer", desc: "chrome extension - built-in focus sessions", highlight: false },
                     { title: "focus mode customization", desc: "chrome extension - block any websites", highlight: false },
-                    { title: "chrome extension", desc: "quick capture (pending approval)", highlight: false },
                     { title: "priority support", desc: "faster response times", highlight: false }
                   ].map((feature, i) => (
                     <motion.div
@@ -1491,99 +1471,31 @@ function MVPDashboard() {
                 <motion.div 
                   className="flex items-center gap-3"
                   animate={{
-                    scale: isInputSubmitting ? 0.98 : 1,
+                    scale: isAddLocked ? 0.98 : 1,
                   }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="relative flex-1">
-                    <motion.input
-                      type="text"
-                      value={newTask}
-                      onChange={(e) => setNewTask(e.target.value)}
-                      placeholder="What needs to be accomplished today?"
-                      className="w-full px-6 py-4 liquid-glass-input rounded-xl text-white placeholder:text-white/50 text-base focus:outline-none transition-all duration-300"
-                      onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
-                      disabled={isInputSubmitting}
-                      animate={{
-                        borderColor: newTask.trim() ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.12)',
-                      }}
-                    />
-                    
-                    {/* Subtle typing indicator */}
-                    {newTask.trim() && (
-                      <motion.div
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                      >
-                        <motion.div
-                          className="w-2 h-2 bg-green-400 rounded-full"
-                          animate={{ 
-                            scale: [1, 1.2, 1],
-                            opacity: [0.6, 1, 0.6]
-                          }}
-                          transition={{ 
-                            duration: 1.5, 
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                          }}
-                        />
-                      </motion.div>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    value={newTask}
+                    onChange={(e) => setNewTask(e.target.value)}
+                    placeholder="What needs to be accomplished today?"
+                    className="flex-1 px-6 py-4 liquid-glass-input rounded-xl text-white placeholder:text-white/50 text-base focus:outline-none"
+                    onKeyPress={(e) => e.key === 'Enter' && !isAddLocked && handleAddTask()}
+                    disabled={isAddLocked}
+                  />
 
-                  {/* Enhanced add button with sophisticated animations */}
-                  <motion.button
-                    whileHover={{
-                      scale: newTask.trim() ? 1.05 : 1,
-                      rotate: newTask.trim() ? 5 : 0
-                    }}
-                    whileTap={{ scale: 0.95 }}
+                  <button
                     onClick={handleAddTask}
-                    disabled={!newTask.trim() || isInputSubmitting}
-                    className={`relative w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 ${
-                      newTask.trim() && !isInputSubmitting
-                        ? 'bg-white hover:bg-white/90 text-black shadow-lg hover:shadow-xl'
+                    disabled={!newTask.trim() || isAddLocked}
+                    className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
+                      newTask.trim() && !isAddLocked
+                        ? 'bg-white hover:bg-white/90 text-black'
                         : 'bg-white/20 text-white/40 cursor-not-allowed'
                     }`}
-                    animate={{
-                      backgroundColor: newTask.trim() && !isInputSubmitting
-                        ? 'rgba(255, 255, 255, 1)'
-                        : 'rgba(255, 255, 255, 0.2)',
-                      color: newTask.trim() && !isInputSubmitting
-                        ? 'rgba(0, 0, 0, 1)'
-                        : 'rgba(255, 255, 255, 0.4)'
-                    }}
                   >
-                    {isInputSubmitting ? (
-                      <motion.div
-                        className="w-5 h-5 border-2 border-current border-t-transparent rounded-full"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      />
-                    ) : (
-                      <motion.div
-                        animate={{
-                          scale: newTask.trim() ? 1.1 : 1,
-                          rotate: newTask.trim() ? 0 : 0
-                        }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Plus className="w-5 h-5" />
-                      </motion.div>
-                    )}
-
-                    {/* Subtle glow effect when ready to add */}
-                    {newTask.trim() && !isInputSubmitting && (
-                      <motion.div
-                        className="absolute inset-0 rounded-xl bg-white/20"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0, 0.3, 0] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      />
-                    )}
-                  </motion.button>
+                    <Plus className="w-5 h-5" />
+                  </button>
 
                   {/* AI Parser Button - REMOVED: Use Notes > Action Mode instead */}
                   {/* <motion.button
@@ -1668,21 +1580,20 @@ function MVPDashboard() {
                     <p className="text-white/40 text-sm mt-2">Add your first task above to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <AnimatePresence mode="popLayout" initial={false}>
+                  <div className="space-y-0">
+                    <AnimatePresence initial={false}>
                       {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
-                        <div key={task.id}>
-                          <TaskCard
-                            task={task}
-                            onToggle={handleToggleTask}
-                            onDelete={handleDeleteTask}
-                            onEdit={handleEditTask}
-                            onManualSchedule={handleManualScheduleTask}
-                            isSustainable={sustainableTasks.includes(task.title)}
-                            isDeleting={deletingTaskIds.has(task.id as number)}
-                            isPro={isPro}
-                          />
-                        </div>
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={handleToggleTask}
+                          onDelete={handleDeleteTask}
+                          onEdit={handleEditTask}
+                          onManualSchedule={handleManualScheduleTask}
+                          isSustainable={sustainableTasks.includes(task.title)}
+                          isDeleting={deletingTaskIds.has(task.id as number)}
+                          isPro={isPro}
+                        />
                       ))}
                     </AnimatePresence>
                   </div>
@@ -2111,19 +2022,7 @@ function MVPDashboard() {
               }
               toast.success('Smart notifications enabled! 🔔');
             }}
-            onEnableEmails={() => {
-              // Enable emails via API call
-              fetch('/api/user/email-preferences', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enableDailyEmails: true })
-              }).catch(console.error);
-              if (user?.id) {
-                localStorage.setItem(`email_notifications_${user.id}`, 'true');
-                // Email notifications enabled
-              }
-              toast.success('Daily emails enabled! 📧');
-            }}
+            onEnableEmails={() => {}}
           />
         )}
       </AnimatePresence>
@@ -2133,9 +2032,6 @@ function MVPDashboard() {
         isOpen={showNotificationSettings}
         onClose={() => setShowNotificationSettings(false)}
       />
-
-      {/* Daily Notification Prompt */}
-      <DailyNotificationPrompt />
 
       {/* Account Status Modal */}
       <AnimatePresence>
@@ -2306,13 +2202,19 @@ function MVPDashboard() {
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3">
                   <div className="flex items-start gap-2 text-sm">
                     <span className="text-red-400">✗</span>
-                    <span className="text-white/70">no more unlimited ai scheduling</span>
+                    <span className="text-white/70">no more unlimited AI text → task parsing</span>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3">
                   <div className="flex items-start gap-2 text-sm">
                     <span className="text-red-400">✗</span>
-                    <span className="text-white/70">no more custom blocked websites</span>
+                    <span className="text-white/70">back to 1 AI mood task per day (from 3)</span>
+                  </div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="flex items-start gap-2 text-sm">
+                    <span className="text-red-400">✗</span>
+                    <span className="text-white/70">no more pomodoro timer & focus mode (extension)</span>
                   </div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-3">
@@ -2333,11 +2235,9 @@ function MVPDashboard() {
                 <button
                   onClick={async () => {
                     try {
-                      const token = await getToken();
                       const response = await fetch('/api/stripe/cancel-subscription', {
                         method: 'POST',
                         headers: {
-                          'Authorization': `Bearer ${token}`,
                           'Content-Type': 'application/json'
                         }
                       });

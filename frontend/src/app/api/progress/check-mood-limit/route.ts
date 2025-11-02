@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { getUserProgress, getUserData } from '@/lib/supabase-service';
+import { getUserProgress, serviceSupabase } from '@/lib/supabase-service';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
@@ -16,32 +16,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check subscription status for Pro limit
-    let isPro = false;
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '');
-      if (!baseUrl) {
-        throw new Error('NEXT_PUBLIC_APP_URL must be configured in production');
-      }
-      const subResponse = await fetch(`${baseUrl}/api/subscription/status`, {
-        headers: {
-          'Authorization': `Bearer ${user.id}`
-        }
-      });
+    // Check Pro status DIRECTLY from database - no HTTP call needed!
+    const { data: proData } = await serviceSupabase
+      .from('user_progress')
+      .select('is_pro')
+      .eq('user_id', user.id)
+      .single();
 
-      if (subResponse.ok) {
-        const subData = await subResponse.json();
-        isPro = subData.isPro || false;
-      }
-    } catch (error) {
-      console.warn('Could not check Pro status, proceeding with limit check:', error);
-    }
+    const isPro = proData?.is_pro || false;
 
     const userProgressData = await getUserProgress(user.id);
-    const dailyMoodChecks = userProgressData?.dailyMoodChecks || 0;
+    const dailyMoodChecks = userProgressData?.daily_mood_checks || 0; // USE SNAKE_CASE - it's the DB column!
     const limit = isPro ? DAILY_MOOD_CHECK_LIMIT_PRO : DAILY_MOOD_CHECK_LIMIT_FREE;
 
+    console.log(`🔍 [MOOD LIMIT CHECK] User ${user.id.slice(-8)}: checks=${dailyMoodChecks}, limit=${limit}, isPro=${isPro}`);
+
     if (dailyMoodChecks >= limit) {
+      console.log(`🚫 [MOOD LIMIT CHECK] BLOCKED - User has used all ${limit} checks`);
       return NextResponse.json({
         success: false,
         message: isPro
@@ -54,7 +45,8 @@ export async function POST(request: NextRequest) {
         upgradeRequired: !isPro // Only show upgrade prompt for free users
       });
     }
-    
+
+    console.log(`✅ [MOOD LIMIT CHECK] ALLOWED - ${limit - dailyMoodChecks} uses remaining`);
     return NextResponse.json({
       success: true,
       message: 'Mood limit check completed',
