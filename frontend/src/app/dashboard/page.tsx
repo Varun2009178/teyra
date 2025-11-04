@@ -13,6 +13,7 @@ import MoodTaskGenerator from '@/components/MoodTaskGenerator';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useBehaviorTracking } from '@/hooks/useBehaviorTracking';
 import { useSmartNotifications } from '@/hooks/useSmartNotifications';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { SmartNotificationSetup } from '@/components/SmartNotificationSetup';
 import { NotificationSettings } from '@/components/NotificationSettings';
@@ -318,6 +319,10 @@ function MVPDashboard() {
 
   // Smart notifications - runs on its own schedule
   useSmartNotifications();
+
+  // Onboarding - redirects new users to welcome page
+  useOnboarding();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState('');
   // Remove userProgress - not used since milestone calculation moved to client-side
@@ -334,7 +339,12 @@ function MVPDashboard() {
   const [showOnboardingTour, setShowOnboardingTour] = useState(false);
   const [showSmartNotificationSetup, setShowSmartNotificationSetup] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
+  const [showDesktopSuggestion, setShowDesktopSuggestion] = useState(false);
   const [deletingTaskIds, setDeletingTaskIds] = useState<Set<number>>(new Set());
+  const [lastDeleteTime, setLastDeleteTime] = useState(0);
+  const [lastCompletionTime, setLastCompletionTime] = useState(0);
   const [isAddLocked, setIsAddLocked] = useState(false);
   const [hasCompletedFirstTask, setHasCompletedFirstTask] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -697,6 +707,24 @@ function MVPDashboard() {
           setShowOnboardingTour(true);
         }, 1000);
       }
+
+      // Desktop suggestion for mobile users (random chance)
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        const lastShown = localStorage.getItem('desktop_suggestion_last_shown');
+        const now = Date.now();
+
+        // Only show once per 24 hours, with 20% random chance
+        if (!lastShown || (now - parseInt(lastShown)) > 24 * 60 * 60 * 1000) {
+          const shouldShow = Math.random() < 0.2; // 20% chance
+          if (shouldShow) {
+            setTimeout(() => {
+              setShowDesktopSuggestion(true);
+              localStorage.setItem('desktop_suggestion_last_shown', now.toString());
+            }, 3000); // Show after 3 seconds
+          }
+        }
+      }
     };
 
     initializeUserExperience();
@@ -727,52 +755,43 @@ function MVPDashboard() {
 
     const taskTitle = newTask.trim();
 
-    // Create optimistic task - simple, no animations
-    const optimisticTask: Task = {
-      id: Date.now() + Math.random(),
-      title: taskTitle,
-      completed: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    // Rate limiting: prevent spam clicking
+    setIsAddLocked(true);
 
-    // Add to UI and clear input immediately
-    setTasks(prev => [optimisticTask, ...prev]);
+    // Clear input immediately for better UX
     setNewTask('');
 
-    // Brief lock to prevent double-adds
-    setIsAddLocked(true);
-    setTimeout(() => setIsAddLocked(false), 150);
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: taskTitle })
+      });
 
-    // Fire-and-forget API call
-    (async () => {
-      try {
-        const response = await fetch('/api/tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: taskTitle })
-        });
+      if (response.ok) {
+        const data = await response.json();
 
-        if (response.ok) {
-          const data = await response.json();
-          setTasks(prev => prev.map(task =>
-            task.id === optimisticTask.id ? data : task
-          ));
+        // Add task smoothly to the top of the list - no flickering
+        setTasks(prev => [data, ...prev]);
 
-          // Track in background
-          try {
-            trackTaskCreated(taskTitle, data.id);
-            gtag.trackTaskCreated(taskTitle);
-          } catch {}
-        } else {
-          setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
-          toast.error('Failed to add task');
-        }
-      } catch (error) {
-        setTasks(prev => prev.filter(task => task.id !== optimisticTask.id));
+        // Track in background
+        try {
+          trackTaskCreated(taskTitle, data.id);
+          gtag.trackTaskCreated(taskTitle);
+        } catch {}
+      } else {
+        // Restore input on error
+        setNewTask(taskTitle);
         toast.error('Failed to add task');
       }
-    })();
+    } catch (error) {
+      // Restore input on error
+      setNewTask(taskTitle);
+      toast.error('Failed to add task');
+    } finally {
+      // Release lock after 500ms
+      setTimeout(() => setIsAddLocked(false), 500);
+    }
   };
 
   // Toggle task completion - with confirmation popup
@@ -827,18 +846,45 @@ function MVPDashboard() {
 
   // Actual task completion logic
   const completeTask = async (taskId: number, newCompletedState: boolean) => {
+    // Rate limiting: prevent spam completions (400ms between completions)
+    const now = Date.now();
+    if (newCompletedState && now - lastCompletionTime < 400) {
+      console.log('⚠️ Completing too fast, please slow down');
+      toast.error('Please slow down');
+      return;
+    }
+
+    const task = tasks.find(t => t.id === taskId);
+
+    // Extra safeguard for sustainable tasks (prevent spam-completing for points)
+    if (newCompletedState && sustainableTasks.includes(task?.title || '')) {
+      const recentSustainableCompletions = tasks.filter(t =>
+        t.completed &&
+        sustainableTasks.includes(t.title) &&
+        new Date(t.updated_at).getTime() > Date.now() - 60000 // Last minute
+      ).length;
+
+      if (recentSustainableCompletions >= 3) {
+        toast.error('Too many sustainable tasks completed too quickly. Take a break!');
+        return;
+      }
+    }
+
+    if (newCompletedState) {
+      setLastCompletionTime(now);
+    }
+
     const oldTotalPoints = rawTotalPoints;
-    
+
     // Update UI immediately with boost effect
-    setTasks(prev => 
-      prev.map(t => 
+    setTasks(prev =>
+      prev.map(t =>
         t.id === taskId ? { ...t, completed: newCompletedState } : t
       )
     );
-    
+
     // Check for milestone achievement after state would update
     if (newCompletedState) {
-      const task = tasks.find(t => t.id === taskId);
       const pointsToAdd = sustainableTasks.includes(task?.title || '') ? 20 : 10;
       checkMilestoneAchievement(oldTotalPoints, oldTotalPoints + pointsToAdd);
     }
@@ -1080,6 +1126,15 @@ function MVPDashboard() {
 
   // Delete task
   const handleDeleteTask = async (taskId: number) => {
+    // Rate limiting: prevent spam deletions (300ms between deletions)
+    const now = Date.now();
+    if (now - lastDeleteTime < 300) {
+      console.log('⚠️ Deleting too fast, please slow down');
+      toast.error('Please slow down');
+      return;
+    }
+    setLastDeleteTime(now);
+
     if (deletingTaskIds.has(taskId)) {
       console.log(`⚠️ Task ${taskId} already being deleted, ignoring duplicate click`);
       return;
@@ -1135,6 +1190,36 @@ function MVPDashboard() {
         next.delete(taskId);
         return next;
       });
+    }
+  };
+
+  // Handler for account deletion
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch('/api/user/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        toast.success('Account deleted successfully');
+        setShowDeleteAccountModal(false);
+        // Redirect to home page after deletion
+        setTimeout(() => window.location.href = '/', 1500);
+      } else {
+        const error = await response.json().catch(() => ({}));
+        if (error.code === 'VERIFICATION_REQUIRED') {
+          toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
+        } else {
+          toast.error(error.error || 'Failed to delete account');
+        }
+        setShowDeleteAccountModal(false);
+      }
+    } catch (error) {
+      toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
+      setShowDeleteAccountModal(false);
     }
   };
 
@@ -1262,55 +1347,9 @@ function MVPDashboard() {
         onAccountClick={() => setShowAccountModal(true)}
         onSettingsClick={() => setShowNotificationSettings(true)}
         onHelpClick={() => setShowOnboardingTour(true)}
-        customDeleteHandler={async () => {
-          // First confirmation with strong warnings
-          const confirmed = window.confirm(
-            "⚠️ DELETE ACCOUNT?\n\n" +
-            "This will PERMANENTLY delete:\n" +
-            "• All your tasks and progress\n" +
-            "• Your Mike the Cactus\n" +
-            "• All account data\n\n" +
-            "IMPORTANT:\n" +
-            "• Active subscriptions will continue until the end of your billing period\n" +
-            "• NO REFUNDS will be issued\n" +
-            "• This action CANNOT be undone\n\n" +
-            "Are you absolutely sure?"
-          );
-
-          if (!confirmed) return;
-
-          // Second confirmation to prevent accidents
-          const doubleConfirmed = window.confirm(
-            "⚠️ FINAL WARNING\n\n" +
-            "This is your last chance to cancel.\n\n" +
-            "Click OK to permanently delete your account or Cancel to go back."
-          );
-
-          if (doubleConfirmed) {
-            try {
-              const response = await fetch('/api/user/delete', {
-                method: 'DELETE',
-                headers: {
-                  'Content-Type': 'application/json'
-                }
-              });
-
-              if (response.ok) {
-                toast.success('Account deleted successfully');
-                // Redirect to home page after deletion
-                setTimeout(() => window.location.href = '/', 1500);
-              } else {
-                const error = await response.json().catch(() => ({}));
-                if (error.code === 'VERIFICATION_REQUIRED') {
-                  toast.error('Account deletion requires additional verification. Please contact support if you need assistance.');
-                } else {
-                  toast.error(error.error || 'Failed to delete account');
-                }
-              }
-            } catch (error) {
-              toast.error(`Failed to delete account: ${error instanceof Error ? error.message : 'Network error'}`);
-            }
-          }
+        customDeleteHandler={() => {
+          setDeleteAccountStep(1);
+          setShowDeleteAccountModal(true);
         }}
       />
 
@@ -2032,6 +2071,154 @@ function MVPDashboard() {
         isOpen={showNotificationSettings}
         onClose={() => setShowNotificationSettings(false)}
       />
+
+      {/* Delete Account Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteAccountModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowDeleteAccountModal(false);
+              setDeleteAccountStep(1);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-black/90 backdrop-blur-md border border-red-500/30 rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {deleteAccountStep === 1 ? (
+                <>
+                  {/* Step 1: Initial Warning */}
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-4xl">⚠️</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Delete Account?</h2>
+                    <p className="text-white/60 text-sm">This action cannot be undone</p>
+                  </div>
+
+                  <div className="space-y-4 mb-6">
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                      <h3 className="text-red-400 font-semibold mb-2">This will permanently delete:</h3>
+                      <ul className="space-y-1 text-white/70 text-sm">
+                        <li>• All your tasks and progress</li>
+                        <li>• Your Mike the Cactus</li>
+                        <li>• All account data</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                      <h3 className="text-orange-400 font-semibold mb-2">Important:</h3>
+                      <ul className="space-y-1 text-white/70 text-sm">
+                        <li>• Active subscriptions will continue until the end of your billing period</li>
+                        <li>• NO REFUNDS will be issued</li>
+                        <li>• This action CANNOT be undone</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowDeleteAccountModal(false);
+                        setDeleteAccountStep(1);
+                      }}
+                      className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => setDeleteAccountStep(2)}
+                      className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all font-semibold"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Step 2: Final Confirmation */}
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                      <span className="text-4xl">⚠️</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-red-400 mb-2">Final Warning</h2>
+                    <p className="text-white/80 text-base">This is your last chance to cancel.</p>
+                  </div>
+
+                  <div className="bg-red-500/20 border-2 border-red-500/50 rounded-lg p-6 mb-6">
+                    <p className="text-white text-center font-medium">
+                      Click "Delete Forever" to permanently delete your account, or "Go Back" to cancel.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setDeleteAccountStep(1)}
+                      className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl transition-all"
+                    >
+                      Go Back
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-bold"
+                    >
+                      Delete Forever
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Suggestion Modal for Mobile Users */}
+      <AnimatePresence>
+        {showDesktopSuggestion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDesktopSuggestion(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-gradient-to-br from-blue-900/90 to-purple-900/90 backdrop-blur-md border border-blue-400/30 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">💻</span>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">Better on Desktop!</h2>
+                <p className="text-white/80 text-sm mb-6 leading-relaxed">
+                  While Teyra works great on mobile, you'll get the full experience with calendar integration,
+                  notes, and more productivity features on desktop.
+                </p>
+                <button
+                  onClick={() => setShowDesktopSuggestion(false)}
+                  className="w-full px-4 py-3 bg-white hover:bg-white/90 text-black rounded-xl transition-all font-semibold"
+                >
+                  Got it!
+                </button>
+                <p className="text-white/50 text-xs mt-3">
+                  You won't see this again for 24 hours
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Account Status Modal */}
       <AnimatePresence>

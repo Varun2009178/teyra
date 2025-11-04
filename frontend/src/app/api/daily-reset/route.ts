@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { serviceSupabase as supabase } from '@/lib/supabase-service';
+import { createClient } from '@supabase/supabase-js';
 
 // Force dynamic rendering to prevent build-time database calls
 export const dynamic = 'force-dynamic';
 
 // Initialize Supabase client with service role key for admin operations
 // Use fallback during build time if service role key is not available
-// Using shared singleton
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,29 +87,24 @@ export async function POST(request: NextRequest) {
       .select('id, title, completed, created_at')
       .eq('user_id', userId)
       .gte('created_at', lastReset.toISOString()); // Tasks from this 24-hour period
-    
+
     const completedTasks = todaysTasks?.filter(t => t.completed) || [];
     const incompleteTasks = todaysTasks?.filter(t => !t.completed) || [];
-    
+
     // Calculate points properly: regular = 10, sustainable = 20 points
     const sustainableTasks = [
       '🌿 Use a reusable water bottle',
-      '♻️ Recycle something today', 
+      '♻️ Recycle something today',
       '🚶 Walk or bike instead of driving',
       '💡 Turn off lights when leaving a room',
       '🌿 Save food scraps for composting'
     ];
-    
+
     const regularCompleted = completedTasks.filter(t => !sustainableTasks.includes(t.title)).length;
     const sustainableCompleted = completedTasks.filter(t => sustainableTasks.includes(t.title)).length;
     const pointsToAdd = (regularCompleted * 10) + (sustainableCompleted * 20);
-    
-    // Get current user progress 
-    const { data: currentProgress } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+
+    // OPTIMIZATION: Reuse userProgress from above instead of querying again
     
     // Since the database doesn't have the columns we need, we'll store progress differently
     // We'll use localStorage and track cumulative completed tasks through the tasks table itself
@@ -178,13 +176,14 @@ export async function POST(request: NextRequest) {
     // Log individual failures for debugging
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
+        const errorReason = (result as PromiseRejectedResult).reason;
         if (index < completedTasks.length) {
-          console.error(`❌ Failed to archive task ${completedTasks[index].id}:`, result.reason);
+          console.error(`❌ Failed to archive task ${completedTasks[index].id}:`, errorReason);
         } else if (index < completedTasks.length + incompleteTasks.length) {
           const taskIndex = index - completedTasks.length;
-          console.error(`❌ Failed to delete task ${incompleteTasks[taskIndex].id}:`, result.reason);
+          console.error(`❌ Failed to delete task ${incompleteTasks[taskIndex].id}:`, errorReason);
         } else {
-          console.error(`❌ Failed to reset progress:`, result.reason);
+          console.error(`❌ Failed to reset progress:`, errorReason);
         }
       }
     });
@@ -210,9 +209,10 @@ export async function POST(request: NextRequest) {
         console.log(`⚠️ Recovery completed for user ${userId} - progress reset manually applied`);
       } catch (recoveryError) {
         console.error(`❌ Recovery failed for user ${userId}:`, recoveryError);
-        return NextResponse.json({ 
+        const lastResult = results[results.length - 1];
+        return NextResponse.json({
           error: 'Daily reset failed - unable to reset user progress',
-          details: results[results.length - 1].reason 
+          details: lastResult.status === 'rejected' ? (lastResult as PromiseRejectedResult).reason : 'Unknown error'
         }, { status: 500 });
       }
     }

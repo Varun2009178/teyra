@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { serviceSupabase as supabase } from '@/lib/supabase-service';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Using shared singleton
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,15 +19,29 @@ export async function GET(request: NextRequest) {
     // Anti-spam: Check if we sent a notification recently
     const recentNotification = await checkRecentNotification(user.id);
     if (recentNotification) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         shouldNotify: false,
         reason: 'Recent notification sent',
         lastNotification: recentNotification.sent_at
       });
     }
 
-    // Check if user should receive a smart notification
-    const shouldNotify = await checkNotificationTriggers(user.id);
+    // OPTIMIZATION: Fetch data once for notification check
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(20);
+
+    const { data: userProgress } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    // Check if user should receive a smart notification (pass data to avoid queries)
+    const shouldNotify = checkNotificationTriggersOptimized(tasks || [], userProgress);
     
     return NextResponse.json({ 
       shouldNotify,
@@ -55,8 +72,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate and send a personalized notification
-    const notification = await generatePersonalizedNotification(user.id);
+    // OPTIMIZATION: Get data once and pass to function instead of querying again
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(10);
+
+    const { data: userProgress } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    // Generate and send a personalized notification (pass data to avoid duplicate queries)
+    const notification = generatePersonalizedNotificationOptimized(tasks || [], userProgress);
 
     if (notification) {
       // Send via Firebase (implement based on your setup)
@@ -82,6 +113,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// DEPRECATED: Use checkNotificationTriggersOptimized instead to avoid duplicate queries
 async function checkNotificationTriggers(userId: string): Promise<boolean> {
   try {
     // Get user's recent activity and patterns
@@ -100,33 +132,7 @@ async function checkNotificationTriggers(userId: string): Promise<boolean> {
 
     if (!tasks || !userProgress) return false;
 
-    const now = new Date();
-    const lastActivity = tasks[0]?.updated_at || userProgress.created_at;
-    const hoursSinceActivity = (now.getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60);
-
-    // Trigger conditions for smart notifications
-    const triggers = {
-      // User inactive for 4+ hours during active hours (9 AM - 8 PM)
-      inactivityReminder: hoursSinceActivity >= 4 && isActiveHours(),
-      
-      // User has incomplete tasks and it's been 6+ hours
-      incompleteTasksReminder: tasks.filter(t => !t.completed).length > 0 && hoursSinceActivity >= 6,
-      
-      // User completed many tasks recently (achievement notification)
-      achievementCelebration: getRecentCompletionRate(tasks) > 0.8,
-      
-      // User struggling with completion (encouragement)
-      encouragementNeeded: getRecentCompletionRate(tasks) < 0.3 && tasks.length > 3,
-      
-      // Daily check-in reminder (once per day)
-      dailyCheckIn: shouldSendDailyCheckIn(userProgress),
-      
-      // Mood-based suggestion (if user hasn't set mood recently)
-      moodSuggestion: shouldSuggestMoodCheck(userProgress)
-    };
-
-    // Return true if any trigger condition is met
-    return Object.values(triggers).some(Boolean);
+    return checkNotificationTriggersOptimized(tasks, userProgress);
 
   } catch (error) {
     console.error('❌ Error checking notification triggers:', error);
@@ -134,6 +140,40 @@ async function checkNotificationTriggers(userId: string): Promise<boolean> {
   }
 }
 
+// OPTIMIZED: Accepts pre-fetched data to avoid duplicate database queries
+function checkNotificationTriggersOptimized(tasks: any[], userProgress: any | null): boolean {
+  if (!tasks || !userProgress) return false;
+
+  const now = new Date();
+  const lastActivity = tasks[0]?.updated_at || userProgress.created_at;
+  const hoursSinceActivity = (now.getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60);
+
+  // Trigger conditions for smart notifications
+  const triggers = {
+    // User inactive for 4+ hours during active hours (9 AM - 8 PM)
+    inactivityReminder: hoursSinceActivity >= 4 && isActiveHours(),
+
+    // User has incomplete tasks and it's been 6+ hours
+    incompleteTasksReminder: tasks.filter(t => !t.completed).length > 0 && hoursSinceActivity >= 6,
+
+    // User completed many tasks recently (achievement notification)
+    achievementCelebration: getRecentCompletionRate(tasks) > 0.8,
+
+    // User struggling with completion (encouragement)
+    encouragementNeeded: getRecentCompletionRate(tasks) < 0.3 && tasks.length > 3,
+
+    // Daily check-in reminder (once per day)
+    dailyCheckIn: shouldSendDailyCheckIn(userProgress),
+
+    // Mood-based suggestion (if user hasn't set mood recently)
+    moodSuggestion: shouldSuggestMoodCheck(userProgress)
+  };
+
+  // Return true if any trigger condition is met
+  return Object.values(triggers).some(Boolean);
+}
+
+// DEPRECATED: Use generatePersonalizedNotificationOptimized instead to avoid duplicate queries
 async function generatePersonalizedNotification(userId: string): Promise<any | null> {
   try {
     // Get user data for personalization
@@ -152,54 +192,65 @@ async function generatePersonalizedNotification(userId: string): Promise<any | n
 
     if (!tasks || !userProgress) return null;
 
-    const completedTasks = tasks.filter(t => t.completed);
-    const incompleteTasks = tasks.filter(t => !t.completed);
-    const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length : 0;
-
-    // Generate notification based on user patterns
-    let notification = null;
-
-    if (completionRate > 0.8 && completedTasks.length >= 3) {
-      // High achiever - celebration
-      notification = {
-        title: '🏆 You\'re crushing it!',
-        message: `Amazing work! You've completed ${completedTasks.length} tasks recently. Mike is so proud! 🌵`,
-        type: 'achievement',
-        data: { completionRate, completedCount: completedTasks.length }
-      };
-    } else if (completionRate < 0.3 && tasks.length > 2) {
-      // Needs encouragement
-      notification = {
-        title: '💪 Small steps count!',
-        message: 'Every task you complete helps Mike grow. Ready to tackle something small today? 🌱',
-        type: 'encouragement',
-        data: { completionRate, taskCount: tasks.length }
-      };
-    } else if (incompleteTasks.length > 0) {
-      // Task reminder
-      const taskTitle = incompleteTasks[0].title;
-      notification = {
-        title: '📝 Task waiting for you!',
-        message: `"${taskTitle.length > 30 ? taskTitle.substring(0, 30) + '...' : taskTitle}" is ready to be completed!`,
-        type: 'task_reminder',
-        data: { taskId: incompleteTasks[0].id, taskTitle }
-      };
-    } else if (shouldSuggestMoodCheck(userProgress)) {
-      // Mood check suggestion
-      notification = {
-        title: '💙 How are you feeling?',
-        message: 'Take a moment to check in with your mood. It helps Mike suggest better tasks for you!',
-        type: 'mood_checkin',
-        data: { lastMoodUpdate: userProgress.last_mood_update }
-      };
-    }
-
-    return notification;
+    return generateNotificationLogic(tasks, userProgress);
 
   } catch (error) {
     console.error('❌ Error generating personalized notification:', error);
     return null;
   }
+}
+
+// OPTIMIZED: Accepts pre-fetched data to avoid duplicate database queries
+function generatePersonalizedNotificationOptimized(tasks: any[], userProgress: any | null): any | null {
+  if (!tasks || !userProgress) return null;
+  return generateNotificationLogic(tasks, userProgress);
+}
+
+// Shared notification generation logic
+function generateNotificationLogic(tasks: any[], userProgress: any): any | null {
+  const completedTasks = tasks.filter(t => t.completed);
+  const incompleteTasks = tasks.filter(t => !t.completed);
+  const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length : 0;
+
+  // Generate notification based on user patterns
+  let notification = null;
+
+  if (completionRate > 0.8 && completedTasks.length >= 3) {
+    // High achiever - celebration
+    notification = {
+      title: '🏆 You\'re crushing it!',
+      message: `Amazing work! You've completed ${completedTasks.length} tasks recently. Mike is so proud! 🌵`,
+      type: 'achievement',
+      data: { completionRate, completedCount: completedTasks.length }
+    };
+  } else if (completionRate < 0.3 && tasks.length > 2) {
+    // Needs encouragement
+    notification = {
+      title: '💪 Small steps count!',
+      message: 'Every task you complete helps Mike grow. Ready to tackle something small today? 🌱',
+      type: 'encouragement',
+      data: { completionRate, taskCount: tasks.length }
+    };
+  } else if (incompleteTasks.length > 0) {
+    // Task reminder
+    const taskTitle = incompleteTasks[0].title;
+    notification = {
+      title: '📝 Task waiting for you!',
+      message: `"${taskTitle.length > 30 ? taskTitle.substring(0, 30) + '...' : taskTitle}" is ready to be completed!`,
+      type: 'task_reminder',
+      data: { taskId: incompleteTasks[0].id, taskTitle }
+    };
+  } else if (shouldSuggestMoodCheck(userProgress)) {
+    // Mood check suggestion
+    notification = {
+      title: '💙 How are you feeling?',
+      message: 'Take a moment to check in with your mood. It helps Mike suggest better tasks for you!',
+      type: 'mood_checkin',
+      data: { lastMoodUpdate: userProgress.last_mood_update }
+    };
+  }
+
+  return notification;
 }
 
 async function sendFirebaseNotification(userId: string, notification: any): Promise<boolean> {

@@ -159,17 +159,11 @@ export default function DailyResetChecker({ onResetCompleted }: DailyResetChecke
     };
 
     // Check immediately when component mounts
+    // Cron job handles the actual reset every 6 hours - frontend just checks once on load
     checkForDailyReset();
-    
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    // Check with 5-minute interval
-    intervalRef.current = setInterval(checkForDailyReset, 5 * 60 * 1000);
-    
+
     return () => {
+      // Cleanup on unmount
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;

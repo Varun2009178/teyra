@@ -1,6 +1,6 @@
 // API Route: AI-Powered Smart Scheduling
 import { NextRequest, NextResponse } from 'next/server';
-import { serviceSupabase as supabase } from '@/lib/supabase-service';
+import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 
@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
     const userTimezone = body.timezone || 'America/New_York'; // Default to EST if not provided
     console.log('🌍 User timezone received:', userTimezone);
 
-    // Using shared singleton
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Get all unscheduled tasks
     const { data: unscheduledTasks, error: tasksError } = await supabase

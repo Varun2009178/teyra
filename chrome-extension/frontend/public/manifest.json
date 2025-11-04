@@ -1,0 +1,63 @@
+{
+  "name": "Teyra - Smart Task Management",
+  "short_name": "Teyra",
+  "description": "AI-powered task management with mood-based productivity insights",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "business", "lifestyle"],
+  "icons": [
+    {
+      "src": "/teyra-logo-64kb.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/teyra-logo-64kb.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/teyra-logo-64kb.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Add",
+      "description": "Quickly add a new task",
+      "url": "/dashboard?action=add",
+      "icons": [
+        {
+          "src": "/teyra-logo-64kb.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "View Progress",
+      "short_name": "Progress",
+      "description": "Check your daily progress",
+      "url": "/dashboard?action=progress",
+      "icons": [
+        {
+          "src": "/teyra-logo-64kb.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
+
+
