@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Plus, Check, Trash2, Target, List, Calendar, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText } from 'lucide-react';
+import { Plus, Check, Trash2, Target, List, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText, Flag, ChevronDown, ChevronRight } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { Cactus } from '@/components/Cactus';
@@ -20,9 +20,18 @@ import { NotificationSettings } from '@/components/NotificationSettings';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import ProWelcomeModal from '@/components/ProWelcomeModal';
 import { AITaskParser } from '@/components/AITaskParser';
+import CommandMenu from '@/components/CommandMenu';
+import { useCommandMenu } from '@/hooks/useCommandMenu';
 import * as gtag from '@/lib/gtag';
-import Navbar from '@/components/Navbar';
+import Sidebar from '@/components/Sidebar';
+import { TaskEditModal } from '@/components/TaskEditModal';
 import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
+
+interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
 
 interface Task {
   id: number;
@@ -30,15 +39,20 @@ interface Task {
   completed: boolean;
   created_at: string;
   updated_at: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent' | null;
+  due_date?: string | null;
+  subtasks?: Subtask[] | null;
+  tags?: string[] | null;
 }
 
-// Sophisticated liquid glass task card with smooth animations
+// Liquid glass task card - no animations for smooth performance
 const TaskCard = React.memo(({
   task,
   onToggle,
   onDelete,
   onEdit,
   onManualSchedule,
+  onToggleSubtask,
   isSustainable = false,
   isDeleting = false,
   isPro = false,
@@ -48,22 +62,18 @@ const TaskCard = React.memo(({
   onDelete: (id: number) => void;
   onEdit?: (id: number) => void;
   onManualSchedule?: (id: number) => void;
+  onToggleSubtask?: (taskId: number, subtaskId: string) => void;
   isSustainable?: boolean;
   isDeleting?: boolean;
   isPro?: boolean;
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [subtasksExpanded, setSubtasksExpanded] = useState(false);
+  const [isHoveringSubtasks, setIsHoveringSubtasks] = useState(false);
 
-  const handleToggle = async () => {
-    if (task.completed) return; // Don't allow uncompleting for now
-
-    setIsCompleting(true);
-    await new Promise(resolve => setTimeout(resolve, 300)); // Smooth completion animation
+  const handleToggle = () => {
     onToggle(task.id);
-    setIsCompleting(false);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -80,163 +90,160 @@ const TaskCard = React.memo(({
     }
   }, [showContextMenu]);
 
+  const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+  const completedSubtasks = task.subtasks?.filter(s => s.completed).length || 0;
+  const totalSubtasks = task.subtasks?.length || 0;
+
   return (
     <>
-      <motion.div
-        className={`liquid-glass-task liquid-glass-task-hover rounded-xl p-4 mb-3 ${
-          isCompleting ? 'opacity-50' : ''
-        }`}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.1 }}
-        whileHover={{ scale: 1.02 }}
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
+      <div
+        className="liquid-glass-task rounded-xl p-4 relative"
         onContextMenu={handleContextMenu}
       >
-      <div className="flex items-center gap-4">
-        {/* Enhanced checkbox with liquid glass effect */}
-        <motion.button
-          onClick={handleToggle}
-          disabled={task.completed || isCompleting}
-          className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-            task.completed
-              ? 'bg-white border-white shadow-lg'
-              : 'border-white/40 hover:border-white/70 liquid-glass-subtle'
-          }`}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {task.completed && (
-            <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 500, 
-                damping: 30,
-                delay: 0.1
-              }}
-            >
+        <div className="flex items-center gap-4">
+          {/* Checkbox with liquid glass effect */}
+          <button
+            onClick={handleToggle}
+            className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${
+              task.completed
+                ? 'bg-white border-white shadow-lg'
+                : 'border-white/40 hover:border-white/70 liquid-glass-subtle'
+            }`}
+          >
+            {task.completed && (
               <Check className="w-4 h-4 text-black" strokeWidth={3} />
-            </motion.div>
-          )}
-          
-          {/* Subtle glow effect when hovering */}
-          {isHovered && !task.completed && (
-            <motion.div
-              className="absolute inset-0 rounded-lg bg-white/10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-          )}
-        </motion.button>
+            )}
+          </button>
 
-        {/* Task title with smooth text transitions */}
-        <motion.span
-          className={`flex-1 text-base font-medium transition-all duration-300 ${
-            task.completed
-              ? 'text-white/40 line-through'
-              : 'text-white/90'
-          }`}
-          animate={{
-            opacity: task.completed ? 0.6 : 1,
-            x: task.completed ? 5 : 0
-          }}
-          transition={{ duration: 0.3 }}
-        >
-          {task.title}
-        </motion.span>
+          {/* Task content */}
+          <div className="flex-1 min-w-0">
+            {/* Task title and metadata */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`text-base font-medium transition-colors task-title-text ${
+                  task.completed
+                    ? 'text-white/40 line-through'
+                    : 'text-white/90'
+                }`}
+              >
+                {task.title}
+              </span>
+              
+              {/* Priority badge */}
+              {task.priority && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                  task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                  task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                  'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {task.priority}
+                </span>
+              )}
+              
+              {/* Due date */}
+              {task.due_date && (
+                <span className={`text-xs ${
+                  new Date(task.due_date) < new Date() && !task.completed
+                    ? 'text-red-400'
+                    : 'text-white/50'
+                }`}>
+                  {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: new Date(task.due_date).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined })}
+                </span>
+              )}
+            </div>
+            
+            {/* Subtasks - expandable */}
+            {hasSubtasks && (
+              <div className="mt-2 subtasks-section">
+                <button
+                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
+                  className="flex items-center gap-2 text-xs text-white/50 hover:text-white/70 subtasks-toggle no-hover-bg"
+                >
+                  {subtasksExpanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  <span>
+                    {completedSubtasks}/{totalSubtasks} subtasks
+                  </span>
+                </button>
+                {subtasksExpanded && (
+                  <div 
+                    className="mt-2 ml-5 space-y-1.5 subtasks-container"
+                  >
+                    {task.subtasks?.map((subtask) => (
+                      <button
+                        key={subtask.id}
+                        onClick={() => onToggleSubtask?.(task.id, subtask.id)}
+                        className="flex items-center gap-2 w-full text-left cursor-pointer subtask-item no-hover-bg"
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                          subtask.completed
+                            ? 'bg-white border-white'
+                            : 'border-white/30'
+                        }`}>
+                          {subtask.completed && <Check className="w-2.5 h-2.5 text-black" strokeWidth={3} />}
+                        </div>
+                        <span className={`text-sm ${
+                          subtask.completed
+                            ? 'text-white/40 line-through'
+                            : 'text-white/70'
+                        }`}>
+                          {subtask.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-        {/* XP indicator with smooth animation */}
-        {isSustainable && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center gap-1"
-          >
-            <motion.span 
-              className="text-xs text-green-400 font-mono font-semibold"
-              animate={{ 
-                color: isHovered ? '#4ade80' : '#22c55e'
-              }}
+          {/* XP indicator */}
+          {isSustainable && (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-green-400 font-mono font-semibold">
+                +20
+              </span>
+              <div className="w-1 h-1 bg-green-400 rounded-full" />
+            </div>
+          )}
+
+          {/* Edit button */}
+          {onEdit && (
+            <button
+              onClick={() => onEdit(task.id)}
+              className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-blue-400 liquid-glass-subtle rounded-lg opacity-70 hover:opacity-100"
             >
-              +20
-            </motion.span>
-            <motion.div
-              className="w-1 h-1 bg-green-400 rounded-full"
-              animate={{ 
-                scale: isHovered ? 1.2 : 1,
-                opacity: isHovered ? 0.8 : 0.6
-              }}
-            />
-          </motion.div>
-        )}
-
-        {/* Edit button with smooth reveal */}
-        {onEdit && (
-          <motion.button
-            onClick={() => onEdit(task.id)}
-            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-blue-400 transition-all duration-300 liquid-glass-subtle rounded-lg"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: isHovered ? 1 : 0.3,
-              scale: isHovered ? 1 : 0.9
-            }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Edit className="w-4 h-4" />
-          </motion.button>
-        )}
-
-        {/* Delete button with smooth reveal */}
-        <motion.button
-          onClick={() => onDelete(task.id)}
-          className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-red-400 transition-all duration-300 liquid-glass-subtle rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{
-            opacity: isHovered ? 1 : 0.3,
-            scale: isHovered ? 1 : 0.9
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          disabled={isDeleting}
-        >
-          {isDeleting ? (
-            <motion.div
-              className="w-4 h-4 border-2 border-current border-t-transparent rounded-full"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
-          ) : (
-            <Trash2 className="w-4 h-4" />
+              <Edit className="w-4 h-4" />
+            </button>
           )}
-        </motion.button>
+
+          {/* Delete button */}
+          <button
+            onClick={() => onDelete(task.id)}
+            className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-red-400 liquid-glass-subtle rounded-lg disabled:opacity-40 disabled:cursor-not-allowed opacity-70 hover:opacity-100"
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+
+        {/* Progress indicator for new tasks */}
+        {task.isNew && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-blue-400 rounded-b-xl" />
+        )}
       </div>
 
-      {/* Subtle progress indicator for new tasks */}
-      {task.isNew && (
-        <motion.div
-          className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-400 to-blue-400 rounded-b-xl"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 2, ease: "easeOut" }}
-        />
-      )}
-    </motion.div>
-
-    {/* Context Menu */}
-    <AnimatePresence>
+      {/* Context Menu */}
       {showContextMenu && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.1 }}
+        <div
           className="fixed z-50 bg-zinc-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden"
           style={{
             left: `${contextMenuPosition.x}px`,
@@ -246,17 +253,30 @@ const TaskCard = React.memo(({
         >
           <div className="py-1">
             {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(task.id);
-                  setShowContextMenu(false);
-                }}
-                className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-white/90 text-sm"
-              >
-                <Edit className="w-4 h-4" />
-                <span>edit</span>
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(task.id);
+                    setShowContextMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 text-white/90 text-sm"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>edit</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(task.id);
+                    setShowContextMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 text-white/90 text-sm"
+                >
+                  <List className="w-4 h-4" />
+                  <span>add subtask</span>
+                </button>
+              </>
             )}
 
             <button
@@ -265,7 +285,7 @@ const TaskCard = React.memo(({
                 onDelete(task.id);
                 setShowContextMenu(false);
               }}
-              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-red-400 text-sm"
+              className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 text-red-400 text-sm"
             >
               <Trash2 className="w-4 h-4" />
               <span>delete</span>
@@ -280,17 +300,16 @@ const TaskCard = React.memo(({
                   onManualSchedule(task.id);
                   setShowContextMenu(false);
                 }}
-                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 transition-colors text-sm"
+                className="w-full px-4 py-2.5 flex items-center gap-3 text-white/80 hover:text-white hover:bg-white/10 text-sm"
               >
                 <Clock className="w-4 h-4" />
                 <span>schedule</span>
               </button>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
-  </>
+    </>
   );
 });
 
@@ -306,7 +325,8 @@ function MVPDashboard() {
     permission,
     sendTaskCompletionNotification,
     sendAchievementNotification,
-    sendFirstTaskNotification
+    sendFirstTaskNotification,
+    sendNotification
   } = useNotifications();
   const {
     trackTaskCreated,
@@ -346,6 +366,7 @@ function MVPDashboard() {
   const [lastDeleteTime, setLastDeleteTime] = useState(0);
   const [lastCompletionTime, setLastCompletionTime] = useState(0);
   const [isAddLocked, setIsAddLocked] = useState(false);
+  const { isOpen, closeMenu, openMenu } = useCommandMenu();
   const [hasCompletedFirstTask, setHasCompletedFirstTask] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isPro, setIsPro] = useState(false);
@@ -356,7 +377,8 @@ function MVPDashboard() {
   const [showProWelcome, setShowProWelcome] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [editModalTask, setEditModalTask] = useState<Task | null>(null);
-  const [editModalTitle, setEditModalTitle] = useState('');
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalTitle, setCreateModalTitle] = useState('');
   const [showAIParser, setShowAIParser] = useState(false);
   const [deleteModalTask, setDeleteModalTask] = useState<Task | null>(null);
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
@@ -384,6 +406,60 @@ function MVPDashboard() {
     tasks.filter(t => t?.completed && sustainableTasks.includes(t.title) && !t.title.includes('[COMPLETED]')).length, 
     [tasks]
   );
+  
+  // Memoize filtered tasks and group by individual tags
+  const groupedTasksByTag = useMemo(() => {
+    const filtered = tasks.filter(t => !t.title.includes('[COMPLETED]'));
+    
+    // Group tasks by their first tag (or "untagged" if no tags)
+    const grouped: Record<string, Task[]> = {};
+    
+    filtered.forEach(task => {
+      if (task.tags && task.tags.length > 0) {
+        // Use the first tag as the grouping key
+        const tag = task.tags[0];
+        if (!grouped[tag]) {
+          grouped[tag] = [];
+        }
+        grouped[tag].push(task);
+      } else {
+        // Tasks without tags go in "untagged" section
+        if (!grouped['untagged']) {
+          grouped['untagged'] = [];
+        }
+        grouped['untagged'].push(task);
+      }
+    });
+    
+    // Sort each group (incomplete first, then by creation date)
+    Object.keys(grouped).forEach(tag => {
+      grouped[tag].sort((a, b) => {
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1; // Incomplete first
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); // Older first
+      });
+    });
+    
+    // Sort tag sections alphabetically, but put "untagged" at the end
+    const sortedTags = Object.keys(grouped).sort((a, b) => {
+      if (a === 'untagged') return 1;
+      if (b === 'untagged') return -1;
+      return a.localeCompare(b);
+    });
+    
+    return { grouped, sortedTags };
+  }, [tasks]);
+  
+  // Keep visibleTasks for backward compatibility (flattened)
+  const visibleTasks = useMemo(() => {
+    const { grouped } = groupedTasksByTag;
+    const result: Task[] = [];
+    Object.keys(grouped).forEach(tag => {
+      result.push(...grouped[tag]);
+    });
+    return result;
+  }, [groupedTasksByTag]);
   
   // Optimized progress calculation - only recalculate when tasks actually change
   const rawTotalPoints = useMemo(() => {
@@ -730,6 +806,62 @@ function MVPDashboard() {
     initializeUserExperience();
   }, [fetchUserData, trackSessionStart, user?.id, isHydrated]);
 
+  // Check for tasks due today and send notifications
+  useEffect(() => {
+    if (!user?.id || !isHydrated || !permission.granted || tasks.length === 0) return;
+
+    const checkDueTasks = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Check ALL tasks with due dates, not just high/urgent
+      const dueTasks = tasks.filter(task => {
+        if (!task.due_date || task.completed) return false;
+        
+        const dueDate = new Date(task.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        // Check if due date is today
+        return dueDate.getTime() === today.getTime();
+      });
+
+      // Send notification for each due task (only once per day)
+      dueTasks.forEach(task => {
+        const notificationKey = `notified-${task.id}-${today.toDateString()}`;
+        const alreadyNotified = localStorage.getItem(notificationKey);
+        
+        if (!alreadyNotified) {
+          const priorityEmoji = task.priority === 'urgent' ? '🚨' : task.priority === 'high' ? '⚠️' : '📅';
+          const priorityText = task.priority === 'urgent' ? 'URGENT' : task.priority === 'high' ? 'HIGH' : '';
+          
+          sendNotification(
+            priorityText 
+              ? `${priorityEmoji} ${priorityText} Priority Task Due Today`
+              : `📅 Task Due Today`,
+            {
+              body: `"${task.title}" is due today. Don't forget to complete it!`,
+              tag: `due-task-${task.id}`,
+              requireInteraction: true,
+              icon: '/teyra-logo-64kb.png',
+              badge: '/teyra-logo-64kb.png',
+            }
+          );
+          
+          // Mark as notified for today
+          localStorage.setItem(notificationKey, 'true');
+        }
+      });
+    };
+
+    // Check immediately and then every hour
+    checkDueTasks();
+    const interval = setInterval(checkDueTasks, 60 * 60 * 1000); // Check every hour
+
+    return () => clearInterval(interval);
+  }, [tasks, user?.id, isHydrated, permission.granted, sendNotification]);
+
   // Force loading to complete if user is available but still loading
   useEffect(() => {
     if (user?.id && isLoading) {
@@ -743,6 +875,83 @@ function MVPDashboard() {
   }, [user?.id, isLoading]);
 
   // Add task - Fast optimistic updates
+  const handleCreateTask = async (taskData: Partial<Task>) => {
+    if (!user || isAddLocked) return;
+
+    // Check daily limit before adding
+    if (dailyTasksCount >= 10) {
+      setShowDailyLimitPopup(true);
+      setCreateModalOpen(false);
+      return;
+    }
+
+    const taskTitle = taskData.title?.trim() || '';
+
+    if (!taskTitle) return;
+
+    // Rate limiting: prevent spam clicking
+    setIsAddLocked(true);
+
+    // Clear input immediately for better UX
+    setNewTask('');
+    setCreateModalOpen(false);
+    setCreateModalTitle('');
+
+    // Create optimistic task for instant UI update
+    const optimisticTask: Task = {
+      id: Date.now(), // Temporary ID
+      title: taskTitle,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      priority: taskData.priority || null,
+      due_date: taskData.due_date || null,
+      subtasks: taskData.subtasks || null,
+      tags: taskData.tags || null,
+    };
+
+    // Add optimistic task immediately to prevent flicker
+    setTasks(prev => [optimisticTask, ...prev]);
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: taskTitle,
+          priority: taskData.priority || null,
+          due_date: taskData.due_date || null,
+          subtasks: taskData.subtasks || null,
+          tags: taskData.tags || null,
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Replace optimistic task with real one smoothly
+        setTasks(prev => prev.map(t => t.id === optimisticTask.id ? data : t));
+
+        // Track in background
+        try {
+          trackTaskCreated(taskTitle, data.id);
+          gtag.trackTaskCreated(taskTitle);
+        } catch {}
+      } else {
+        // Remove optimistic task on error
+        setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
+        setNewTask(taskTitle);
+        toast.error('Failed to add task');
+      }
+    } catch (error) {
+      // Remove optimistic task on error
+      setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
+      setNewTask(taskTitle);
+      toast.error('Failed to add task');
+    } finally {
+      // Release lock after 300ms
+      setTimeout(() => setIsAddLocked(false), 300);
+    }
+  };
 
   const handleAddTask = async () => {
     if (!newTask.trim() || !user || isAddLocked) return;
@@ -761,6 +970,18 @@ function MVPDashboard() {
     // Clear input immediately for better UX
     setNewTask('');
 
+    // Create optimistic task for instant UI update
+    const optimisticTask: Task = {
+      id: Date.now(), // Temporary ID
+      title: taskTitle,
+      completed: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Add optimistic task immediately to prevent flicker
+    setTasks(prev => [optimisticTask, ...prev]);
+
     try {
       const response = await fetch('/api/tasks', {
         method: 'POST',
@@ -770,9 +991,8 @@ function MVPDashboard() {
 
       if (response.ok) {
         const data = await response.json();
-
-        // Add task smoothly to the top of the list - no flickering
-        setTasks(prev => [data, ...prev]);
+        // Replace optimistic task with real one smoothly
+        setTasks(prev => prev.map(t => t.id === optimisticTask.id ? data : t));
 
         // Track in background
         try {
@@ -780,17 +1000,19 @@ function MVPDashboard() {
           gtag.trackTaskCreated(taskTitle);
         } catch {}
       } else {
-        // Restore input on error
+        // Remove optimistic task on error
+        setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
         setNewTask(taskTitle);
         toast.error('Failed to add task');
       }
     } catch (error) {
-      // Restore input on error
+      // Remove optimistic task on error
+      setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
       setNewTask(taskTitle);
       toast.error('Failed to add task');
     } finally {
-      // Release lock after 500ms
-      setTimeout(() => setIsAddLocked(false), 500);
+      // Release lock after 300ms
+      setTimeout(() => setIsAddLocked(false), 300);
     }
   };
 
@@ -1225,47 +1447,69 @@ function MVPDashboard() {
 
   // Handler for editing a task - show modal
   const handleEditTask = async (taskId: number) => {
+    // Always get the latest task from the tasks array to ensure we have the most up-to-date data
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    setEditModalTask(task);
-    setEditModalTitle(task.title);
+    // Create a new object to ensure React detects the change
+    setEditModalTask({ ...task });
   };
 
-  // Actually save the edited task
-  const saveEditedTask = async () => {
-    if (!editModalTask) return;
-
-    const newTitle = editModalTitle.trim();
-    if (!newTitle || newTitle === editModalTask.title) {
-      setEditModalTask(null);
-      return;
-    }
-
+  // Update task with new data
+  const updateTask = async (taskId: number | string, updates: Partial<Task>) => {
+    // Store original task for rollback
+    const originalTask = tasks.find(t => t.id === taskId);
+    
     // Optimistically update
-    setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: newTitle } : t));
-    setEditModalTask(null);
+    setTasks(prev => prev.map(t => 
+      t.id === taskId ? { ...t, ...updates } : t
+    ));
 
     try {
-      const response = await fetch(`/api/tasks/${editModalTask.id}`, {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ title: newTitle })
+        body: JSON.stringify(updates)
       });
 
       if (!response.ok) {
-        // Restore original title
-        setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: editModalTask.title } : t));
-        toast.error('failed to edit task');
+        // Restore original task on error
+        if (originalTask) {
+          setTasks(prev => prev.map(t => t.id === taskId ? originalTask : t));
+        }
+        toast.error('Failed to update task');
       } else {
-        toast.success('task updated');
+        const updatedTask = await response.json();
+        // Ensure tags are always included (even if empty array or null)
+        const taskWithTags = {
+          ...updatedTask,
+          tags: updatedTask.tags || (updates.tags !== undefined ? updates.tags : originalTask?.tags || [])
+        };
+        setTasks(prev => prev.map(t => t.id === taskId ? taskWithTags : t));
+        toast.success('Task updated');
       }
     } catch (error) {
-      // Restore original title
-      setTasks(prev => prev.map(t => t.id === editModalTask.id ? { ...t, title: editModalTask.title } : t));
-      toast.error('failed to edit task');
+      // Restore original task on error
+      if (originalTask) {
+        setTasks(prev => prev.map(t => t.id === taskId ? originalTask : t));
+      }
+      toast.error('Failed to update task');
     }
+  };
+
+  // Toggle subtask completion
+  const handleToggleSubtask = async (taskId: number, subtaskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+
+    const updatedSubtasks = task.subtasks.map(subtask =>
+      subtask.id === subtaskId
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask
+    );
+
+    await updateTask(taskId, { subtasks: updatedSubtasks });
   };
 
   // Handler for AI scheduling a single task
@@ -1313,16 +1557,24 @@ function MVPDashboard() {
   if (!isHydrated || isLoading || !user) {
     return (
       <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mb-4 mx-auto animate-spin" />
-          <p className="text-white/60 font-medium">Loading dashboard...</p>
+        <Sidebar
+          isPro={isPro}
+          showSettings={true}
+          showAccountButton={true}
+          onCommandMenuClick={openMenu}
+        />
+        <div className="lg:ml-64 flex items-center justify-center w-full">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mb-4 mx-auto animate-spin" />
+            <p className="text-white/60 font-medium">Loading dashboard...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen dark-gradient-bg noise-texture text-white relative overflow-hidden">
+    <div className="min-h-screen dark-gradient-bg noise-texture text-white relative overflow-hidden" style={{ marginTop: 0, paddingTop: 0 }}>
       {/* Vibrant gradient orbs behind glass panels - Apple liquid glass effect */}
       <div className="fixed inset-0 pointer-events-none opacity-20">
         <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500 rounded-full filter blur-[120px] animate-pulse"></div>
@@ -1338,8 +1590,8 @@ function MVPDashboard() {
           backgroundSize: '20px 20px'
         }}
       />
-      {/* Unified Navbar */}
-      <Navbar
+      {/* Sidebar */}
+      <Sidebar
         isPro={isPro}
         showSettings={true}
         showAccountButton={true}
@@ -1347,15 +1599,18 @@ function MVPDashboard() {
         onAccountClick={() => setShowAccountModal(true)}
         onSettingsClick={() => setShowNotificationSettings(true)}
         onHelpClick={() => setShowOnboardingTour(true)}
+        onCommandMenuClick={openMenu}
+        onUpgradeClick={handleUpgrade}
+        dailyTasksCount={dailyTasksCount}
         customDeleteHandler={() => {
           setDeleteAccountStep(1);
           setShowDeleteAccountModal(true);
         }}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Teyra Pro Banner - Only show if not Pro */}
-        {!isPro && (
+      <main className="lg:ml-64 max-w-7xl mx-auto px-4 sm:px-6 pt-0 pb-6 sm:pb-8">
+        {/* Teyra Pro Banner - Only show if not Pro AND limit is hit */}
+        {!isPro && dailyTasksCount >= 10 && (
           <motion.div
             id="upgrade"
             initial={{ opacity: 0, y: 20 }}
@@ -1478,10 +1733,7 @@ function MVPDashboard() {
             </div>
 
             {/* Sustainable Task Generator */}
-            <motion.div
-              whileHover={{ scale: 1.01 }}
-              className="liquid-glass glass-gradient-green rounded-lg p-4 liquid-glass-hover transition-all duration-200"
-            >
+            <div className="liquid-glass glass-gradient-green rounded-lg p-4 liquid-glass-hover">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">🌱</span>
@@ -1492,42 +1744,62 @@ function MVPDashboard() {
                 </div>
                 <button
                   onClick={handleAddSustainableTask}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105"
+                  className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium"
                 >
                   Add Task
                 </button>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Enhanced Task Input with sophisticated animations */}
-            <motion.div 
-              className="space-y-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
+            {/* Task Input - simple and smooth */}
+            <div className="space-y-4">
               <div className="relative">
-                <motion.div 
-                  className="flex items-center gap-3"
-                  animate={{
-                    scale: isAddLocked ? 0.98 : 1,
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
+                <div className="flex items-center gap-3">
                   <input
                     type="text"
                     value={newTask}
-                    onChange={(e) => setNewTask(e.target.value)}
-                    placeholder="What needs to be accomplished today?"
-                    className="flex-1 px-6 py-4 liquid-glass-input rounded-xl text-white placeholder:text-white/50 text-base focus:outline-none"
-                    onKeyPress={(e) => e.key === 'Enter' && !isAddLocked && handleAddTask()}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewTask(value);
+                      // Open create modal when user starts typing
+                      if (value.trim() && !createModalOpen) {
+                        setCreateModalTitle(value);
+                        setCreateModalOpen(true);
+                      } else if (createModalOpen) {
+                        setCreateModalTitle(value);
+                      }
+                    }}
+                    onFocus={() => {
+                      // Open modal if there's already text
+                      if (newTask.trim() && !createModalOpen) {
+                        setCreateModalTitle(newTask);
+                        setCreateModalOpen(true);
+                      }
+                    }}
+                    placeholder="Add a task..."
+                    className="flex-1 px-6 py-4 liquid-glass-input rounded-xl text-white placeholder:text-white/50 text-base focus:outline-none focus:ring-0"
+                    onKeyDown={(e) => {
+                      if (e.key === '/' && !newTask.trim()) {
+                        e.preventDefault();
+                        openMenu();
+                      } else if (e.key === 'Enter' && !isAddLocked && !createModalOpen) {
+                        e.preventDefault();
+                        handleAddTask();
+                      }
+                    }}
                     disabled={isAddLocked}
+                    style={{ display: createModalOpen ? 'none' : 'block' }}
                   />
 
                   <button
-                    onClick={handleAddTask}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddTask();
+                    }}
                     disabled={!newTask.trim() || isAddLocked}
-                    className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${
+                    className={`w-12 h-12 flex items-center justify-center rounded-xl ${
                       newTask.trim() && !isAddLocked
                         ? 'bg-white hover:bg-white/90 text-black'
                         : 'bg-white/20 text-white/40 cursor-not-allowed'
@@ -1535,53 +1807,18 @@ function MVPDashboard() {
                   >
                     <Plus className="w-5 h-5" />
                   </button>
-
-                  {/* AI Parser Button - REMOVED: Use Notes > Action Mode instead */}
-                  {/* <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowAIParser(true)}
-                    className="relative w-12 h-12 flex items-center justify-center rounded-xl liquid-glass-subtle transition-all duration-300 group"
-                    title="Import tasks from text"
-                  >
-                    <Sparkles className="w-5 h-5 text-white/80 group-hover:text-white" />
-
-                    <motion.div
-                      className="absolute inset-0 rounded-xl bg-white/10"
-                      initial={{ opacity: 0 }}
-                      whileHover={{ opacity: 1 }}
-                      transition={{ duration: 0.2 }}
-                    />
-
-                    <motion.div
-                      className="absolute inset-0 rounded-xl bg-white/5"
-                      animate={{
-                        opacity: [0.3, 0.5, 0.3],
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                  </motion.button> */}
-                </motion.div>
+                </div>
 
                 {/* Character count indicator */}
                 {newTask.trim() && (
-                  <motion.div
-                    className="absolute -bottom-6 right-0 text-xs text-white/40"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
+                  <div className="absolute -bottom-6 right-0 text-xs text-white/40">
                     {newTask.length}/100
-                  </motion.div>
+                  </div>
                 )}
               </div>
 
               {dailyTasksCount >= 8 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center"
-                >
+                <div className="text-center">
                   <span className={`text-sm px-3 py-1.5 rounded-lg ${
                     dailyTasksCount >= 10
                       ? 'bg-red-500/20 text-red-400 border border-red-400/30'
@@ -1589,9 +1826,9 @@ function MVPDashboard() {
                   }`}>
                     {dailyTasksCount >= 10 ? 'Daily limit reached (10/10)' : `${dailyTasksCount}/10 tasks today`}
                   </span>
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
 
             {/* Task List - render statically (no initial load animation) */}
             <div
@@ -1610,7 +1847,7 @@ function MVPDashboard() {
               </div>
 
               <div className="min-h-[240px]">
-                {tasks.filter(t => !t.title.includes('[COMPLETED]')).length === 0 ? (
+                {visibleTasks.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="w-16 h-16 bg-white/5 rounded-full mx-auto mb-4 flex items-center justify-center">
                       <Plus className="w-7 h-7 text-white/40" />
@@ -1619,22 +1856,39 @@ function MVPDashboard() {
                     <p className="text-white/40 text-sm mt-2">Add your first task above to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-0">
-                    <AnimatePresence initial={false}>
-                      {tasks.filter(t => !t.title.includes('[COMPLETED]')).map((task) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          onToggle={handleToggleTask}
-                          onDelete={handleDeleteTask}
-                          onEdit={handleEditTask}
-                          onManualSchedule={handleManualScheduleTask}
-                          isSustainable={sustainableTasks.includes(task.title)}
-                          isDeleting={deletingTaskIds.has(task.id as number)}
-                          isPro={isPro}
-                        />
-                      ))}
-                    </AnimatePresence>
+                  <div className="space-y-6">
+                    {groupedTasksByTag.sortedTags.map((tag) => (
+                      <div key={tag} className="space-y-3">
+                        {/* Tag Section Header */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm font-medium text-white/60 uppercase tracking-wider">
+                            {tag === 'untagged' ? 'untagged' : tag}
+                          </h3>
+                          <div className="flex-1 h-px bg-white/10"></div>
+                          <span className="text-xs text-white/40 font-mono">
+                            {groupedTasksByTag.grouped[tag].length}
+                          </span>
+                        </div>
+                        
+                        {/* Tasks in this tag section */}
+                        <div className="space-y-3">
+                          {groupedTasksByTag.grouped[tag].map((task) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              onToggle={handleToggleTask}
+                              onDelete={handleDeleteTask}
+                              onEdit={handleEditTask}
+                              onManualSchedule={handleManualScheduleTask}
+                              onToggleSubtask={handleToggleSubtask}
+                              isSustainable={sustainableTasks.includes(task.title)}
+                              isDeleting={deletingTaskIds.has(task.id as number)}
+                              isPro={isPro}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -2070,6 +2324,7 @@ function MVPDashboard() {
       <NotificationSettings
         isOpen={showNotificationSettings}
         onClose={() => setShowNotificationSettings(false)}
+        isPro={isPro}
       />
 
       {/* Delete Account Confirmation Modal */}
@@ -2296,7 +2551,7 @@ function MVPDashboard() {
                 </div>
               </div>
 
-              {!isPro && (
+              {!isPro && dailyTasksCount >= 10 && (
                 <button
                   onClick={() => {
                     setShowAccountModal(false);
@@ -2454,50 +2709,28 @@ function MVPDashboard() {
       </AnimatePresence>
 
       {/* Edit Task Modal */}
-      <AnimatePresence>
-        {editModalTask && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setEditModalTask(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-zinc-900 border border-white/20 rounded-xl p-6 max-w-md w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold text-white mb-4">edit task</h3>
-              <input
-                type="text"
-                value={editModalTitle}
-                onChange={(e) => setEditModalTitle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && saveEditedTask()}
-                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-white/40 mb-4"
-                placeholder="Task title..."
-                autoFocus
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setEditModalTask(null)}
-                  className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                >
-                  cancel
-                </button>
-                <button
-                  onClick={saveEditedTask}
-                  className="flex-1 px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-semibold"
-                >
-                  save
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <TaskEditModal
+        isOpen={!!editModalTask}
+        onClose={() => setEditModalTask(null)}
+        task={editModalTask}
+        onUpdateTask={updateTask}
+        onDeleteTask={handleDeleteTask}
+      />
+
+      {/* Create Task Modal */}
+      <TaskEditModal
+        isOpen={createModalOpen}
+        onClose={() => {
+          setCreateModalOpen(false);
+          setNewTask('');
+          setCreateModalTitle('');
+        }}
+        task={null}
+        onUpdateTask={updateTask}
+        onDeleteTask={handleDeleteTask}
+        onCreateTask={handleCreateTask}
+        initialTitle={createModalTitle}
+      />
 
       {/* Schedule Task Modal */}
       <AnimatePresence>
@@ -2594,6 +2827,16 @@ function MVPDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Command Menu */}
+      <CommandMenu 
+        isOpen={isOpen} 
+        onClose={closeMenu}
+        onTaskAdded={() => {
+          // Refresh tasks when a task is added via command menu
+          fetchUserData();
+        }}
+      />
 
     </div>
   );

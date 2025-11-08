@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { Calendar, FileText, Settings, HelpCircle, User, Trash2 } from 'lucide-react';
+import { Calendar, FileText, Settings, HelpCircle, User, Trash2, Command } from 'lucide-react';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ interface NavbarProps {
   currentMood?: { emoji: string; label: string } | null;
   showAccountButton?: boolean;
   customDeleteHandler?: () => Promise<void>;
+  onCommandMenuClick?: () => void;
 }
 
 export default function Navbar({
@@ -27,7 +28,8 @@ export default function Navbar({
   onHelpClick,
   currentMood,
   showAccountButton = false,
-  customDeleteHandler
+  customDeleteHandler,
+  onCommandMenuClick
 }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -204,6 +206,16 @@ export default function Navbar({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Command Center Button - Visible on all devices */}
+          {onCommandMenuClick && (
+            <button
+              onClick={onCommandMenuClick}
+              className="w-9 h-9 flex items-center justify-center text-white/50 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20"
+              title="Command Center (Press / on desktop)"
+            >
+              <Command className="w-5 h-5" />
+            </button>
+          )}
           {showAccountButton && (
             <button
               onClick={onAccountClick}

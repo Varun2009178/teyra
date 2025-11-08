@@ -6,6 +6,19 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Configure image domains for external images (Clerk profile pictures)
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.clerk.dev',
+      },
+    ],
+  },
   // Disable static optimization for pages that use Clerk
   experimental: {
     missingSuspenseWithCSRBailout: false,

@@ -67,6 +67,18 @@ export function CalendarView() {
     loadData();
   }, [currentDate]);
 
+  // Listen for task refresh events (e.g., from command menu)
+  useEffect(() => {
+    const handleTaskRefresh = () => {
+      loadData();
+    };
+
+    window.addEventListener('teyra:task-added', handleTaskRefresh);
+    return () => {
+      window.removeEventListener('teyra:task-added', handleTaskRefresh);
+    };
+  }, []);
+
   // Close context menu when clicking anywhere
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

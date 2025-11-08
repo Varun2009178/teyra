@@ -26,6 +26,8 @@
     background-color: #000000;
     overscroll-behavior: none;
     overscroll-behavior-y: none;
+    margin: 0;
+    padding: 0;
   }
 
   body {
@@ -39,6 +41,8 @@
     overscroll-behavior: none;
     overscroll-behavior-y: none;
     background-color: #000000;
+    margin: 0;
+    padding: 0;
   }
   
   /* Siden.ai inspired typography */
@@ -929,7 +933,67 @@ h1 span.text-green-400 {
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Remove all browser default input styling and blue underline */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-image: none !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove autofill blue background and underline */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.05) inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+}
+
 .liquid-glass-input:focus {
   animation: inputFocus 0.3s ease-out forwards;
   background: rgba(255, 255, 255, 0.08);
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background-image: none !important;
+}
+
+/* Sidebar margin adjustment using CSS variable */
+:root {
+  --sidebar-width: 16rem;
+}
+
+body[data-sidebar-open="false"] {
+  --sidebar-width: 0;
+}
+
+main.lg\:ml-64,
+div.lg\:ml-64 {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 1023px) {
+  main.lg\:ml-64,
+  div.lg\:ml-64 {
+    margin-left: 0;
+  }
 }

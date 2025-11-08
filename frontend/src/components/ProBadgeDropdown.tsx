@@ -6,31 +6,36 @@ import { Check, Sparkles } from 'lucide-react';
 
 const proFeatures = [
   {
+    title: '3 AI mood tasks per day',
+    description: 'web app - what you like to do today (vs 1 free)',
+    highlight: false,
+    icon: '💭',
+    standalone: true
+  },
+  {
     title: 'unlimited AI text → task parsing',
     description: 'chrome extension (vs 5 per day free)',
     highlight: true,
-    icon: '✨'
-  },
-  {
-    title: '3 AI mood tasks per day',
-    description: 'what you like to do today feature (vs 1 free)',
-    highlight: false,
-    icon: '💭'
+    icon: '✨',
+    standalone: false
   },
   {
     title: 'pomodoro timer',
     description: 'chrome extension - built-in focus sessions',
-    icon: '⏱️'
+    icon: '⏱️',
+    standalone: false
   },
   {
     title: 'focus mode customization',
     description: 'chrome extension - block any websites you choose',
-    icon: '🎯'
+    icon: '🎯',
+    standalone: false
   },
   {
     title: 'priority support',
     description: 'faster response times',
-    icon: '⚡'
+    icon: '⚡',
+    standalone: true
   }
 ];
 

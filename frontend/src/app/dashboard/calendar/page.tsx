@@ -4,10 +4,12 @@ import { useEffect, useState, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CalendarView } from '@/components/CalendarView';
+import CommandMenu from '@/components/CommandMenu';
+import { useCommandMenu } from '@/hooks/useCommandMenu';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Calendar } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+import Sidebar from '@/components/Sidebar';
 
 function CalendarPageContent() {
   const { user } = useUser();
@@ -20,6 +22,7 @@ function CalendarPageContent() {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { isOpen, closeMenu, openMenu } = useCommandMenu();
 
   useEffect(() => {
     setMounted(true);
@@ -109,12 +112,23 @@ function CalendarPageContent() {
     }
   }
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
-      <div className="min-h-screen dark-gradient-bg noise-texture flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mb-4 mx-auto animate-spin" />
-          <p className="text-white/60 font-medium">Loading calendar...</p>
+      <div className="min-h-screen dark-gradient-bg noise-texture text-white">
+        <Sidebar
+          isPro={isPro}
+          showSettings={true}
+          showAccountButton={true}
+          onAccountClick={() => {
+            // You can add account modal logic here if needed
+          }}
+          onCommandMenuClick={openMenu}
+        />
+        <div className="lg:ml-64 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full mb-4 mx-auto animate-spin" />
+            <p className="text-white/60 font-medium">Loading calendar...</p>
+          </div>
         </div>
       </div>
     );
@@ -123,10 +137,18 @@ function CalendarPageContent() {
   if (!isConnected) {
     return (
       <div className="min-h-screen dark-gradient-bg noise-texture text-white">
-        {/* Navbar */}
-        <Navbar isPro={isPro} showSettings={true} />
+        {/* Sidebar */}
+        <Sidebar 
+          isPro={isPro} 
+          showSettings={true}
+          showAccountButton={true}
+          onAccountClick={() => {
+            // You can add account modal logic here if needed
+          }}
+          onCommandMenuClick={openMenu}
+        />
 
-        <div className="flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 80px)' }}>
+        <div className="lg:ml-64 flex items-center justify-center p-4" style={{ minHeight: 'calc(100vh - 80px)' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -182,6 +204,9 @@ function CalendarPageContent() {
           </button>
         </motion.div>
       </div>
+
+      {/* Command Menu */}
+      <CommandMenu isOpen={isOpen} onClose={closeMenu} />
       </div>
     );
   }
@@ -195,16 +220,24 @@ function CalendarPageContent() {
         <div className="absolute bottom-32 left-1/4 w-72 h-72 bg-pink-500 rounded-full filter blur-[110px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* Navbar */}
-      <Navbar
+      {/* Sidebar */}
+      <Sidebar
         isPro={isPro}
         showSettings={true}
+        showAccountButton={true}
+        onAccountClick={() => {
+          // You can add account modal logic here if needed
+        }}
         onSettingsClick={() => setShowDisconnectModal(true)}
+        onCommandMenuClick={openMenu}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6">
+      <main className="lg:ml-64 max-w-7xl mx-auto px-4 sm:px-6">
         <CalendarView />
       </main>
+
+      {/* Command Menu */}
+      <CommandMenu isOpen={isOpen} onClose={closeMenu} />
 
       {/* Disconnect Modal */}
       {showDisconnectModal && (

@@ -9,9 +9,10 @@ import { useNotifications } from '@/hooks/useNotifications';
 interface NotificationSettingsProps {
   isOpen: boolean;
   onClose: () => void;
+  isPro?: boolean;
 }
 
-export function NotificationSettings({ isOpen, onClose }: NotificationSettingsProps) {
+export function NotificationSettings({ isOpen, onClose, isPro = false }: NotificationSettingsProps) {
   const { user } = useUser();
   const { permission, requestPermission } = useNotifications();
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -108,8 +109,26 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
           <div className="flex justify-center items-center mb-6">
             <div className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-white" />
-              <h2 className="text-xl font-bold text-white">Notification Settings</h2>
+              <h2 className="text-xl font-bold text-white">Settings</h2>
             </div>
+          </div>
+
+          {/* Account Status */}
+          <div className="mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/60 font-medium">Account Status</span>
+              {isPro ? (
+                <span className="px-2 py-1 bg-white text-black rounded text-xs font-bold">PRO</span>
+              ) : (
+                <span className="px-2 py-1 bg-white/10 text-white/60 rounded text-xs font-medium">FREE</span>
+              )}
+            </div>
+            <p className="text-white font-semibold mt-1">
+              {isPro ? 'Teyra Pro' : 'Teyra Free'}
+            </p>
+            <p className="text-white/50 text-xs mt-1">
+              {isPro ? 'Unlimited AI parsing, 3 mood tasks/day, chrome ext' : '5 AI parses, 1 mood task per day'}
+            </p>
           </div>
 
           {/* Settings */}
@@ -158,28 +177,6 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
               )}
             </div>
 
-            {/* Email Notifications */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-purple-400" />
-                <div>
-                  <h3 className="font-medium text-white">Daily Progress Emails</h3>
-                  <p className="text-sm text-white/60">Personalized summaries and suggestions</p>
-                </div>
-              </div>
-              <button
-                onClick={handleEmailToggle}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  emailEnabled ? 'bg-purple-500' : 'bg-white/20'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    emailEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
           </div>
 
           {/* Permission Status */}

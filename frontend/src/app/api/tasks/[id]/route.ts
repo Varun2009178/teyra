@@ -48,7 +48,7 @@ export async function PATCH(
       return {};
     });
 
-    const { completed, title, hasBeenSplit, scheduled_time, duration_minutes, google_event_id } = body;
+    const { completed, title, hasBeenSplit, scheduled_time, duration_minutes, google_event_id, priority, due_date, subtasks, tags } = body;
 
     const updateData: any = {};
     if (typeof completed === 'boolean') updateData.completed = completed;
@@ -57,6 +57,10 @@ export async function PATCH(
     if (scheduled_time !== undefined) updateData.scheduled_time = scheduled_time;
     if (typeof duration_minutes === 'number') updateData.duration_minutes = duration_minutes;
     if (google_event_id !== undefined) updateData.google_event_id = google_event_id;
+    if (priority !== undefined) updateData.priority = priority;
+    if (due_date !== undefined) updateData.due_date = due_date;
+    if (subtasks !== undefined) updateData.subtasks = subtasks;
+    if (tags !== undefined) updateData.tags = tags;
     
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

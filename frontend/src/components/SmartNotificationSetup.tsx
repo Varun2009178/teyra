@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Bell, Zap, Heart, CheckCircle } from 'lucide-react';
+import { X, Bell, Zap, CheckCircle } from 'lucide-react';
 
 interface SmartNotificationSetupProps {
   onComplete: () => void;
   onEnableNotifications: () => void;
-  onEnableEmails: () => void;
+  onEnableEmails?: () => void;
 }
 
 export function SmartNotificationSetup({ 
@@ -43,12 +43,6 @@ export function SmartNotificationSetup({
         ios: "📱 iOS: Tap Share → 'Add to Home Screen'",
         android: "📱 Android: Tap Menu (⋮) → 'Add to Home Screen' or 'Install App'"
       } : null
-    },
-    {
-      title: "📧 Daily Progress Emails",
-      description: "Get personalized daily summaries of your accomplishments plus smart suggestions for tomorrow. Unsubscribe link included in every email.",
-      icon: <Heart className="w-8 h-8 text-purple-400" />,
-      action: "emails"
     }
   ];
 
@@ -66,7 +60,7 @@ export function SmartNotificationSetup({
   const handleActionButton = () => {
     if (currentStepData.action === 'notifications') {
       onEnableNotifications();
-    } else if (currentStepData.action === 'emails') {
+    } else if (currentStepData.action === 'emails' && onEnableEmails) {
       onEnableEmails();
     }
     handleNext();

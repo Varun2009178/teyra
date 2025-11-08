@@ -6,6 +6,34 @@ import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
 
+// Get single note by ID
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await currentUser();
+
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: note, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('id', params.id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json(note);
+  } catch (error) {
+    console.error('Error fetching note:', error);
+    return NextResponse.json({ error: 'Failed to fetch note' }, { status: 500 });
+  }
+}
+
 // Update note
 export async function PATCH(
   request: Request,

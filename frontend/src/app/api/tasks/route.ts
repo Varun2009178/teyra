@@ -66,38 +66,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle single task creation (existing functionality)
-    const { title, hasBeenSplit = false, limit, scheduled_time, duration_minutes } = body;
+    const { title, hasBeenSplit = false, limit, scheduled_time, duration_minutes, priority, due_date, subtasks, tags } = body;
 
     if (!title || typeof title !== 'string') {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit}, limit: ${limit}, scheduled: ${scheduled_time})`);
+    console.log(`Creating task for user ${userId}: "${title}" (hasBeenSplit: ${hasBeenSplit}, limit: ${limit}, scheduled: ${scheduled_time}, priority: ${priority}, due_date: ${due_date})`);
 
-    // If scheduled_time or duration_minutes are provided, use direct Supabase client
-    if (scheduled_time || duration_minutes) {
-      // Using shared singleton
+    // Build task data object
+    const taskData: any = {
+      user_id: userId,
+      title,
+      completed: false,
+      has_been_split: hasBeenSplit,
+      limit: limit || null,
+      scheduled_time: scheduled_time || null,
+      duration_minutes: duration_minutes || null,
+    };
 
-      const { data: newTask, error } = await supabase
-        .from('tasks')
-        .insert({
-          user_id: userId,
-          title,
-          completed: false,
-          has_been_split: hasBeenSplit,
-          limit,
-          scheduled_time: scheduled_time || null,
-          duration_minutes: duration_minutes || null
-        })
-        .select()
-        .single();
+    // Add optional fields if provided
+    if (priority) taskData.priority = priority;
+    if (due_date) taskData.due_date = due_date;
+    if (subtasks && Array.isArray(subtasks)) taskData.subtasks = subtasks;
+    if (tags && Array.isArray(tags)) taskData.tags = tags;
 
-      if (error) throw error;
-      return NextResponse.json(newTask);
-    } else {
-      const newTask = await createTask(userId, title, limit, Boolean(hasBeenSplit));
-      return NextResponse.json(newTask);
+    // Use direct Supabase client for all task creation to support new fields
+    const { data: newTask, error } = await supabase
+      .from('tasks')
+      .insert(taskData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating task:', error);
+      throw error;
     }
+
+    return NextResponse.json(newTask);
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json({

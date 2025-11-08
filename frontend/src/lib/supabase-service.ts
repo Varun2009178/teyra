@@ -89,6 +89,10 @@ export async function updateTask(taskId: number, data: {
   scheduled_time?: string;
   duration_minutes?: number;
   google_event_id?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent' | null;
+  due_date?: string | null;
+  subtasks?: any[] | null;
+  tags?: string[] | null;
 }) {
   try {
     const updateData: any = {
@@ -112,6 +116,18 @@ export async function updateTask(taskId: number, data: {
     }
     if (data.google_event_id !== undefined) {
       updateData.google_event_id = data.google_event_id
+    }
+    if (data.priority !== undefined) {
+      updateData.priority = data.priority
+    }
+    if (data.due_date !== undefined) {
+      updateData.due_date = data.due_date
+    }
+    if (data.subtasks !== undefined) {
+      updateData.subtasks = data.subtasks
+    }
+    if (data.tags !== undefined) {
+      updateData.tags = data.tags
     }
 
     const { data: updatedTask, error } = await serviceSupabase
