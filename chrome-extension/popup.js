@@ -771,7 +771,7 @@ async function pollForAuth() {
           // Max attempts reached, clear flag and show auth screen
           await chrome.storage.local.set({ awaiting_google_auth: false });
           showAuthScreen();
-          showToast('Please try signing in again');
+    showToast('please try signing in again');
         }
       }
     } catch (error) {
@@ -783,7 +783,7 @@ async function pollForAuth() {
         // Max attempts reached, clear flag and show auth screen
         await chrome.storage.local.set({ awaiting_google_auth: false });
         showAuthScreen();
-        showToast('Connection error. Please try again');
+          showToast('connection error. please try again');
       }
     }
   };
@@ -861,16 +861,22 @@ function setupEventListeners() {
   // Add task on Enter with smooth animation + template support
   const taskInput = document.getElementById('task-input');
 
-  // Show autocomplete as user types
+  // Show autocomplete as user types (debounced for performance)
+  let autocompleteTimeout;
   taskInput.addEventListener('input', function(e) {
     const value = this.value;
 
-    // Show autocomplete for template commands
-    if (value.startsWith('/')) {
-      showTemplateAutocomplete(value, this.selectionStart);
-    } else {
-      hideTemplateAutocomplete();
-    }
+    // Clear previous timeout
+    clearTimeout(autocompleteTimeout);
+
+    // Debounce autocomplete to reduce lag
+    autocompleteTimeout = setTimeout(() => {
+      if (value.startsWith('/')) {
+        showTemplateAutocomplete(value, this.selectionStart);
+      } else {
+        hideTemplateAutocomplete();
+      }
+    }, 150);
   });
 
   // Handle Enter key
@@ -895,18 +901,12 @@ function setupEventListeners() {
       // Regular task addition
       const taskTitle = input;
 
-      // Add submitting class for disappear animation
-      this.classList.add('submitting');
-
-      // Wait for animation to complete (300ms)
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Add the task
-      await addTask(taskTitle);
-
-      // Clear input and remove submitting class
+      // Clear input immediately for better UX
       this.value = '';
-      this.classList.remove('submitting');
+      hideTemplateAutocomplete();
+
+      // Add the task (no animation delay)
+      await addTask(taskTitle);
     }
   });
 
@@ -1069,29 +1069,66 @@ async function handleGoogleSignIn() {
     window.close();
   } catch (error) {
     console.error('Error signing in:', error);
-    showToast('Failed to open sign in page');
+    showToast('failed to open sign in page');
   }
 }
 
 async function handleEmailSignIn() {
+  const email = document.getElementById('signin-email')?.value.trim();
+  const password = document.getElementById('signin-password')?.value;
+
+  if (!email || !password) {
+    showToast('please enter both email and password');
+    return;
+  }
+
+  if (!email.includes('@')) {
+    showToast('please enter a valid email address');
+    return;
+  }
+
   // Open Teyra sign-in page (uses Clerk)
   chrome.tabs.create({ url: 'https://teyra.app/sign-in?extension=true' });
 
   // Store a flag that we're waiting for auth
   await chrome.storage.local.set({ waiting_for_auth: true });
 
-  showToast('Opening Teyra sign-in...');
+  showToast('opening teyra sign-in...');
   window.close();
 }
 
 async function handleEmailSignUp() {
+  const email = document.getElementById('signup-email')?.value.trim();
+  const password = document.getElementById('signup-password')?.value;
+  const confirm = document.getElementById('signup-confirm')?.value;
+
+  if (!email || !password || !confirm) {
+    showToast('please fill in all fields');
+    return;
+  }
+
+  if (!email.includes('@')) {
+    showToast('please enter a valid email address');
+    return;
+  }
+
+  if (password.length < 8) {
+    showToast('password must be at least 8 characters');
+    return;
+  }
+
+  if (password !== confirm) {
+    showToast('passwords do not match');
+    return;
+  }
+
   // Open Teyra sign-up page (uses Clerk)
   chrome.tabs.create({ url: 'https://teyra.app/sign-up?extension=true' });
 
   // Store a flag that we're waiting for auth
   await chrome.storage.local.set({ waiting_for_auth: true });
 
-  showToast('Opening Teyra sign-up...');
+  showToast('opening teyra sign-up...');
   window.close();
 }
 
@@ -1141,11 +1178,11 @@ async function handleSignOut() {
     // Show auth screen
     showAuthScreen();
 
-    showToast('Signed out successfully');
+    showToast('signed out successfully');
     console.log('✅ Sign out complete');
   } catch (error) {
     console.error('❌ Error signing out:', error);
-    showToast('Error signing out. Please try again.');
+    showToast('error signing out. please try again.');
   }
 }
 
@@ -1195,18 +1232,11 @@ async function showLockInAnimation() {
   // Show overlay
   overlay.classList.remove('hidden');
 
-  // Wait for animation to complete (1.5 seconds total)
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  // Start fade out
-  overlay.classList.add('fade-out');
-
-  // Wait for fade out to complete
+  // Reduced animation time for better UX (800ms total)
   await new Promise(resolve => setTimeout(resolve, 800));
 
-  // Hide overlay
+  // Hide overlay immediately
   overlay.classList.add('hidden');
-  overlay.classList.remove('fade-out');
 }
 
 function updateUI(focusEnabled) {
@@ -1582,8 +1612,8 @@ async function loadUserTasks() {
       tasksList.innerHTML = `
         <div class="empty-state">
           <span class="emoji">⚠️</span>
-          <p>Error loading tasks</p>
-          <p>Please try refreshing the extension</p>
+          <p>error loading tasks</p>
+          <p>please try refreshing the extension</p>
         </div>
       `;
     }
@@ -1596,9 +1626,9 @@ function renderTasks() {
 
   if (allTasks.length === 0) {
     tasksList.innerHTML = `
-      <div style="text-align: center; padding: 40px 20px; color: #999;">
-        <p style="margin-bottom: 8px;">No tasks yet</p>
-        <p style="font-size: 13px;">Add your first task above</p>
+      <div style="text-align: center; padding: 60px 20px;">
+        <p style="margin-bottom: 8px; color: rgba(255, 255, 255, 0.6); font-size: 15px;">no tasks yet</p>
+        <p style="font-size: 13px; color: rgba(255, 255, 255, 0.4);">add your first task above</p>
       </div>
     `;
     return;
@@ -1606,23 +1636,22 @@ function renderTasks() {
 
   // Filter out [COMPLETED] tasks and show active tasks
   const activeTasks = allTasks.filter(task => !task.title.includes('[COMPLETED]'));
-  tasksList.innerHTML = '';
-
+  
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
+  
   activeTasks.forEach(task => {
     const taskElement = document.createElement('div');
-    taskElement.className = 'task-item';
-
-    // Add 'appearing' class if this is a new task
-    if (task.isNew) {
-      taskElement.classList.add('appearing');
-    }
+    taskElement.className = 'task-item liquid-glass-task';
 
     taskElement.innerHTML = `
-      <div class="task-checkbox ${task.completed ? 'completed' : ''}" data-task-id="${task.id}">
-        ${task.completed ? '✓' : ''}
-      </div>
-      <span class="task-text ${task.completed ? 'completed' : ''}">${task.title}</span>
-      <button class="task-delete" data-task-id="${task.id}">×</button>
+      <button class="task-checkbox ${task.completed ? 'completed' : ''}" data-task-id="${task.id}"></button>
+      <span class="task-text ${task.completed ? 'completed' : ''}">${escapeHtml(task.title)}</span>
+      <button class="task-delete" data-task-id="${task.id}" title="Delete task">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+      </button>
     `;
 
     // Add click handler for checkbox
@@ -1636,8 +1665,19 @@ function renderTasks() {
       deleteTask(task.id);
     });
 
-    tasksList.appendChild(taskElement);
+    fragment.appendChild(taskElement);
   });
+
+  // Single DOM update for better performance
+  tasksList.innerHTML = '';
+  tasksList.appendChild(fragment);
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 function createTaskHTML(task, index) {
@@ -1757,72 +1797,9 @@ async function deleteTask(taskId) {
 }
 
 function showTaskCompletionCelebration() {
-  // Add bounce animation to Mike
-  const mikeCactus = document.getElementById('mike-cactus');
-  if (mikeCactus) {
-    mikeCactus.style.transform = 'scale(1.1)';
-    setTimeout(() => {
-      mikeCactus.style.transform = 'scale(1)';
-    }, 200);
-  }
-
-  // Show sparkles immediately for celebration
-  const sparkles = document.getElementById('mike-sparkles');
-  if (sparkles) {
-    sparkles.classList.remove('hidden');
-    // Hide after 3 seconds if not in happy state
-    setTimeout(() => {
-      const activeTasks = allTasks.filter(task => !task.title.includes('[COMPLETED]'));
-      const completed = activeTasks.filter(t => t.completed).length;
-      const total = activeTasks.length;
-      const percentage = total > 0 ? (completed / total) * 100 : 0;
-
-      if (percentage < 75) {
-        sparkles.classList.add('hidden');
-      }
-    }, 3000);
-  }
-
-  // Create a subtle celebration element
-  const celebration = document.createElement('div');
-  celebration.innerHTML = '✓';
-  celebration.style.cssText = `
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.5rem;
-    color: #007AFF;
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  `;
-
-  document.body.appendChild(celebration);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    celebration.style.opacity = '1';
-    celebration.style.transform = 'translate(-50%, -50%) scale(1.2)';
-  });
-
-  // Animate out
-  setTimeout(() => {
-    if (document.body.contains(celebration)) {
-      celebration.style.opacity = '0';
-      celebration.style.transform = 'translate(-50%, -50%) scale(0.8) translateY(-20px)';
-      setTimeout(() => {
-        try {
-          if (document.body.contains(celebration)) {
-            document.body.removeChild(celebration);
-          }
-        } catch (error) {
-          console.log('Celebration element already removed:', error);
-        }
-      }, 300);
-    }
-  }, 800);
+  // Simplified celebration - just update Mike's mood
+  // No heavy animations that cause lag
+  updateMikeMoodFromProgress();
 }
 
 async function addTask(title) {
@@ -1841,8 +1818,7 @@ async function addTask(title) {
       id: Date.now(), // Temporary ID
       title: title,
       completed: false,
-      created_at: new Date().toISOString(),
-      isNew: true // Mark as new for animation
+      created_at: new Date().toISOString()
     };
 
     allTasks.push(tempTask);
@@ -1850,15 +1826,10 @@ async function addTask(title) {
     // Update Chrome storage immediately
     await chrome.storage.local.set({ teyra_tasks: allTasks });
 
-    // Re-render immediately for responsive UI with animation
+    // Re-render immediately for responsive UI (no animation delay)
     renderTasks();
     updateProgress();
     updateMikeMoodFromProgress();
-
-    // Remove isNew flag after animation completes
-    setTimeout(() => {
-      tempTask.isNew = false;
-    }, 500);
 
     // Try to sync with API in background
     try {
@@ -2024,32 +1995,24 @@ function updateMikeMood(mood) {
 
   if (!mikeImg) return;
 
-  // Smooth transition
-  mikeImg.style.opacity = '0.7';
-  mikeImg.style.transform = 'scale(0.95)';
-
-  setTimeout(() => {
-    switch (mood) {
-      case 'happy':
-        mikeImg.src = 'Happy.gif';
-        if (sparkles) sparkles.classList.remove('hidden');
-        if (plant) plant.classList.add('hidden');
-        break;
-      case 'sad':
-        mikeImg.src = 'Sad With Tears 2.gif';
-        if (sparkles) sparkles.classList.add('hidden');
-        if (plant) plant.classList.add('hidden');
-        break;
-      default: // neutral
-        mikeImg.src = 'Neutral Calm.gif';
-        if (sparkles) sparkles.classList.add('hidden');
-        if (plant) plant.classList.remove('hidden');
-        break;
-    }
-
-    mikeImg.style.opacity = '1';
-    mikeImg.style.transform = 'scale(1)';
-  }, 150);
+  // Instant update - no transition delay for better performance
+  switch (mood) {
+    case 'happy':
+      mikeImg.src = 'Happy.gif';
+      if (sparkles) sparkles.classList.remove('hidden');
+      if (plant) plant.classList.add('hidden');
+      break;
+    case 'sad':
+      mikeImg.src = 'Sad With Tears 2.gif';
+      if (sparkles) sparkles.classList.add('hidden');
+      if (plant) plant.classList.add('hidden');
+      break;
+    default: // neutral
+      mikeImg.src = 'Neutral Calm.gif';
+      if (sparkles) sparkles.classList.add('hidden');
+      if (plant) plant.classList.remove('hidden');
+      break;
+  }
 }
 
 // Listen for messages from the main app (when user signs in)
@@ -2918,7 +2881,7 @@ async function addCustomSite(url) {
 
   // Check if already exists
   if (customSites.some(site => site.url === url)) {
-    showToast('This site is already in your custom list');
+    showToast('this site is already in your custom list');
     return;
   }
 
@@ -2941,7 +2904,7 @@ async function addCustomSite(url) {
   }).catch(() => {});
 
   console.log('Added custom site:', url);
-  showToast(`Added ${url} to blocked sites`);
+    showToast(`added ${url} to blocked sites`);
 }
 
 async function clearAllCustomSites() {
@@ -2955,7 +2918,7 @@ async function clearAllCustomSites() {
   }).catch(() => {});
 
   console.log('Cleared all custom sites');
-  showToast('All custom sites cleared');
+  showToast('all custom sites cleared');
 }
 
 function setupFocusCustomizationListeners() {
@@ -3018,13 +2981,14 @@ function setupFocusCustomizationListeners() {
 
 function showToast(message) {
   const toast = document.createElement('div');
-  toast.textContent = message;
+  toast.textContent = message.toLowerCase();
   toast.style.cssText = `
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
     color: white;
     padding: 12px 20px;
     border-radius: 8px;
@@ -3032,6 +2996,8 @@ function showToast(message) {
     font-weight: 500;
     z-index: 10001;
     animation: slideUp 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   `;
 
   document.body.appendChild(toast);

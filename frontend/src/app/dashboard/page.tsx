@@ -1609,8 +1609,8 @@ function MVPDashboard() {
       />
 
       <main className="lg:ml-64 max-w-7xl mx-auto px-4 sm:px-6 pt-0 pb-6 sm:pb-8">
-        {/* Teyra Pro Banner - Only show if not Pro AND limit is hit */}
-        {!isPro && dailyTasksCount >= 10 && (
+        {/* Teyra Pro Banner - Show all Pro features for non-Pro users */}
+        {!isPro && (
           <motion.div
             id="upgrade"
             initial={{ opacity: 0, y: 20 }}

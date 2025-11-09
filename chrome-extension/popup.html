@@ -25,16 +25,17 @@
 
       <!-- Sign In Form -->
       <div id="signin-form" class="auth-form active">
+        <p class="auth-instruction">sign in to sync your tasks across all devices</p>
         <div class="form-group">
-          <label for="signin-email">Email</label>
+          <label for="signin-email">email</label>
           <input type="email" id="signin-email" class="auth-input" placeholder="you@example.com" required>
         </div>
         <div class="form-group">
-          <label for="signin-password">Password</label>
+          <label for="signin-password">password</label>
           <input type="password" id="signin-password" class="auth-input" placeholder="••••••••" required>
         </div>
         <button id="email-signin" class="auth-btn auth-btn-primary">
-          Sign In
+          sign in
         </button>
         <div class="auth-divider">
           <span>or</span>
@@ -46,26 +47,29 @@
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Continue with Google
+          continue with google
         </button>
+        <p class="auth-help">having trouble? click the button above to open teyra in your browser</p>
       </div>
 
       <!-- Sign Up Form -->
       <div id="signup-form" class="auth-form">
+        <p class="auth-instruction">create your account to get started with mike</p>
         <div class="form-group">
-          <label for="signup-email">Email</label>
+          <label for="signup-email">email</label>
           <input type="email" id="signup-email" class="auth-input" placeholder="you@example.com" required>
         </div>
         <div class="form-group">
-          <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" class="auth-input" placeholder="••••••••" required>
+          <label for="signup-password">password</label>
+          <input type="password" id="signup-password" class="auth-input" placeholder="at least 8 characters" required>
+          <small class="form-hint">use a strong password to keep your account secure</small>
         </div>
         <div class="form-group">
-          <label for="signup-confirm">Confirm Password</label>
+          <label for="signup-confirm">confirm password</label>
           <input type="password" id="signup-confirm" class="auth-input" placeholder="••••••••" required>
         </div>
         <button id="email-signup" class="auth-btn auth-btn-primary">
-          Create Account
+          create account
         </button>
         <div class="auth-divider">
           <span>or</span>
@@ -77,8 +81,9 @@
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Sign up with Google
+          sign up with google
         </button>
+        <p class="auth-help">recommended: use google for faster sign up</p>
       </div>
     </div>
   </div>
@@ -187,7 +192,7 @@
           </div>
 
           <!-- Tasks List - Clean -->
-          <div class="cursor-tasks-list-clean cursor-section" id="tasks-list">
+          <div class="cursor-tasks-list-clean" id="tasks-list">
             <!-- Tasks rendered here -->
           </div>
         </div>
@@ -262,19 +267,24 @@
           <!-- Pro Features Section -->
           <div class="pro-features-section">
             <div class="pro-section-header">
-              <span class="pro-badge-header">⚡ Pro Features</span>
+              <div class="pro-header-content">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="pro-header-icon">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                <span class="pro-badge-header">teyra pro</span>
+              </div>
             </div>
 
             <!-- Pomodoro Timer (Pro only) -->
             <div class="pomodoro-section-inline cursor-section hidden" id="pomodoro-timer-section">
               <div class="pomodoro-header-inline">
                 <span class="feature-icon">⏱️</span>
-                <h4>Pomodoro Timer</h4>
+                <h4>pomodoro timer</h4>
               </div>
               <div class="pomodoro-inline-content">
                 <div class="pomodoro-timer-compact" id="focus-timer-large">25:00</div>
                 <div class="pomodoro-info">
-                  <p class="pomodoro-session-text" id="focus-session-text">Ready to focus</p>
+                  <p class="pomodoro-session-text" id="focus-session-text">ready to focus</p>
                 </div>
                 <div class="pomodoro-controls-inline">
                   <button id="focus-timer-start" class="pomodoro-btn-inline pomodoro-start-btn">
@@ -299,38 +309,52 @@
             </div>
 
             <!-- Pomodoro Locked (Free users) -->
-            <div class="pro-feature-locked cursor-section" id="pomodoro-locked">
-              <div class="locked-content">
-                <span class="locked-icon">⏱️</span>
-                <div class="locked-text">
-                  <h4>Pomodoro Timer</h4>
-                  <p>Built-in focus sessions</p>
+            <div class="pro-feature-card liquid-glass-subtle" id="pomodoro-locked">
+              <div class="pro-feature-content">
+                <div class="pro-feature-icon-wrapper">
+                  <span class="pro-feature-icon">⏱️</span>
                 </div>
-                <button class="upgrade-btn-small" id="upgrade-pomodoro-btn">Pro</button>
+                <div class="pro-feature-text">
+                  <h4 class="pro-feature-title">pomodoro timer</h4>
+                  <p class="pro-feature-desc">chrome extension - built-in focus sessions</p>
+                </div>
+                <button class="upgrade-btn-pro" id="upgrade-pomodoro-btn">upgrade</button>
               </div>
             </div>
 
             <!-- Unlimited AI Tasks (Pro only) -->
-            <div class="pro-feature-unlocked cursor-section hidden" id="unlimited-ai-section">
-              <div class="locked-content">
-                <span class="locked-icon">✨</span>
-                <div class="locked-text">
-                  <h4>Unlimited AI Tasks</h4>
-                  <p>Convert text to tasks without limits</p>
+            <div class="pro-feature-card liquid-glass pro-feature-unlocked hidden" id="unlimited-ai-section">
+              <div class="pro-feature-content">
+                <div class="pro-feature-icon-wrapper pro-feature-highlight">
+                  <span class="pro-feature-icon">✨</span>
                 </div>
-                <span class="pro-active-badge">Active</span>
+                <div class="pro-feature-text">
+                  <div class="pro-feature-title-row">
+                    <h4 class="pro-feature-title">unlimited AI text → task parsing</h4>
+                    <span class="pro-badge-new">NEW</span>
+                  </div>
+                  <p class="pro-feature-desc">chrome extension (vs 5 per day free)</p>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pro-check-icon">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
               </div>
             </div>
 
             <!-- Unlimited AI Locked (Free users) -->
-            <div class="pro-feature-locked cursor-section" id="unlimited-ai-locked">
-              <div class="locked-content">
-                <span class="locked-icon">✨</span>
-                <div class="locked-text">
-                  <h4>Unlimited AI Tasks</h4>
-                  <p>Convert text to tasks without limits</p>
+            <div class="pro-feature-card liquid-glass-subtle pro-feature-highlight-border" id="unlimited-ai-locked">
+              <div class="pro-feature-content">
+                <div class="pro-feature-icon-wrapper pro-feature-highlight">
+                  <span class="pro-feature-icon">✨</span>
                 </div>
-                <button class="upgrade-btn-small" id="upgrade-ai-btn">Pro</button>
+                <div class="pro-feature-text">
+                  <div class="pro-feature-title-row">
+                    <h4 class="pro-feature-title">unlimited AI text → task parsing</h4>
+                    <span class="pro-badge-new">NEW</span>
+                  </div>
+                  <p class="pro-feature-desc">chrome extension (vs 5 per day free)</p>
+                </div>
+                <button class="upgrade-btn-pro" id="upgrade-ai-btn">upgrade</button>
               </div>
             </div>
 
@@ -339,25 +363,27 @@
               <div class="templates-header">
                 <div>
                   <span class="feature-icon">🎯</span>
-                  <h4 style="display: inline; margin-left: 8px;">Custom Site Blocking</h4>
+                  <h4 style="display: inline; margin-left: 8px;">focus mode customization</h4>
                 </div>
-                <button id="add-blocked-site-btn" class="create-template-btn">+ Add Site</button>
+                <button id="add-blocked-site-btn" class="create-template-btn">+ add site</button>
               </div>
               <div id="custom-sites-list" class="custom-templates-list">
                 <!-- Custom blocked sites rendered here -->
-                <p class="empty-templates">Add websites to block during focus mode</p>
+                <p class="empty-templates">add websites to block during focus mode</p>
               </div>
             </div>
 
             <!-- Custom Sites Locked (Free users) -->
-            <div class="pro-feature-locked cursor-section" id="custom-sites-locked">
-              <div class="locked-content">
-                <span class="locked-icon">🎯</span>
-                <div class="locked-text">
-                  <h4>Custom Site Blocking</h4>
-                  <p>Block any website you choose</p>
+            <div class="pro-feature-card liquid-glass-subtle" id="custom-sites-locked">
+              <div class="pro-feature-content">
+                <div class="pro-feature-icon-wrapper">
+                  <span class="pro-feature-icon">🎯</span>
                 </div>
-                <button class="upgrade-btn-small" id="upgrade-sites-btn">Pro</button>
+                <div class="pro-feature-text">
+                  <h4 class="pro-feature-title">focus mode customization</h4>
+                  <p class="pro-feature-desc">chrome extension - block any websites you choose</p>
+                </div>
+                <button class="upgrade-btn-pro" id="upgrade-sites-btn">upgrade</button>
               </div>
             </div>
           </div>
