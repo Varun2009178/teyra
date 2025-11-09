@@ -689,16 +689,14 @@ function MVPDashboard() {
               // Refresh all user data to get updated Pro status
               await fetchUserData();
 
+              // Clean up URL params immediately to prevent re-triggering
+              window.history.replaceState({}, '', '/dashboard');
+
               // Show welcome modal with confetti
               setTimeout(() => {
                 setShowProWelcome(true);
                 toast.success('🎉 Welcome to Teyra Pro!');
-              }, 800);
-
-              // Force page reload after showing modal to refresh all Pro features (counters, limits, etc)
-              setTimeout(() => {
-                window.location.reload();
-              }, 3000);
+              }, 500);
             } else {
               toast.error('Payment verification failed. Please contact support.');
             }
@@ -708,8 +706,6 @@ function MVPDashboard() {
           toast.error('Could not verify payment. Please contact support if charged.');
         }
 
-        // Clean up URL
-        window.history.replaceState({}, '', '/dashboard');
         return true; // Indicate upgrade flow was handled
       } else if (upgradeStatus === 'cancelled') {
         toast.info('Upgrade cancelled. You can upgrade anytime!');
@@ -736,26 +732,6 @@ function MVPDashboard() {
     };
 
     initializeDashboard();
-
-    // Handle checkout action from extension
-    const handleCheckoutAction = async () => {
-      if (typeof window === 'undefined') return;
-      const urlParams = new URLSearchParams(window.location.search);
-      const action = urlParams.get('action');
-
-      if (action === 'checkout') {
-        console.log('🚀 Checkout action detected from extension, initiating upgrade...');
-        // Clean up URL first
-        window.history.replaceState({}, '', '/dashboard');
-
-        // Small delay to ensure page is loaded
-        setTimeout(async () => {
-          await handleUpgrade();
-        }, 500);
-      }
-    };
-
-    handleCheckoutAction();
 
     // Scroll to upgrade section if hash is present
     if (typeof window !== 'undefined' && window.location.hash === '#upgrade') {
