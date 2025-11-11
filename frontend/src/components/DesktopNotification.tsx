@@ -56,8 +56,8 @@ export function DesktopNotification() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[10000] pointer-events-auto"
-          style={{ maxWidth: 'calc(100vw - 32px)' }}
+          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[10000] pointer-events-auto px-4"
+          style={{ maxWidth: 'calc(100vw - 32px)', width: 'calc(100vw - 32px)' }}
         >
           <div className="liquid-glass glass-gradient-blue rounded-xl p-4 shadow-2xl border border-white/20 backdrop-blur-xl">
             <div className="flex items-start gap-3">

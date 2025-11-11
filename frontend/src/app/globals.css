@@ -1018,3 +1018,20 @@ div.lg\:ml-64 {
   background-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* Mobile toast positioning - prevent cut off */
+@media (max-width: 1024px) {
+  [data-sonner-toaster] {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    right: auto !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 0 16px !important;
+  }
+  
+  [data-sonner-toast] {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

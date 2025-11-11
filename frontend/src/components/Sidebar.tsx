@@ -42,6 +42,19 @@ export default function Sidebar({
   const [isMobile, setIsMobile] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = window.innerWidth < 1024 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobile(isMobileDevice);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Handle navigation with debouncing
   const handleNavigation = (path: string) => {
     if (isNavigating) return;
@@ -357,10 +370,10 @@ export default function Sidebar({
     </>
   );
 
-  // Desktop Sidebar - Always visible
+  // Desktop Sidebar - Hidden on mobile
   if (!isMobile) {
     return (
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-black/60 backdrop-blur-2xl border-r border-white/10 z-30 flex flex-col">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-black/60 backdrop-blur-2xl border-r border-white/10 z-30 flex-col">
         <SidebarContent />
       </aside>
     );

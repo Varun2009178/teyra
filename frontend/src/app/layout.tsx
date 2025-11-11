@@ -110,7 +110,16 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
-        <Toaster />
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            style: {
+              maxWidth: 'calc(100vw - 32px)',
+              margin: '0 auto',
+            },
+            className: 'mobile-toast',
+          }}
+        />
         <Analytics />
       </body>
     </html>
