@@ -6,10 +6,27 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles, Zap, Brain, Target, Grid3X3, Code, Layers, Command, Heart, TrendingUp, Shield, Users, MessageCircle, Coffee, Clock, CheckCircle2, Star, Rocket, Smile, ChevronRight, Play, Pause, Volume2 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const { user, isLoaded } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  // Redirect authenticated users to dashboard when opening PWA
+  useEffect(() => {
+    if (isLoaded && user) {
+      // Check if this is a PWA launch (standalone mode)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                          (window.navigator as any).standalone === true ||
+                          document.referrer.includes('android-app://');
+      
+      // Only redirect if launched as PWA, not if user navigated here manually
+      if (isStandalone) {
+        router.replace('/dashboard');
+      }
+    }
+  }, [isLoaded, user, router]);
 
   return (
     <div className="min-h-screen dark-gradient-bg noise-texture text-white overflow-x-hidden relative">
