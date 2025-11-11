@@ -53,9 +53,37 @@ export default function ProBadgeDropdown() {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const dropdownWidth = 320; // w-80 = 320px
+      const dropdownHeight = 500; // approximate height
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate position
+      let left = rect.left;
+      let top = rect.bottom + 8;
+      
+      // Check if dropdown would overflow right edge
+      if (left + dropdownWidth > viewportWidth - 16) {
+        left = viewportWidth - dropdownWidth - 16;
+      }
+      
+      // Check if dropdown would overflow left edge
+      if (left < 16) {
+        left = 16;
+      }
+      
+      // Check if dropdown would overflow bottom edge - if so, show above
+      if (top + dropdownHeight > viewportHeight - 16) {
+        top = rect.top - dropdownHeight - 8;
+        // If still doesn't fit above, position at top of viewport
+        if (top < 16) {
+          top = 16;
+        }
+      }
+      
       setPosition({
-        top: rect.bottom + 8,
-        left: rect.left
+        top,
+        left
       });
     }
   }, [isOpen]);

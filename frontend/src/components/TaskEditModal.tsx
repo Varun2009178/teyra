@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar as CalendarIcon, Tag, Flag, Trash2, Plus, ChevronDown, ChevronRight, List } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Tag, Flag, Trash2, Plus, ChevronDown, ChevronRight, List, Check } from 'lucide-react';
 
 interface Subtask {
   id: string;

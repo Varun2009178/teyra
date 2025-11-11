@@ -1,8 +1,8 @@
 'use client';
 
 import React, { Suspense, useState, useEffect } from 'react';
-import { SignIn } from '@clerk/nextjs';
-import { useSearchParams } from 'next/navigation';
+import { SignIn, useUser } from '@clerk/nextjs';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
@@ -10,6 +10,8 @@ import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
 // Separate component for content that uses useSearchParams
 function SignInContent() {
   const searchParams = useSearchParams();
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isEmbed, setIsEmbed] = useState(false);
 
@@ -18,7 +20,26 @@ function SignInContent() {
     setIsEmbed(searchParams?.get('embed') === 'extension');
   }, [searchParams]);
 
-  // Removed redundant redirect - Clerk handles this automatically with afterSignInUrl
+  // Redirect if user is already signed in
+  useEffect(() => {
+    if (isLoaded && user) {
+      router.replace('/dashboard');
+    }
+  }, [isLoaded, user, router]);
+
+  // Show loading while checking auth
+  if (!isLoaded) {
+    return (
+      <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex items-center justify-center">
+        <div className="text-white/60">loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render sign-in if user is already signed in (will redirect)
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-[100svh] dark-gradient-bg noise-texture text-white flex flex-col">

@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/next'
 import AuthProvider from '@/components/auth/AuthProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { ReferralTracker } from '@/components/ReferralTracker'
+import { MobileServiceWorker } from '@/components/MobileServiceWorker'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -104,6 +105,7 @@ export default function RootLayout({
         <script src="/extension-bridge.js" defer></script>
       </head>
       <body className={`${inter.variable} font-sans h-full antialiased`}>
+        <MobileServiceWorker />
         <ReferralTracker />
         <AuthProvider>
           {children}

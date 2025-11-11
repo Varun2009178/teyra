@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Plus, Check, Trash2, Target, List, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText, Flag, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Check, Trash2, Target, List, Settings, HelpCircle, User, Edit, Sparkles, Clock, FileText, Flag, ChevronDown, ChevronRight, Share2 } from 'lucide-react';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { Cactus } from '@/components/Cactus';
@@ -25,7 +25,9 @@ import { useCommandMenu } from '@/hooks/useCommandMenu';
 import * as gtag from '@/lib/gtag';
 import Sidebar from '@/components/Sidebar';
 import { TaskEditModal } from '@/components/TaskEditModal';
+import { BetaFocusMode } from '@/components/BetaFocusMode';
 import { VisibleErrorBoundary } from '@/components/VisibleErrorBoundary';
+import { DesktopNotification } from '@/components/DesktopNotification';
 
 interface Subtask {
   id: string;
@@ -384,6 +386,12 @@ function MVPDashboard() {
   const [scheduleModalTask, setScheduleModalTask] = useState<Task | null>(null);
   const [showMobileNotice, setShowMobileNotice] = useState(false);
   const [highlightMoodSelector, setHighlightMoodSelector] = useState(false);
+  const [betaFocusModeActive, setBetaFocusModeActive] = useState(false);
+  const [showFocusModeWhitelist, setShowFocusModeWhitelist] = useState(false);
+  const [focusModeWhitelist, setFocusModeWhitelist] = useState<string[]>([]);
+  const [newWhitelistSite, setNewWhitelistSite] = useState('');
+  const [userCount, setUserCount] = useState(132);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Sustainable tasks state - very easy to complete
   const sustainableTasks = [
@@ -651,6 +659,71 @@ function MVPDashboard() {
     }, 50);
     return () => clearTimeout(timer);
   }, []);
+
+  // Load focus mode whitelist from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('focusModeWhitelist');
+      if (saved) {
+        setFocusModeWhitelist(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to load focus mode whitelist:', error);
+    }
+  }, []);
+
+  // Fetch user count from API - refresh periodically to keep it updated
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const response = await fetch('/api/user/count');
+        if (response.ok) {
+          const data = await response.json();
+          setUserCount(data.count || 146);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user count:', error);
+      }
+    };
+    
+    // Fetch immediately
+    fetchUserCount();
+    
+    // Refresh every 5 minutes to keep count updated
+    const interval = setInterval(fetchUserCount, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Share handler
+  const handleShare = async () => {
+    const url = window.location.origin;
+    
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Teyra - AI Productivity Assistant',
+          text: '🌱 Building consistency with Teyra. Check it out!',
+          url: url,
+        });
+        return;
+      } catch (err) {
+        // User cancelled or error, fall back to copy
+      }
+    }
+    
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+      toast.success('Link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy link');
+    }
+  };
 
   useEffect(() => {
     if (!user?.id || !isHydrated)
@@ -1708,6 +1781,108 @@ function MVPDashboard() {
               />
             </div>
 
+            {/* Beta Focus Mode */}
+            <div className="liquid-glass glass-gradient-purple rounded-lg p-4 liquid-glass-hover">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl">🔒</span>
+                  <div>
+                    <span className="text-base font-semibold text-white">Beta Focus Mode</span>
+                    <p className="text-sm text-white/60">Lock in for 30 minutes - stay focused!</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowFocusModeWhitelist(!showFocusModeWhitelist)}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 hover:border-white/20 rounded-lg text-xs font-medium transition-all"
+                    title="Manage whitelist"
+                  >
+                    ⚙️
+                  </button>
+                  <button
+                    onClick={() => setBetaFocusModeActive(true)}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 hover:border-white/30 rounded-lg text-sm font-medium"
+                  >
+                    Start
+                  </button>
+                </div>
+              </div>
+              
+              {/* Whitelist Management */}
+              <AnimatePresence>
+                {showFocusModeWhitelist && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 pt-3 border-t border-white/10 space-y-3"
+                  >
+                    <div className="text-xs text-white/60 mb-2">whitelisted sites (won't trigger prompts)</div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newWhitelistSite}
+                        onChange={(e) => setNewWhitelistSite(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newWhitelistSite.trim()) {
+                            const site = newWhitelistSite.trim().toLowerCase();
+                            if (!focusModeWhitelist.includes(site)) {
+                              const updated = [...focusModeWhitelist, site];
+                              setFocusModeWhitelist(updated);
+                              localStorage.setItem('focusModeWhitelist', JSON.stringify(updated));
+                              setNewWhitelistSite('');
+                              toast.success('Site added to whitelist');
+                            }
+                          }
+                        }}
+                        placeholder="e.g., docs.google.com"
+                        className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-white/20"
+                      />
+                      <button
+                        onClick={() => {
+                          if (newWhitelistSite.trim()) {
+                            const site = newWhitelistSite.trim().toLowerCase();
+                            if (!focusModeWhitelist.includes(site)) {
+                              const updated = [...focusModeWhitelist, site];
+                              setFocusModeWhitelist(updated);
+                              localStorage.setItem('focusModeWhitelist', JSON.stringify(updated));
+                              setNewWhitelistSite('');
+                              toast.success('Site added to whitelist');
+                            } else {
+                              toast.error('Site already in whitelist');
+                            }
+                          }
+                        }}
+                        className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-lg text-xs font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    {focusModeWhitelist.length > 0 && (
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {focusModeWhitelist.map((site, index) => (
+                          <div key={index} className="flex items-center justify-between px-2 py-1.5 bg-white/5 rounded text-xs text-white/80">
+                            <span>{site}</span>
+                            <button
+                              onClick={() => {
+                                const updated = focusModeWhitelist.filter((_, i) => i !== index);
+                                setFocusModeWhitelist(updated);
+                                localStorage.setItem('focusModeWhitelist', JSON.stringify(updated));
+                                toast.success('Site removed from whitelist');
+                              }}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Sustainable Task Generator */}
             <div className="liquid-glass glass-gradient-green rounded-lg p-4 liquid-glass-hover">
               <div className="flex items-center justify-between">
@@ -1873,7 +2048,28 @@ function MVPDashboard() {
 
           {/* Right Column: Progress & Motivation */}
           <div className="lg:col-span-1 order-1 lg:order-2">
-            <div className="liquid-glass-strong glass-gradient-blue rounded-lg p-6 lg:sticky lg:top-24 liquid-glass-depth">
+            <div className="space-y-6">
+              {/* Social Proof Section */}
+              <div className="liquid-glass glass-gradient-green rounded-lg p-4 liquid-glass-hover">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🌱</span>
+                    <span className="text-white/90 font-medium text-sm">
+                      {userCount} users are building productivity with teyra
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 text-white/70 hover:text-white rounded-lg text-xs font-medium transition-all flex-shrink-0"
+                    title="Share Teyra"
+                  >
+                    <Share2 className={`w-3.5 h-3.5 ${shareCopied ? 'text-green-400' : ''}`} />
+                    <span>{shareCopied ? 'copied!' : 'share'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="liquid-glass-strong glass-gradient-blue rounded-lg p-6 lg:sticky lg:top-24 liquid-glass-depth">
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-white">Progress</h2>
 
@@ -1924,6 +2120,7 @@ function MVPDashboard() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
           
         </div>
@@ -2813,6 +3010,72 @@ function MVPDashboard() {
           fetchUserData();
         }}
       />
+
+      {/* Beta Focus Mode Overlay */}
+      <BetaFocusMode 
+        isActive={betaFocusModeActive} 
+        onEnd={() => setBetaFocusModeActive(false)}
+        tasks={tasks}
+        isPro={isPro}
+        onAddTask={async (title: string) => {
+          if (!title.trim() || !user || isAddLocked) return;
+
+          // Check daily limit before adding
+          if (dailyTasksCount >= 10) {
+            setShowDailyLimitPopup(true);
+            return;
+          }
+
+          const taskTitle = title.trim();
+          setIsAddLocked(true);
+
+          // Create optimistic task for instant UI update
+          const optimisticTask: Task = {
+            id: Date.now(),
+            title: taskTitle,
+            completed: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          // Add optimistic task immediately
+          setTasks(prev => [optimisticTask, ...prev]);
+
+          try {
+            const response = await fetch('/api/tasks', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ title: taskTitle })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              // Replace optimistic task with real one
+              setTasks(prev => prev.map(t => t.id === optimisticTask.id ? data : t));
+
+              // Track in background
+              try {
+                trackTaskCreated(taskTitle, data.id);
+                gtag.trackTaskCreated(taskTitle);
+              } catch {}
+            } else {
+              // Remove optimistic task on failure
+              setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
+            }
+          } catch (error) {
+            // Remove optimistic task on failure
+            setTasks(prev => prev.filter(t => t.id !== optimisticTask.id));
+          } finally {
+            setTimeout(() => setIsAddLocked(false), 300);
+          }
+        }}
+        onToggleTask={async (taskId: number) => {
+          await handleToggleTask(taskId);
+        }}
+      />
+
+      {/* Desktop Notification - Shows on mobile */}
+      <DesktopNotification />
 
     </div>
   );

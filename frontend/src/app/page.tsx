@@ -185,8 +185,8 @@ export default function HomePage() {
 
               {/* Status Indicator */}
               <div className="flex items-center justify-center lg:justify-start gap-3 text-sm text-white/60">
-                <div className="w-2 h-2 bg-green-400 rounded-full" />
-                <span>chrome extension now available</span>
+                <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                <span>chrome extension is not available yet sadly</span>
               </div>
 
               {/* Main Hero Text - Bold & Impactful */}
@@ -206,9 +206,9 @@ export default function HomePage() {
                     we killed
                   </motion.span>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.7, delay: 1.0, ease: [0.16, 1, 0.3, 1] }}
                     className={`flex flex-wrap items-center justify-center lg:justify-start ${user ? 'gap-4 sm:gap-5 md:gap-6' : 'gap-3 sm:gap-4'}`}
                   >
@@ -277,7 +277,7 @@ export default function HomePage() {
                     ))}
                   </motion.div>
 
-                  <motion.span
+                    <motion.span
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 1.7, ease: [0.16, 1, 0.3, 1] }}
@@ -321,13 +321,22 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 1.9, ease: [0.16, 1, 0.3, 1] }}
-                className="text-lg sm:text-xl md:text-2xl text-white/90 max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed mb-2 sm:mb-4"
+                className="text-base sm:text-lg md:text-xl text-white/70 max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed mb-2 sm:mb-4"
               >
                 {user ? (
                   "welcome back! ready to continue?"
                 ) : (
                   <>
-                    the only productivity tool that actually understands you.
+                    <button
+                      onClick={() => {
+                        document.getElementById('how-teyra-works')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-white/90 hover:text-cyan-400 transition-colors cursor-pointer font-semibold"
+                    >
+                      teyra
+                    </button>
+                    <span className="text-white/70"> is the AI task system that actually makes you do the </span>
+                    <span className="text-white/70">work</span>
                     <br className="hidden sm:block" />
                     <span className="text-white/60">no guilt trips. no being overwhelmed. just pure focus.</span>
                   </>
@@ -358,7 +367,7 @@ export default function HomePage() {
                       className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-medium bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/30 text-white rounded-lg transition-all duration-200 w-full sm:w-auto"
                       style={{ outline: 'none', boxShadow: 'none' }}
                     >
-                      <Sparkles className="w-4 h-4" />
+                        <Sparkles className="w-4 h-4" />
                       waitlist for the chrome extension
                       <ArrowRight className="w-4 h-4" />
                     </button>
@@ -381,10 +390,6 @@ export default function HomePage() {
                 transition={{ duration: 0.6, delay: 2.3, ease: [0.16, 1, 0.3, 1] }}
                 className="flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 text-sm pt-4"
               >
-                <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30">
-                  <div className="w-2 h-2 bg-green-400 rounded-full" />
-                  <span className="text-green-300 font-medium">100+ users</span>
-                </div>
                 <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30">
                   <div className="w-2 h-2 bg-blue-400 rounded-full" />
                   <span className="text-blue-300 font-medium">ai powered</span>
@@ -406,58 +411,58 @@ export default function HomePage() {
               className="lg:col-span-5 pt-8 lg:pt-12"
             >
               <div className="relative max-w-lg mx-auto lg:max-w-none space-y-6">
-                {/* Email Preview */}
-                <div className="glass-dark-modern rounded-2xl p-6 sm:p-7 relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-400/20 flex items-center justify-center">
-                        <span className="text-base">📧</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-white/90">Your Boss</div>
-                        <div className="text-xs text-white/40">boss@company.com</div>
-                      </div>
+              {/* Email Preview */}
+              <div className="glass-dark-modern rounded-2xl p-6 sm:p-7 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-400/20 flex items-center justify-center">
+                      <span className="text-base">📧</span>
                     </div>
-                    <div className="text-xs text-white/40">2m ago</div>
+                    <div>
+                      <div className="text-sm font-medium text-white/90">Your Boss</div>
+                      <div className="text-xs text-white/40">boss@company.com</div>
+                    </div>
                   </div>
+                  <div className="text-xs text-white/40">2m ago</div>
+                </div>
 
-                  <div className="text-sm font-medium text-white/80 mb-3">Q4 Project Tasks</div>
+                <div className="text-sm font-medium text-white/80 mb-3">Q4 Project Tasks</div>
 
-                  {/* Highlighted Email Text */}
+                {/* Highlighted Email Text */}
                   <div className="relative bg-yellow-400/20 border border-yellow-400/40 rounded-lg p-3">
                     <p className="text-sm text-white/70 leading-relaxed">
-                      "Hey! Can you finish the presentation slides, send the client proposal, and schedule the team meeting for next week?"
-                    </p>
+                    "Hey! Can you finish the presentation slides, send the client proposal, and schedule the team meeting for next week?"
+                  </p>
                   </div>
-                </div>
+              </div>
 
                 {/* Arrow */}
                 <div className="flex justify-center">
-                  <div className="text-4xl text-green-400">↓</div>
+                <div className="text-4xl text-green-400">↓</div>
                 </div>
 
-                {/* Generated Tasks */}
+              {/* Generated Tasks */}
                 <div className="glass-dark-modern rounded-2xl p-6 sm:p-7 space-y-3">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4">
                     <div className="text-sm font-semibold text-white/90">
-                      Auto-generated tasks
+                    Auto-generated tasks
                     </div>
                     <div className="text-xs text-green-400 flex items-center gap-1.5 bg-green-400/10 px-3 py-1.5 rounded-full border border-green-400/30">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      <span className="font-semibold">Synced to Google Calendar</span>
+                    <span className="font-semibold">Synced to Google Calendar</span>
                     </div>
-                  </div>
+                </div>
 
                   {/* Task 1 */}
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-3.5 bg-white/5 rounded-lg border border-blue-400/30 relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/5 to-transparent"></div>
                     <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-400 rounded flex-shrink-0 mt-0.5"></div>
-                    <div className="flex-1 relative z-10 min-w-0">
+                  <div className="flex-1 relative z-10 min-w-0">
                       <div className="text-xs sm:text-sm text-white/90 font-medium">
-                        Send client proposal
-                      </div>
+                      Send client proposal
+                  </div>
                       <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-1.5 text-[10px] sm:text-xs">
                         <span className="text-blue-400 font-medium">📅 Tomorrow, 10:00 AM</span>
                         <span className="text-white/40">• Medium priority</span>
@@ -467,16 +472,16 @@ export default function HomePage() {
 
                   {/* Task 2 */}
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-3.5 bg-white/5 rounded-lg border border-green-400/30 relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-400/5 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-400/5 to-transparent"></div>
                     <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-green-400 rounded flex-shrink-0 mt-0.5"></div>
-                    <div className="flex-1 relative z-10 min-w-0">
+                  <div className="flex-1 relative z-10 min-w-0">
                       <div className="text-xs sm:text-sm text-white/90 font-medium">
-                        Finish presentation slides
+                      Finish presentation slides
                       </div>
-                      <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-1.5 text-[10px] sm:text-xs">
+                    <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-1.5 text-[10px] sm:text-xs">
                         <span className="text-green-400 font-medium">📅 Today, 2:00 PM</span>
                         <span className="font-medium text-orange-400">• High priority</span>
-                      </div>
+                    </div>
                     </div>
                     <div className="absolute top-2 right-2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-400" />
                   </div>
@@ -484,23 +489,23 @@ export default function HomePage() {
                   {/* Task 3 */}
                   <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-3.5 bg-white/5 rounded-lg border border-white/20 relative">
                     <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/40 rounded flex-shrink-0 mt-0.5"></div>
-                    <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
                       <div className="text-xs sm:text-sm text-white/90 font-medium">
-                        Schedule team meeting
+                      Schedule team meeting
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-1.5 text-[10px] sm:text-xs">
                         <span className="text-white/60 font-medium">📅 Next Monday, 3:00 PM</span>
                         <span className="text-white/40">• Low priority</span>
                       </div>
                       <div className="mt-1.5 sm:mt-2">
-                        <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-white/50">
-                          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                          </svg>
-                          <span className="font-medium">Google Calendar</span>
-                        </div>
+                      <div className="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-[11px] text-white/50">
+                        <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        <span className="font-medium">Google Calendar</span>
                       </div>
+                  </div>
                     </div>
                   </div>
 
@@ -508,11 +513,11 @@ export default function HomePage() {
                   <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-white/10">
                     <div className="w-2 h-2 bg-green-400 rounded-full" />
                     <span className="text-xs text-green-400 font-medium">
-                      3 tasks generated & synced
+                    3 tasks generated & synced
                     </span>
                     <div className="w-2 h-2 bg-green-400 rounded-full" />
-                  </div>
-                </div>
+            </div>
+          </div>
               </div>
             </motion.div>
           </div>
@@ -520,7 +525,7 @@ export default function HomePage() {
       </section>
 
       {/* How Teyra Works Section */}
-      <section className="py-12 px-6 lg:px-8">
+      <section id="how-teyra-works" className="py-12 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           <div className="mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 text-white">
@@ -740,8 +745,8 @@ export default function HomePage() {
                   {/* Pro badge indicator */}
                   <div className="mt-6 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-full relative z-10">
                     <span className="text-xs font-semibold text-purple-300">✨ Customize blocklist with Pro</span>
-                  </div>
                 </div>
+              </div>
               </div>
             </div>
 
@@ -833,12 +838,12 @@ export default function HomePage() {
                 className="glass-dark-modern rounded-xl p-6 text-center group cursor-pointer hover:-translate-y-1 hover:scale-105 transition-all"
               >
                 <div className="mb-4">
-                  <Image
-                    src={mike.gif}
-                    alt={mike.title}
-                    width={80}
-                    height={80}
-                    className="mx-auto w-16 h-16 md:w-20 md:h-20"
+                  <Image 
+                    src={mike.gif} 
+                    alt={mike.title} 
+                    width={80} 
+                    height={80} 
+                    className="mx-auto w-16 h-16 md:w-20 md:h-20" 
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">
@@ -947,7 +952,7 @@ export default function HomePage() {
                 onClick={() => window.open('https://tally.so/r/nr7G7l', '_blank')}
                 className="px-10 py-5 text-lg font-bold text-white rounded-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 shadow-2xl transition-all duration-300 inline-flex items-center gap-3"
               >
-                <Rocket className="w-6 h-6" />
+                  <Rocket className="w-6 h-6" />
                 waitlist for the chrome extension
                 <ArrowRight className="w-5 h-5" />
               </button>

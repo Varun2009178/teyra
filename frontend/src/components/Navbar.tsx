@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { Calendar, FileText, Settings, HelpCircle, User, Trash2, Command } from 'lucide-react';
+import { Calendar, FileText, Settings, HelpCircle, User, Trash2, Command, Menu, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import { toast } from 'sonner';
 
@@ -33,6 +34,7 @@ export default function Navbar({
 }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -99,169 +101,221 @@ export default function Navbar({
 
   return (
     <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-4 sm:gap-8">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-3 focus:outline-none"
-            aria-label="Teyra Home"
-          >
-            <Image
-              src="/teyra-logo-64kb.png"
-              alt="Teyra"
-              width={40}
-              height={40}
-              className="w-10 h-10"
-              priority
-            />
-          </button>
-
-          <nav className="hidden sm:flex items-center gap-4 lg:gap-6 text-base">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 sm:gap-8">
             <button
               onClick={() => router.push('/dashboard')}
-              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium ${
-                isActive('/dashboard')
-                  ? 'text-white border-white/15 bg-white/5'
-                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-              }`}
+              className="flex items-center gap-3 focus:outline-none"
+              aria-label="Teyra Home"
             >
-              All Tasks
-            </button>
-
-            <button
-              onClick={() => router.push('/dashboard/notes')}
-              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
-                isActive('/dashboard/notes')
-                  ? 'text-white border-white/15 bg-white/5'
-                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Notes
-              <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                beta
-              </span>
-            </button>
-
-            <button
-              onClick={() => router.push('/dashboard/calendar')}
-              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
-                isActive('/dashboard/calendar')
-                  ? 'text-white border-white/15 bg-white/5'
-                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              Calendar
-              <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                beta
-              </span>
-            </button>
-
-            {isPro && <ProBadgeDropdown />}
-            {currentMood && (
-              <div className="text-white/50 text-sm">
-                {currentMood.emoji} {currentMood.label}
-              </div>
-            )}
-          </nav>
-
-          {/* Mobile Navigation */}
-          <nav className="flex sm:hidden items-center gap-2 text-sm">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className={`px-2 py-1 rounded-lg transition-all duration-150 font-medium ${
-                isActive('/dashboard')
-                  ? 'text-white bg-white/10'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              Tasks
-            </button>
-
-            <button
-              onClick={() => router.push('/dashboard/notes')}
-              className={`px-2 py-1 rounded-lg transition-all duration-150 font-medium flex items-center gap-1 ${
-                isActive('/dashboard/notes')
-                  ? 'text-white bg-white/10'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              Notes
-            </button>
-
-            <button
-              onClick={() => router.push('/dashboard/calendar')}
-              className={`px-2 py-1 rounded-lg transition-all duration-150 font-medium flex items-center gap-1 ${
-                isActive('/dashboard/calendar')
-                  ? 'text-white bg-white/10'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              Cal
-            </button>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Command Center Button - Visible on all devices */}
-          {onCommandMenuClick && (
-            <button
-              onClick={onCommandMenuClick}
-              className="w-9 h-9 flex items-center justify-center text-white/50 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20"
-              title="Command Center (Press / on desktop)"
-            >
-              <Command className="w-5 h-5" />
-            </button>
-          )}
-          {showAccountButton && (
-            <button
-              onClick={onAccountClick}
-              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-              title="Account Status"
-            >
-              <User className="w-5 h-5" />
-            </button>
-          )}
-          {showSettings && (
-            <>
-              <button
-                onClick={onSettingsClick}
-                className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-                title="Settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button
-                onClick={onHelpClick}
-                className="hidden sm:flex w-9 h-9 items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-                title="Help"
-              >
-                <HelpCircle className="w-5 h-5" />
-              </button>
-            </>
-          )}
-          <UserButton
-            afterSignOutUrl="/"
-            appearance={{
-              elements: {
-                avatarBox: "w-9 h-9 rounded-full",
-                userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                userButtonTrigger: "rounded-full"
-              }
-            }}
-          >
-            <UserButton.MenuItems>
-              <UserButton.Action
-                label="Delete Account"
-                labelIcon={<Trash2 className="w-4 h-4" />}
-                onClick={handleDeleteAccount}
+              <Image
+                src="/teyra-logo-64kb.png"
+                alt="Teyra"
+                width={40}
+                height={40}
+                className="w-10 h-10"
+                priority
               />
-            </UserButton.MenuItems>
-          </UserButton>
+            </button>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-4 lg:gap-6 text-base">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium ${
+                  isActive('/dashboard')
+                    ? 'text-white border-white/15 bg-white/5'
+                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+                }`}
+              >
+                All Tasks
+              </button>
+
+              <button
+                onClick={() => router.push('/dashboard/notes')}
+                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
+                  isActive('/dashboard/notes')
+                    ? 'text-white border-white/15 bg-white/5'
+                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Notes
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                  beta
+                </span>
+              </button>
+
+              <button
+                onClick={() => router.push('/dashboard/calendar')}
+                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
+                  isActive('/dashboard/calendar')
+                    ? 'text-white border-white/15 bg-white/5'
+                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Calendar
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                  beta
+                </span>
+              </button>
+
+              {isPro && <ProBadgeDropdown />}
+              {currentMood && (
+                <div className="text-white/50 text-sm">
+                  {currentMood.emoji} {currentMood.label}
+                </div>
+              )}
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 text-white/70 hover:text-white transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Command Center Button - Visible on all devices */}
+            {onCommandMenuClick && (
+              <button
+                onClick={onCommandMenuClick}
+                className="w-9 h-9 flex items-center justify-center text-white/50 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20"
+                title="Command Center (Press / on desktop)"
+              >
+                <Command className="w-5 h-5" />
+              </button>
+            )}
+            {showAccountButton && (
+              <button
+                onClick={onAccountClick}
+                className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+                title="Account Status"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            )}
+            {showSettings && (
+              <>
+                <button
+                  onClick={onSettingsClick}
+                  className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+                  title="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={onHelpClick}
+                  className="hidden sm:flex w-9 h-9 items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+                  title="Help"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-9 h-9 rounded-full",
+                  userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
+                  userButtonTrigger: "rounded-full"
+                }
+              }}
+            >
+              <UserButton.MenuItems>
+                <UserButton.Action
+                  label="Delete Account"
+                  labelIcon={<Trash2 className="w-4 h-4" />}
+                  onClick={handleDeleteAccount}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
+          </div>
         </div>
+
+        {/* Mobile Collapsible Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.nav
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="lg:hidden mt-4 pb-2 space-y-2 border-t border-white/10 pt-4"
+            >
+              <button
+                onClick={() => {
+                  router.push('/dashboard');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-150 font-medium text-left ${
+                  isActive('/dashboard')
+                    ? 'text-white bg-white/10'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                All Tasks
+              </button>
+
+              <button
+                onClick={() => {
+                  router.push('/dashboard/notes');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-150 font-medium flex items-center gap-2 ${
+                  isActive('/dashboard/notes')
+                    ? 'text-white bg-white/10'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <FileText className="w-4 h-4" />
+                Notes
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                  beta
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  router.push('/dashboard/calendar');
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full px-3 py-2 rounded-lg transition-all duration-150 font-medium flex items-center gap-2 ${
+                  isActive('/dashboard/calendar')
+                    ? 'text-white bg-white/10'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                Calendar
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                  beta
+                </span>
+              </button>
+
+              {isPro && (
+                <div className="px-3 py-2">
+                  <ProBadgeDropdown />
+                </div>
+              )}
+              {currentMood && (
+                <div className="px-3 py-2 text-white/50 text-sm">
+                  {currentMood.emoji} {currentMood.label}
+                </div>
+              )}
+            </motion.nav>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );

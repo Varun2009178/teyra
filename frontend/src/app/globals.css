@@ -997,3 +997,24 @@ div.lg\:ml-64 {
     margin-left: 0;
   }
 }
+
+/* Remove highlights from subtask items */
+.subtask-item,
+.subtask-item:hover,
+.subtask-item:focus,
+.subtask-item:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  outline: none !important;
+}
+
+.no-hover-bg,
+.no-hover-bg:hover,
+.no-hover-bg:focus,
+.no-hover-bg:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
