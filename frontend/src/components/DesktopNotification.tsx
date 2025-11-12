@@ -19,32 +19,39 @@ export function DesktopNotification() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
 
-    // Show notification every 30 seconds on mobile
+    // Only show notification once per session, and only if user hasn't permanently dismissed it
     if (isMobile) {
-      const interval = setInterval(() => {
-        setShowNotification(true);
-        
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-          setShowNotification(false);
-        }, 5000);
-      }, 30000); // Every 30 seconds
+      const hasDismissedPermanently = localStorage.getItem('teyra_desktop_notification_dismissed') === 'true';
+      const hasShownThisSession = sessionStorage.getItem('teyra_desktop_notification_shown') === 'true';
+      
+      // Don't show if permanently dismissed or already shown this session
+      if (hasDismissedPermanently || hasShownThisSession) {
+        return;
+      }
 
-      // Show initial notification after 10 seconds
+      // Show notification once after 15 seconds
       const initialTimeout = setTimeout(() => {
         setShowNotification(true);
+        sessionStorage.setItem('teyra_desktop_notification_shown', 'true');
+        
+        // Auto-hide after 8 seconds
         setTimeout(() => {
           setShowNotification(false);
-        }, 5000);
-      }, 10000);
+        }, 8000);
+      }, 15000);
 
       return () => {
-        clearInterval(interval);
         clearTimeout(initialTimeout);
         window.removeEventListener('resize', checkMobile);
       };
     }
   }, [isMobile]);
+
+  const handleDismiss = () => {
+    setShowNotification(false);
+    // Optionally: set permanent dismissal (user can clear localStorage to see it again)
+    // localStorage.setItem('teyra_desktop_notification_dismissed', 'true');
+  };
 
   if (!isMobile) return null;
 
@@ -52,11 +59,11 @@ export function DesktopNotification() {
     <AnimatePresence>
       {showNotification && (
         <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[10000] pointer-events-auto px-4"
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[10000] pointer-events-auto px-4"
           style={{ maxWidth: 'calc(100vw - 32px)', width: 'calc(100vw - 32px)' }}
         >
           <div className="liquid-glass glass-gradient-blue rounded-xl p-4 shadow-2xl border border-white/20 backdrop-blur-xl">
@@ -70,7 +77,7 @@ export function DesktopNotification() {
                 </p>
               </div>
               <button
-                onClick={() => setShowNotification(false)}
+                onClick={handleDismiss}
                 className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-white/60 hover:text-white transition-colors rounded hover:bg-white/10"
                 aria-label="Close notification"
               >

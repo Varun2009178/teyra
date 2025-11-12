@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { UserButton, useUser } from '@clerk/nextjs';
 import { Calendar, FileText, Settings, HelpCircle, User, Command, Menu, X, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ProBadgeDropdown from '@/components/ProBadgeDropdown';
 import { toast } from 'sonner';
 
@@ -39,10 +40,17 @@ export default function Sidebar({
   const pathname = usePathname();
   const { user } = useUser();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    // Initialize mobile state immediately to prevent desktop sidebar flash
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    return false;
+  });
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Detect mobile devices
+  // Detect mobile devices and update on resize
   useEffect(() => {
     const checkMobile = () => {
       const isMobileDevice = window.innerWidth < 1024 || 
@@ -370,7 +378,7 @@ export default function Sidebar({
     </>
   );
 
-  // Desktop Sidebar - Hidden on mobile
+  // Desktop Sidebar - Always hidden on mobile screens (using CSS)
   if (!isMobile) {
     return (
       <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-black/60 backdrop-blur-2xl border-r border-white/10 z-30 flex-col">
@@ -379,38 +387,51 @@ export default function Sidebar({
     );
   }
 
-  // Mobile Sidebar
+  // Mobile Sidebar - Only show hamburger button, sidebar opens on click
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Always visible on mobile */}
       <button
-        onClick={() => setIsMobileOpen(true)}
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
         className="fixed top-4 left-4 z-50 w-12 h-12 flex items-center justify-center bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl text-white hover:bg-white/15 transition-all shadow-lg"
+        aria-label={isMobileOpen ? "Close menu" : "Open menu"}
       >
-        <Menu className="w-6 h-6" />
+        {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
-      {/* Mobile Sidebar Overlay */}
-      {isMobileOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            onClick={() => setIsMobileOpen(false)}
-          />
-          <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-black/90 via-black/85 to-black/90 backdrop-blur-xl border-r border-white/20 liquid-glass-strong z-50 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-              <span className="text-white font-semibold text-lg">Menu</span>
-              <button
-                onClick={() => setIsMobileOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <SidebarContent />
-          </aside>
-        </>
-      )}
+      {/* Mobile Sidebar Overlay - Only shown when isMobileOpen is true */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              onClick={() => setIsMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -256 }}
+              animate={{ x: 0 }}
+              exit={{ x: -256 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-black/90 via-black/85 to-black/90 backdrop-blur-xl border-r border-white/20 liquid-glass-strong z-50 flex flex-col shadow-2xl"
+            >
+              <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
+                <span className="text-white font-semibold text-lg">Menu</span>
+                <button
+                  onClick={() => setIsMobileOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <SidebarContent />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

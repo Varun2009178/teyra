@@ -1569,6 +1569,56 @@ function MVPDashboard() {
     setScheduleModalTask(task);
   };
 
+  // TEST: Handle test notification (remove after testing)
+  const handleTestNotification = async () => {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        toast.error('Service worker not supported');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      if (!registration.active) {
+        toast.error('Service worker not active');
+        return;
+      }
+
+      // Clear daily limit (for testing)
+      try {
+        const db = await new Promise((resolve: any, reject: any) => {
+          const request = indexedDB.open('teyra-notifications', 1);
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+          request.onupgradeneeded = (e: any) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('notification-dates')) {
+              db.createObjectStore('notification-dates', { keyPath: 'id' });
+            }
+          };
+        });
+        const tx = db.transaction(['notification-dates'], 'readwrite');
+        tx.objectStore('notification-dates').delete('last-notification');
+      } catch (e) {
+        console.log('Could not clear IndexedDB');
+      }
+      
+      localStorage.removeItem('teyra_last_notification_date');
+      localStorage.removeItem('teyra_last_daily_check');
+      
+      // Trigger notification
+      registration.active.postMessage({
+        type: 'TRIGGER_NOTIFICATION',
+        message: 'bro can you lock in you have so much stuff to do'
+      });
+      
+      toast.success('Test notification sent! Check your notifications.');
+    } catch (error) {
+      console.error('Error testing notification:', error);
+      toast.error('Failed to send test notification');
+    }
+  };
+
   // Actually schedule the task
   const saveScheduledTask = async (scheduledTime: string, durationMinutes: number) => {
     if (!scheduleModalTask) return;
@@ -1881,6 +1931,25 @@ function MVPDashboard() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* TEST: Notification Test Button - REMOVE AFTER TESTING */}
+            <div className="liquid-glass rounded-lg p-4 border-2 border-red-500/50" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.15) 100%)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-2xl">🧪</span>
+                  <div>
+                    <span className="text-base font-semibold text-white">Test Notification</span>
+                    <p className="text-sm text-white/60">Click to test PWA notification (remove after testing)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleTestNotification}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 hover:border-red-500/70 rounded-lg text-sm font-medium transition-all"
+                >
+                  Test Now
+                </button>
+              </div>
             </div>
 
             {/* Sustainable Task Generator */}
