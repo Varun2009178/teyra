@@ -354,8 +354,9 @@ export default function HomePage() {
                     </button>
                     <span className="text-white/70"> is the AI task system that actually makes you do the </span>
                     <span className="text-white/70">work</span>
+                    <br className="block sm:hidden" />
                     <br className="hidden sm:block" />
-                    <span className="text-white/60">no guilt trips. no being overwhelmed. just pure focus.</span>
+                    <span className="text-white/60 block mt-2 sm:mt-0">no guilt trips. no being overwhelmed. just pure focus.</span>
                   </>
                 )}
               </motion.p>
