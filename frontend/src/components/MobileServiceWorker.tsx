@@ -35,14 +35,24 @@ export function MobileServiceWorker() {
           setIsRegistered(true);
           console.log('✅ Service Worker registered for mobile:', registration);
 
-          // Request notification permission
+          // Auto-request notification permission after a short delay (user-friendly)
           if ('Notification' in window) {
-            if (Notification.permission === 'default') {
-              const permission = await Notification.requestPermission();
-              console.log('Notification permission:', permission);
-            } else if (Notification.permission === 'granted') {
-              console.log('✅ Notifications already granted');
-            }
+            // Wait 2 seconds after page load to request permission (less intrusive)
+            setTimeout(async () => {
+              if (Notification.permission === 'default') {
+                try {
+                  const permission = await Notification.requestPermission();
+                  console.log('Notification permission:', permission);
+                  if (permission === 'granted') {
+                    console.log('✅ Notification permission granted automatically');
+                  }
+                } catch (error) {
+                  console.error('Error requesting notification permission:', error);
+                }
+              } else if (Notification.permission === 'granted') {
+                console.log('✅ Notifications already granted');
+              }
+            }, 2000); // 2 second delay
           }
 
           // Register periodic background sync for daily checks (Chrome 80+)

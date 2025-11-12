@@ -129,7 +129,7 @@ self.addEventListener('push', (event) => {
   const message = data.message || GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
   
   const options = {
-    body: message,
+    body: '',
     icon: '/teyra-logo-64kb.png',
     badge: '/teyra-logo-64kb.png',
     vibrate: [200, 100, 200],
@@ -154,7 +154,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('🌵 Teyra', options)
+    self.registration.showNotification(message, options)
   );
 });
 
@@ -277,8 +277,8 @@ async function checkAndNotify() {
     if (incompleteTasks.length > 5) {
       const randomMessage = GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
       
-      await self.registration.showNotification('🌵 Teyra', {
-        body: randomMessage,
+      await self.registration.showNotification(randomMessage, {
+        body: '',
         icon: '/teyra-logo-64kb.png',
         badge: '/teyra-logo-64kb.png',
         vibrate: [200, 100, 200],
@@ -326,8 +326,9 @@ self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'TRIGGER_NOTIFICATION') {
     const message = event.data.message || GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
     
-    self.registration.showNotification('🌵 Teyra', {
-      body: message,
+    // Clean notification format - just message, no redundant title
+    self.registration.showNotification(message, {
+      body: '',
       icon: '/teyra-logo-64kb.png',
       badge: '/teyra-logo-64kb.png',
       vibrate: [200, 100, 200],
