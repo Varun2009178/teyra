@@ -1569,94 +1569,40 @@ function MVPDashboard() {
     setScheduleModalTask(task);
   };
 
-  // TEST: Handle test notification (remove after testing)
-  const handleTestNotification = async () => {
+  // Handle notification permission request
+  const handleRequestNotificationPermission = async () => {
     try {
-      // Check if notifications are supported
       if (!('Notification' in window)) {
         toast.error('Notifications not supported on this device');
         return;
       }
-
-      // Check and request notification permission
-      let permission = Notification.permission;
-      if (permission === 'default') {
-        permission = await Notification.requestPermission();
-      }
-
-      if (permission !== 'granted') {
-        toast.error('Notification permission denied. Please enable in settings.');
-        console.error('Notification permission:', permission);
-        return;
-      }
-
-      // Check if service worker is supported
-      if (!('serviceWorker' in navigator)) {
-        toast.error('Service worker not supported');
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
       
-      if (!registration.active) {
-        toast.error('Service worker not active. Try refreshing the page.');
-        console.error('Service worker state:', registration);
-        return;
-      }
-
-      console.log('✅ Service worker active:', registration.active.state);
-      console.log('✅ Notification permission:', permission);
-
-      // Clear daily limit (for testing)
-      try {
-        const db = await new Promise((resolve: any, reject: any) => {
-          const request = indexedDB.open('teyra-notifications', 1);
-          request.onerror = () => reject(request.error);
-          request.onsuccess = () => resolve(request.result);
-          request.onupgradeneeded = (e: any) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('notification-dates')) {
-              db.createObjectStore('notification-dates', { keyPath: 'id' });
-            }
-          };
-        });
-        const tx = db.transaction(['notification-dates'], 'readwrite');
-        tx.objectStore('notification-dates').delete('last-notification');
-        console.log('✅ Cleared daily limit');
-      } catch (e) {
-        console.log('⚠️ Could not clear IndexedDB:', e);
+      // Check if iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      
+      if (isIOS) {
+        toast.info('iOS: Notifications only work when the app is open (foreground). Requesting permission...');
       }
       
-      localStorage.removeItem('teyra_last_notification_date');
-      localStorage.removeItem('teyra_last_daily_check');
+      const permission = await Notification.requestPermission();
+      console.log('Permission result:', permission);
       
-      // Try direct notification first (for testing)
-      try {
-        const testNotification = new Notification('Teyra', {
-          body: 'bro can you lock in you have so much stuff to do',
-          icon: '/teyra-logo-64kb.png',
-          badge: '/teyra-logo-64kb.png',
-          tag: 'teyra-test',
-          requireInteraction: false,
-        });
-        console.log('✅ Direct notification sent');
-        toast.success('Test notification sent! Check your notifications.');
-        setTimeout(() => testNotification.close(), 5000);
-      } catch (directError) {
-        console.log('Direct notification failed, trying service worker:', directError);
-        
-        // Fallback: Trigger via service worker
-        registration.active.postMessage({
-          type: 'TRIGGER_NOTIFICATION',
-          message: 'bro can you lock in you have so much stuff to do'
-        });
-        
-        console.log('✅ Message sent to service worker');
-        toast.success('Test notification sent via service worker! Check your notifications.');
+      if (permission === 'granted') {
+        toast.success('Notification permission granted!');
+        if (isIOS) {
+          setTimeout(() => {
+            toast.info('iOS Note: Notifications only appear when Teyra is open. Background notifications are not supported on iOS PWAs.', { duration: 6000 });
+          }, 2000);
+        }
+      } else if (permission === 'denied') {
+        toast.error('Permission denied. Enable in Settings → Safari → Notifications → Teyra');
+      } else {
+        toast.error('Permission not granted');
       }
     } catch (error) {
-      console.error('❌ Error testing notification:', error);
-      toast.error(`Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error requesting permission:', error);
+      toast.error('Failed to request permission');
     }
   };
 
@@ -1974,76 +1920,57 @@ function MVPDashboard() {
               </AnimatePresence>
             </div>
 
-            {/* TEST: Notification Test Button - REMOVE AFTER TESTING */}
-            <div className="liquid-glass rounded-lg p-4 border-2 border-red-500/50" style={{ background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.15) 100%)' }}>
+            {/* Notification Settings */}
+            <div className="liquid-glass glass-gradient-blue rounded-lg p-4 liquid-glass-hover">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <span className="text-2xl">🧪</span>
+                    <span className="text-2xl">🔔</span>
                     <div>
-                      <span className="text-base font-semibold text-white">Test Notification</span>
-                      <p className="text-sm text-white/60">Request permission & test PWA notification</p>
+                      <span className="text-base font-semibold text-white">Mobile Notifications</span>
+                      <p className="text-sm text-white/60">Get reminders when you have 5+ incomplete tasks</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      try {
-                        if (!('Notification' in window)) {
-                          toast.error('Notifications not supported');
-                          return;
-                        }
-                        
-                        // Check if iOS
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-                        
-                        if (isIOS) {
-                          toast.info('iOS: Notifications only work when app is open. Requesting permission...');
-                        }
-                        
-                        const permission = await Notification.requestPermission();
-                        console.log('Permission result:', permission);
-                        
-                        if (permission === 'granted') {
-                          toast.success('Permission granted! On iOS, notifications only work when app is open.');
-                          
-                          // Show iOS-specific instructions
-                          if (isIOS) {
-                            setTimeout(() => {
-                              toast.info('iOS Note: Background notifications are limited. Check Settings → Notifications → Teyra', { duration: 5000 });
-                            }, 2000);
-                          }
-                        } else if (permission === 'denied') {
-                          toast.error('Permission denied. Go to Settings → Safari → Notifications → Teyra');
-                        } else {
-                          toast.error('Permission not granted');
-                        }
-                      } catch (error) {
-                        console.error('Error requesting permission:', error);
-                        toast.error('Failed to request permission');
-                      }
-                    }}
-                    className="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/50 hover:border-blue-500/70 rounded-lg text-sm font-medium transition-all"
-                  >
-                    Request Permission
-                  </button>
-                  <button
-                    onClick={handleTestNotification}
-                    className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50 hover:border-red-500/70 rounded-lg text-sm font-medium transition-all"
-                  >
-                    Test Now
-                  </button>
-                </div>
-                
-                <div className="text-xs text-white/50 space-y-1">
-                  <p>• Current permission: <span className="text-white/70">{typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unknown'}</span></p>
-                  <p>• Service worker: <span className="text-white/70">{typeof navigator !== 'undefined' && 'serviceWorker' in navigator ? 'supported' : 'not supported'}</span></p>
-                  {/iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? (
-                    <p className="text-yellow-400">⚠️ iOS: Background notifications are limited. They only work when the app is open.</p>
-                  ) : null}
+                <div className="space-y-2">
+                  {typeof window !== 'undefined' && 'Notification' in window ? (
+                    <>
+                      <div className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg">
+                        <span className="text-sm text-white/70">Permission Status:</span>
+                        <span className={`text-sm font-medium ${
+                          Notification.permission === 'granted' ? 'text-green-400' :
+                          Notification.permission === 'denied' ? 'text-red-400' :
+                          'text-yellow-400'
+                        }`}>
+                          {Notification.permission === 'granted' ? '✓ Granted' :
+                           Notification.permission === 'denied' ? '✗ Denied' :
+                           '? Not Set'}
+                        </span>
+                      </div>
+                      
+                      {Notification.permission !== 'granted' && (
+                        <button
+                          onClick={handleRequestNotificationPermission}
+                          className="w-full px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/50 hover:border-blue-500/70 rounded-lg text-sm font-medium transition-all"
+                        >
+                          Request Permission
+                        </button>
+                      )}
+                      
+                      {(/iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && (
+                        <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                          <p className="text-xs text-yellow-300">
+                            ⚠️ iOS: Notifications only work when Teyra is open. Background notifications are not supported on iOS PWAs.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-3 py-2 bg-white/5 rounded-lg">
+                      <p className="text-sm text-white/60">Notifications not supported on this device</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

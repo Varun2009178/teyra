@@ -117,55 +117,32 @@ export function MobileServiceWorker() {
             }
           });
 
-          // Set up daily check interval as fallback (if periodic sync not supported)
-          // This will check once per day
-          const checkDaily = async () => {
-            const lastCheck = localStorage.getItem('teyra_last_daily_check');
-            const today = new Date().toDateString();
-            
-            if (lastCheck !== today) {
-              localStorage.setItem('teyra_last_daily_check', today);
-              
-              // Trigger sync to check tasks
-              try {
-                await registration.sync.register('daily-task-check');
-              } catch (error) {
-                console.log('Could not register sync, checking directly...');
-                // If sync not available, check directly
-                const response = await fetch('/api/tasks');
-                if (response.ok) {
-                  const tasks = await response.json();
-                  const incompleteTasks = tasks.filter((t: any) => !t.completed && !t.title.includes('[COMPLETED]'));
-                  
-                  if (incompleteTasks.length > 5) {
-                    const lastNotification = localStorage.getItem('teyra_last_notification_date');
-                    if (lastNotification !== today && registration.active) {
-                      const messages = [
-                        "bro can you lock in you have so much stuff to do",
-                        "bro can you lock the hell in holy shit",
-                        "yo you're procrastinating again 💀 get back to work",
-                        "bro what the hell are you doing? you got tasks",
-                        "dude stop wasting time and get your shit done",
-                        "bro get your ass back to work fr"
-                      ];
-                      const message = messages[Math.floor(Math.random() * messages.length)];
-                      
-                      registration.active.postMessage({
-                        type: 'TRIGGER_NOTIFICATION',
-                        message: message
-                      });
-                      
-                      localStorage.setItem('teyra_last_notification_date', today);
-                    }
-                  }
+          // Set up check interval - check every 2 hours for progressive notifications
+          const checkProgressive = async () => {
+            // Trigger sync to check tasks (will respect 2-hour minimum interval)
+            try {
+              await registration.sync.register('daily-task-check');
+            } catch (error) {
+              console.log('Could not register sync, checking directly...');
+              // If sync not available, check directly
+              const response = await fetch('/api/tasks');
+              if (response.ok) {
+                const tasks = await response.json();
+                const incompleteTasks = tasks.filter((t: any) => !t.completed && !t.title.includes('[COMPLETED]'));
+                
+                if (incompleteTasks.length > 5 && registration.active) {
+                  // Let service worker handle the progressive notification logic
+                  registration.active.postMessage({
+                    type: 'CHECK_AND_NOTIFY'
+                  });
                 }
               }
             }
           };
           
-          // Check immediately and then set up interval
-          checkDaily();
-          dailyInterval = setInterval(checkDaily, 60 * 60 * 1000); // Check every hour
+          // Check immediately and then set up interval (every 2 hours)
+          checkProgressive();
+          dailyInterval = setInterval(checkProgressive, 2 * 60 * 60 * 1000); // Check every 2 hours
         } catch (error) {
           console.error('❌ Service Worker registration failed:', error);
         }

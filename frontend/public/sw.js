@@ -6,35 +6,49 @@ const urlsToCache = [
   '/offline'
 ];
 
-// Gen Z notification messages (all lowercase, with appropriate curse words)
-const GENZ_NOTIFICATIONS = [
+// Gen Z notification messages - Progressive anger levels (like an Asian dad)
+const GENZ_NOTIFICATIONS_TIER1 = [
+  // Calm/First notification
+  "do your work bro",
+  "hey you got tasks waiting",
   "bro can you lock in you have so much stuff to do",
-  "bro can you lock the hell in holy shit",
-  "yo you're procrastinating again 💀 get back to work",
+  "yo check your tasks real quick",
+  "bro your tasks are calling you"
+];
+
+const GENZ_NOTIFICATIONS_TIER2 = [
+  // Angrier (after ~2 hours)
+  "I will TAKE UR PHONE DO YOUR WORK",
   "bro stop scrolling and do your tasks fr",
-  "you have tasks waiting... are we being fr right now?",
-  "lock in bro your tasks aren't gonna do themselves",
-  "stop the scroll and get back to productivity mode",
-  "bro you're on social media again... your tasks are crying",
-  "can you actually focus rn? you got stuff to do",
-  "yo get off that app and check your tasks 💯",
+  "yo you're procrastinating again 💀 get back to work",
   "bro what the hell are you doing? you got tasks",
   "dude stop wasting time and get your shit done",
   "bro you're slacking hard rn... lock in",
+  "DO YOUR WORK",
+  "bro get your ass back to work fr"
+];
+
+const GENZ_NOTIFICATIONS_TIER3 = [
+  // Very angry (after multiple notifications)
+  "WHAT THE HELL ARE YOU DOING WITH YOUR LIFE",
+  "bro you're on social media again... your tasks are crying",
   "yo your tasks are piling up and you're doing nothing",
-  "bro get your ass back to work fr",
-  "dude what are you even doing? check your tasks",
   "bro stop being lazy and get back to productivity",
   "yo you're slacking so hard right now 💀",
   "bro your tasks are waiting and you're doing nothing",
   "dude get off your phone and do your tasks",
   "bro you're procrastinating so hard rn",
-  "yo stop wasting time and lock in",
   "bro what the hell? you got so much to do",
   "dude your tasks aren't gonna complete themselves",
   "bro get back to work you're slacking",
-  "im waiting for you big boy",
-  "DO YOUR WORK"
+  "im waiting for you big boy"
+];
+
+// All notifications combined (fallback)
+const GENZ_NOTIFICATIONS = [
+  ...GENZ_NOTIFICATIONS_TIER1,
+  ...GENZ_NOTIFICATIONS_TIER2,
+  ...GENZ_NOTIFICATIONS_TIER3
 ];
 
 // Store last notification date in IndexedDB
@@ -92,44 +106,85 @@ async function setLastNotificationDate() {
   }
 }
 
-// Get a random notification that's different from the last one
-async function getRandomNotification() {
+// Get notification based on progression (like an Asian dad getting angrier)
+async function getProgressiveNotification() {
   try {
     const db = await openDB();
     return new Promise((resolve) => {
       const transaction = db.transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.get('last-notification-message');
-      request.onsuccess = () => {
-        const result = request.result;
-        const lastMessage = result ? result.message : null;
+      
+      // Get notification history
+      const getHistory = store.get('notification-history');
+      getHistory.onsuccess = () => {
+        const history = getHistory.result || { count: 0, firstNotificationTime: null, lastMessage: null };
+        const now = Date.now();
+        const twoHours = 2 * 60 * 60 * 1000; // 2 hours in ms
         
-        // Filter out the last message if it exists
-        let availableMessages = GENZ_NOTIFICATIONS;
-        if (lastMessage && GENZ_NOTIFICATIONS.length > 1) {
-          availableMessages = GENZ_NOTIFICATIONS.filter(msg => msg !== lastMessage);
+        let tier;
+        let availableMessages;
+        
+        // Determine tier based on progression
+        if (history.count === 0) {
+          // First notification - Tier 1 (calm)
+          tier = 1;
+          availableMessages = GENZ_NOTIFICATIONS_TIER1;
+        } else if (history.firstNotificationTime && (now - history.firstNotificationTime) < twoHours) {
+          // Less than 2 hours since first - still Tier 1
+          tier = 1;
+          availableMessages = GENZ_NOTIFICATIONS_TIER1;
+        } else if (history.count < 3) {
+          // After 2+ hours but less than 3 notifications - Tier 2 (angry)
+          tier = 2;
+          availableMessages = GENZ_NOTIFICATIONS_TIER2;
+        } else {
+          // 3+ notifications - Tier 3 (very angry)
+          tier = 3;
+          availableMessages = GENZ_NOTIFICATIONS_TIER3;
         }
         
-        // Pick a random message from available ones
+        // Filter out last message if it exists
+        if (history.lastMessage && availableMessages.length > 1) {
+          availableMessages = availableMessages.filter(msg => msg !== history.lastMessage);
+        }
+        
+        // Pick random message from tier
         const randomMessage = availableMessages[Math.floor(Math.random() * availableMessages.length)];
         
-        // Store this as the last message
+        // Update history
         const writeTransaction = db.transaction([STORE_NAME], 'readwrite');
         const writeStore = writeTransaction.objectStore(STORE_NAME);
-        writeStore.put({ id: 'last-notification-message', message: randomMessage });
         
+        const newHistory = {
+          count: history.count + 1,
+          firstNotificationTime: history.firstNotificationTime || now,
+          lastMessage: randomMessage,
+          lastNotificationTime: now,
+          tier: tier
+        };
+        
+        writeStore.put({ id: 'notification-history', ...newHistory });
+        
+        console.log(`📱 Notification Tier ${tier}: "${randomMessage}" (count: ${newHistory.count})`);
         resolve(randomMessage);
       };
-      request.onerror = () => {
-        // Fallback to random if IndexedDB fails
-        resolve(GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)]);
+      
+      getHistory.onerror = () => {
+        // Fallback to Tier 1 if IndexedDB fails
+        resolve(GENZ_NOTIFICATIONS_TIER1[Math.floor(Math.random() * GENZ_NOTIFICATIONS_TIER1.length)]);
       };
     });
   } catch (error) {
-    console.error('Error getting random notification:', error);
-    // Fallback to random
-    return GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
+    console.error('Error getting progressive notification:', error);
+    // Fallback to Tier 1
+    return GENZ_NOTIFICATIONS_TIER1[Math.floor(Math.random() * GENZ_NOTIFICATIONS_TIER1.length)];
   }
+}
+
+// Get a random notification that's different from the last one
+async function getRandomNotification() {
+  // Use progressive notification instead
+  return await getProgressiveNotification();
 }
 
 // Install event - cache essential files
@@ -251,16 +306,9 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Check if user should be notified (only if >5 tasks and not notified today)
+// Check if user should be notified (only if >5 tasks)
 async function checkAndNotify() {
   try {
-    // Check if we already sent a notification today
-    const alreadySent = await wasNotificationSentToday();
-    if (alreadySent) {
-      console.log('📱 Notification already sent today, skipping...');
-      return;
-    }
-
     // Get tasks from API
     // Try to fetch directly from the service worker
     let tasks = [];
@@ -315,9 +363,62 @@ async function checkAndNotify() {
 
     const incompleteTasks = tasks.filter(t => !t.completed && !t.title.includes('[COMPLETED]'));
     
+    // Reset notification history if tasks drop below 5 (user completed some!)
+    if (incompleteTasks.length <= 5) {
+      try {
+        const db = await openDB();
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        store.delete('notification-history');
+        console.log('✅ Notification history reset (tasks completed!)');
+      } catch (e) {
+        console.log('Could not reset notification history');
+      }
+      console.log('📱 Only', incompleteTasks.length, 'tasks - no notification (need >5)');
+      return;
+    }
+    
     // Only notify if there are MORE than 5 incomplete tasks
     if (incompleteTasks.length > 5) {
-      const randomMessage = await getRandomNotification();
+      // Check notification history for timing and limits
+      const db = await openDB();
+      const today = new Date().toDateString();
+      const historyRequest = await new Promise((resolve) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get('notification-history');
+        request.onsuccess = () => {
+          const history = request.result || { count: 0, firstNotificationTime: null, lastNotificationTime: null };
+          const lastNotificationDate = history.lastNotificationTime ? new Date(history.lastNotificationTime).toDateString() : null;
+          
+          // Reset count if it's a new day
+          if (lastNotificationDate !== today) {
+            resolve({ count: 0, firstNotificationTime: null, lastNotificationTime: null });
+          } else {
+            resolve(history);
+          }
+        };
+        request.onerror = () => resolve({ count: 0, firstNotificationTime: null, lastNotificationTime: null });
+      });
+      
+      const history = historyRequest;
+      
+      // Don't send more than 4 notifications per day
+      if (history.count >= 4) {
+        console.log('📱 Max notifications reached for today (4)');
+        return;
+      }
+      
+      // Check if enough time has passed since last notification (at least 2 hours)
+      const now = Date.now();
+      const twoHours = 2 * 60 * 60 * 1000;
+      if (history.lastNotificationTime && (now - history.lastNotificationTime) < twoHours) {
+        console.log('📱 Too soon since last notification (need 2+ hours)');
+        return;
+      }
+      
+      // Get progressive notification (will update history internally)
+      const randomMessage = await getProgressiveNotification();
       
       await self.registration.showNotification('Teyra', {
         body: randomMessage,
@@ -344,7 +445,7 @@ async function checkAndNotify() {
 
       // Mark notification as sent today
       await setLastNotificationDate();
-      console.log('✅ Daily notification sent for', incompleteTasks.length, 'tasks');
+      console.log('✅ Progressive notification sent for', incompleteTasks.length, 'tasks');
     } else {
       console.log('📱 Only', incompleteTasks.length, 'tasks - no notification (need >5)');
     }
@@ -366,7 +467,7 @@ self.addEventListener('notificationclose', (event) => {
 // Message handler - allows API/client to trigger notifications and check tasks
 self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'TRIGGER_NOTIFICATION') {
-    const message = event.data.message || await getRandomNotification();
+    const message = event.data.message || await getProgressiveNotification();
     
     // Clean notification format - message in body to avoid truncation
     self.registration.showNotification('Teyra', {
@@ -391,6 +492,11 @@ self.addEventListener('message', async (event) => {
         }
       ]
     });
+  }
+  
+  // Handle check and notify request from client
+  if (event.data && event.data.type === 'CHECK_AND_NOTIFY') {
+    await checkAndNotify();
   }
 
   // Handle task fetching request from service worker (client-side handler)
