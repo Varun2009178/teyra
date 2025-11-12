@@ -1632,8 +1632,8 @@ function MVPDashboard() {
       
       // Try direct notification first (for testing)
       try {
-        const testNotification = new Notification('bro can you lock in you have so much stuff to do', {
-          body: '',
+        const testNotification = new Notification('Teyra', {
+          body: 'bro can you lock in you have so much stuff to do',
           icon: '/teyra-logo-64kb.png',
           badge: '/teyra-logo-64kb.png',
           tag: 'teyra-test',

@@ -32,7 +32,9 @@ const GENZ_NOTIFICATIONS = [
   "yo stop wasting time and lock in",
   "bro what the hell? you got so much to do",
   "dude your tasks aren't gonna complete themselves",
-  "bro get back to work you're slacking"
+  "bro get back to work you're slacking",
+  "im waiting for you big boy",
+  "DO YOUR WORK"
 ];
 
 // Store last notification date in IndexedDB
@@ -90,6 +92,46 @@ async function setLastNotificationDate() {
   }
 }
 
+// Get a random notification that's different from the last one
+async function getRandomNotification() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const transaction = db.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get('last-notification-message');
+      request.onsuccess = () => {
+        const result = request.result;
+        const lastMessage = result ? result.message : null;
+        
+        // Filter out the last message if it exists
+        let availableMessages = GENZ_NOTIFICATIONS;
+        if (lastMessage && GENZ_NOTIFICATIONS.length > 1) {
+          availableMessages = GENZ_NOTIFICATIONS.filter(msg => msg !== lastMessage);
+        }
+        
+        // Pick a random message from available ones
+        const randomMessage = availableMessages[Math.floor(Math.random() * availableMessages.length)];
+        
+        // Store this as the last message
+        const writeTransaction = db.transaction([STORE_NAME], 'readwrite');
+        const writeStore = writeTransaction.objectStore(STORE_NAME);
+        writeStore.put({ id: 'last-notification-message', message: randomMessage });
+        
+        resolve(randomMessage);
+      };
+      request.onerror = () => {
+        // Fallback to random if IndexedDB fails
+        resolve(GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)]);
+      };
+    });
+  } catch (error) {
+    console.error('Error getting random notification:', error);
+    // Fallback to random
+    return GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
+  }
+}
+
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -124,12 +166,12 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Push notification event
-self.addEventListener('push', (event) => {
+self.addEventListener('push', async (event) => {
   const data = event.data ? event.data.json() : {};
-  const message = data.message || GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
+  const message = data.message || await getRandomNotification();
   
   const options = {
-    body: '',
+    body: message,
     icon: '/teyra-logo-64kb.png',
     badge: '/teyra-logo-64kb.png',
     vibrate: [200, 100, 200],
@@ -154,7 +196,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(message, options)
+    self.registration.showNotification('Teyra', options)
   );
 });
 
@@ -275,10 +317,10 @@ async function checkAndNotify() {
     
     // Only notify if there are MORE than 5 incomplete tasks
     if (incompleteTasks.length > 5) {
-      const randomMessage = GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
+      const randomMessage = await getRandomNotification();
       
-      await self.registration.showNotification(randomMessage, {
-        body: '',
+      await self.registration.showNotification('Teyra', {
+        body: randomMessage,
         icon: '/teyra-logo-64kb.png',
         badge: '/teyra-logo-64kb.png',
         vibrate: [200, 100, 200],
@@ -324,11 +366,11 @@ self.addEventListener('notificationclose', (event) => {
 // Message handler - allows API/client to trigger notifications and check tasks
 self.addEventListener('message', async (event) => {
   if (event.data && event.data.type === 'TRIGGER_NOTIFICATION') {
-    const message = event.data.message || GENZ_NOTIFICATIONS[Math.floor(Math.random() * GENZ_NOTIFICATIONS.length)];
+    const message = event.data.message || await getRandomNotification();
     
-    // Clean notification format - just message, no redundant title
-    self.registration.showNotification(message, {
-      body: '',
+    // Clean notification format - message in body to avoid truncation
+    self.registration.showNotification('Teyra', {
+      body: message,
       icon: '/teyra-logo-64kb.png',
       badge: '/teyra-logo-64kb.png',
       vibrate: [200, 100, 200],

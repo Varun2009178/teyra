@@ -28,7 +28,9 @@ const GENZ_NOTIFICATIONS = [
   "yo stop wasting time and lock in",
   "bro what the hell? you got so much to do",
   "dude your tasks aren't gonna complete themselves",
-  "bro get back to work you're slacking"
+  "bro get back to work you're slacking",
+  "im waiting for you big boy",
+  "DO YOUR WORK"
 ];
 
 export async function POST(request: NextRequest) {
