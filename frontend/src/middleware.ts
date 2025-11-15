@@ -13,6 +13,12 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron(.*)',
   '/api/calendar/callback', // Google OAuth callback - validates auth internally
   '/api/stripe/callback', // Stripe checkout return - handles auth internally
+  '/api/ios-signup',
+  '/api/ios-sync',
+  '/api/test-ios',
+  '/api/user', // iOS fallback create route
+  '/api/user/sync',
+  '/api/user/delete',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
