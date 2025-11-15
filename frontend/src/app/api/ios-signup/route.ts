@@ -44,11 +44,15 @@ export async function POST(request: Request) {
       // Check if user already exists by email
       const existingUsers = await serverClerk.users.getUserList({
         emailAddress: [email],
+        limit: 1,
       });
 
-      if (existingUsers.data.length > 0) {
+      const existingUser =
+        Array.isArray(existingUsers) ? existingUsers[0] : existingUsers?.data?.[0];
+
+      if (existingUser) {
         console.log(`✅ User already exists in Clerk: ${email}`);
-        userId = existingUsers.data[0].id;
+        userId = existingUser.id;
       } else {
         // Create new Clerk user
         const newUser = await serverClerk.users.createUser({
