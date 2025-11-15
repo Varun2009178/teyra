@@ -1,11 +1,13 @@
-import { clerkClient } from '@clerk/nextjs/server';
+import { clerkClient, auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { serviceSupabase } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request) {
   try {
-    const { userId } = await request.json();
+    const body = await request.json();
+    const { userId } = body;
 
     if (!userId) {
       return NextResponse.json(
@@ -14,31 +16,71 @@ export async function DELETE(request: Request) {
       );
     }
 
-    console.log(`🗑️ iOS: Deleting user ${userId} from Clerk`);
+    // Verify the session token from Authorization header
+    const authHeader = request.headers.get('Authorization');
+    let authenticatedUserId: string | undefined;
 
-    // Delete from Clerk (webhook will clean up Supabase)
-    await clerkClient.users.deleteUser(userId);
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const { userId: verifiedUserId } = await auth();
+        if (verifiedUserId) {
+          authenticatedUserId = verifiedUserId;
+        }
+      } catch (authError) {
+        // Auth verification failed - might be mock auth
+        console.log(`⚠️ Auth verification failed, using userId from request`);
+      }
+    }
 
-    console.log(`✅ Successfully deleted Clerk user: ${userId}`);
-    console.log(`📝 Webhook will handle Supabase cleanup for user: ${userId}`);
+    // Verify that the authenticated user matches the userId being deleted
+    // (users can only delete their own account)
+    if (authenticatedUserId && authenticatedUserId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Cannot delete another user\'s account' },
+        { status: 403 }
+      );
+    }
+
+    console.log(`🗑️ iOS: Deleting user ${userId}`);
+
+    // Delete from Supabase first (before Clerk deletion)
+    try {
+      const userTables = ['tasks', 'user_progress', 'user_behavior_events', 
+                         'user_behavior_analysis', 'daily_checkins', 'moods', 
+                         'user_ai_patterns', 'user_behavior'];
+      
+      for (const table of userTables) {
+        try {
+          await serviceSupabase.from(table).delete().eq('user_id', userId);
+          console.log(`✅ Deleted from ${table} for user ${userId}`);
+        } catch (error) {
+          console.error(`⚠️ Error deleting from ${table}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error deleting Supabase data:`, error);
+      // Continue with Clerk deletion even if Supabase deletion fails
+    }
+
+    // Delete from Clerk (webhook will also try to clean up, but we've already done it)
+    try {
+      await clerkClient.users.deleteUser(userId);
+      console.log(`✅ Successfully deleted Clerk user: ${userId}`);
+    } catch (error: any) {
+      if (error?.status === 404) {
+        console.log(`⚠️ User ${userId} not found in Clerk (may already be deleted)`);
+      } else {
+        throw error;
+      }
+    }
 
     return NextResponse.json({ 
       success: true,
-      message: 'User deleted successfully. Supabase cleanup will be handled by webhook.'
+      message: 'User deleted successfully'
     });
 
   } catch (error: any) {
     console.error('❌ Error deleting user:', error);
-
-    // Check if it's a verification error
-    if (error?.message?.includes('verification') ||
-        error?.message?.includes('auth factor') ||
-        error?.status === 422) {
-      return NextResponse.json({
-        error: 'Account deletion requires additional verification. Please contact support or try again later.',
-        code: 'VERIFICATION_REQUIRED'
-      }, { status: 422 });
-    }
 
     // Handle user not found
     if (error?.status === 404 || error?.message?.includes('not found')) {

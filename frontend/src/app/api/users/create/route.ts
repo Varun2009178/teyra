@@ -1,5 +1,6 @@
 import { clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { createUserProgress, serviceSupabase } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,56 +17,82 @@ export async function POST(request: Request) {
       );
     }
 
+    let userId: string;
+
     // If clerkUserId is provided, user already exists in Clerk (from iOS app)
-    // Just ensure they exist in Supabase via webhook or direct creation
     if (clerkUserId) {
       console.log(`📱 iOS: User ${clerkUserId} already exists in Clerk, ensuring Supabase entry exists`);
+      userId = clerkUserId;
+    } else {
+      // Create new user in Clerk
+      console.log(`📱 iOS: Creating new user in Clerk with email: ${email}`);
       
-      // The webhook should have already created the entry, but we can verify
-      // For now, just return success - webhook handles Supabase creation
-      return NextResponse.json({
-        success: true,
-        clerkUserId: clerkUserId,
-        message: 'User already exists in Clerk'
-      });
+      try {
+        const user = await clerkClient.users.createUser({
+          emailAddress: [email],
+          username: username || undefined,
+          password: password || undefined,
+          skipPasswordChecks: !password,
+          skipPasswordRequirement: !password
+        });
+
+        userId = user.id;
+        console.log(`✅ Created Clerk user: ${userId}`);
+      } catch (error: any) {
+        // Handle duplicate email - try to find existing user
+        if (error?.errors?.[0]?.message?.includes('already exists') || 
+            error?.status === 422) {
+          console.log(`⚠️ User might already exist, attempting to find by email: ${email}`);
+          try {
+            const users = await clerkClient.users.getUserList({ emailAddress: [email] });
+            if (users.data && users.data.length > 0) {
+              userId = users.data[0].id;
+              console.log(`✅ Found existing Clerk user: ${userId}`);
+            } else {
+              throw new Error('User not found and could not be created');
+            }
+          } catch (findError) {
+            return NextResponse.json(
+              { error: 'Failed to create or find user in Clerk', details: error.message },
+              { status: 500 }
+            );
+          }
+        } else {
+          throw error;
+        }
+      }
     }
 
-    // Create new user in Clerk
-    console.log(`📱 iOS: Creating new user in Clerk with email: ${email}`);
-    
-    const user = await clerkClient.users.createUser({
-      emailAddress: [email],
-      username: username || undefined,
-      password: password || 'temporary-password-user-will-reset', // iOS app should provide password
-      skipPasswordChecks: !password, // Skip checks if no password provided (user will reset)
-      skipPasswordRequirement: !password
-    });
+    // Ensure user exists in Supabase (create user_progress entry if needed)
+    try {
+      // Check if user_progress already exists
+      const { data: existingProgress } = await serviceSupabase
+        .from('user_progress')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
 
-    console.log(`✅ Created Clerk user: ${user.id}`);
-
-    // Clerk webhook will automatically create entry in Supabase user_progress
-    // But we can also manually create it here if needed (optional)
-    // The webhook handles this, so we don't need to do it here
+      if (!existingProgress || existingProgress.length === 0) {
+        console.log(`🔄 Creating user_progress entry for: ${userId}`);
+        await createUserProgress(userId);
+        console.log(`✅ Created user_progress entry for: ${userId}`);
+      } else {
+        console.log(`✅ User ${userId} already has user_progress entry`);
+      }
+    } catch (error: any) {
+      console.error(`❌ Error ensuring user in Supabase:`, error);
+      // Don't fail the request - webhook will handle it, or we can retry later
+    }
 
     return NextResponse.json({
       success: true,
-      clerkUserId: user.id,
-      email: user.emailAddresses[0]?.emailAddress,
-      username: user.username
+      userId,
+      message: 'User created successfully'
     });
 
   } catch (error: any) {
     console.error('❌ Error creating user:', error);
     
-    // Handle duplicate email error
-    if (error?.errors?.[0]?.message?.includes('already exists') || 
-        error?.status === 422) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
-      );
-    }
-
     return NextResponse.json(
       { error: 'Failed to create user', details: error.message || 'Unknown error' },
       { status: 500 }
