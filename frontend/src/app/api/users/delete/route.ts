@@ -5,6 +5,10 @@ import { serviceSupabase } from '@/lib/supabase-service';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Prevent caching of this route
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 // Add GET endpoint for testing
 export async function GET() {
   return NextResponse.json({ 
@@ -49,7 +53,14 @@ export async function DELETE(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: 'User ID is required' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
       );
     }
 
@@ -114,6 +125,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       message: 'User deleted successfully'
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
 
   } catch (error: any) {
