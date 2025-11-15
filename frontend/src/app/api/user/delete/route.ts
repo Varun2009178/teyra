@@ -4,18 +4,41 @@ import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
+// Also accept POST for iOS app compatibility
+export async function POST(request: NextRequest) {
+  return handleDelete(request);
+}
+
 export async function DELETE(request: NextRequest) {
+  return handleDelete(request);
+}
+
+async function handleDelete(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    // Parse request body once
+    const body = await request.json().catch(() => ({}));
+    
+    // Try to get userId from auth() first (for web)
+    let userId: string | undefined;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch (authError) {
+      // Auth failed - might be mock auth, use body
+      userId = body.userId;
+    }
+
+    // If still no userId, get from body (for iOS/mock auth)
+    if (!userId) {
+      userId = body.userId;
+    }
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized - userId required' }, { status: 401 });
     }
 
     console.log(`🗑️ Starting account deletion for user: ${userId}`);
 
-    // Parse request body to get verification token if provided
-    const body = await request.json().catch(() => ({}));
     const { verificationToken } = body;
 
     // First, let's check what data exists for this user
