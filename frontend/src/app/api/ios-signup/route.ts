@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createUserProgress, serviceSupabase } from '@/lib/supabase-service';
-import { createClerkClient } from '@clerk/backend';
+import { createClerkClient } from '@clerk/clerk-sdk-node';
 
 // Force dynamic - NO CACHING
 export const dynamic = 'force-dynamic';
