@@ -3,14 +3,21 @@ import Stripe from 'stripe';
 import { auth } from '@clerk/nextjs/server';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-});
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecret
+  ? new Stripe(stripeSecret, {
+      apiVersion: '2024-12-18.acacia',
+    })
+  : null;
 
 // Using shared singleton
 
 export async function POST(req: NextRequest) {
   try {
+    if (!stripe) {
+      console.error('Stripe secret key missing; cannot cancel subscription');
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+    }
     const { userId } = await auth();
 
     if (!userId) {
