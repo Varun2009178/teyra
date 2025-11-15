@@ -6,6 +6,7 @@ import { createUserProgress, serviceSupabase } from '@/lib/supabase-service';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
+export const runtime = 'nodejs';
 
 // Brand new endpoint to avoid Vercel cache issues
 export async function POST(request: NextRequest) {
