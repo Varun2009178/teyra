@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { clerkClient } from '@clerk/nextjs/server';
 import { createUserProgress, serviceSupabase } from '@/lib/supabase-service';
+import { createClerkClient } from '@clerk/backend';
 
 // Force dynamic - NO CACHING
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 export const runtime = 'nodejs';
+
+const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+const serverClerk = clerkSecretKey
+  ? createClerkClient({ secretKey: clerkSecretKey })
+  : null;
 
 // Brand new endpoint to avoid Vercel cache issues
 export async function POST(request: Request) {
@@ -25,11 +30,19 @@ export async function POST(request: Request) {
 
     let userId: string;
 
+    if (!serverClerk) {
+      console.error('❌ Missing CLERK_SECRET_KEY - cannot create user');
+      return NextResponse.json(
+        { error: 'Clerk backend not configured' },
+        { status: 500 }
+      );
+    }
+
     console.log(`🔄 Creating new Clerk user for: ${email}`);
     
     try {
       // Check if user already exists by email
-      const existingUsers = await clerkClient.users.getUserList({
+      const existingUsers = await serverClerk.users.getUserList({
         emailAddress: [email],
       });
 
@@ -38,7 +51,7 @@ export async function POST(request: Request) {
         userId = existingUsers.data[0].id;
       } else {
         // Create new Clerk user
-        const newUser = await clerkClient.users.createUser({
+        const newUser = await serverClerk.users.createUser({
           emailAddress: [email],
           username: username || undefined,
           password: password || `temp_${Math.random().toString(36).substring(7)}`,
