@@ -8,6 +8,10 @@ import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { ReferralTracker } from '@/components/ReferralTracker'
 import { MobileServiceWorker } from '@/components/MobileServiceWorker'
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const revalidate = 0
+
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
