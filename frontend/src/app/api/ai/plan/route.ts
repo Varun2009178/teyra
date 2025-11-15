@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
+// Lazy initialization to avoid build-time errors
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build'
+  });
+}
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -41,7 +43,7 @@ Generate a realistic, achievable day plan with 3-6 tasks. Consider:
 
 respond with only a json array of task titles, nothing else. example: ["9:00 AM - Review emails and prioritize", "10:30 AM - Deep work on main project", "1:00 PM - Team meeting prep"]`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         {

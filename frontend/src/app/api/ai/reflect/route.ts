@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
+// Lazy initialization to avoid build-time errors
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build'
+  });
+}
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -34,7 +36,7 @@ provide a brief, encouraging reflection (2-3 sentences max). be:
 
 focus on patterns, consistency, or next steps.`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         {

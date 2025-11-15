@@ -3,10 +3,12 @@ import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
-
+// Lazy initialization to avoid build-time errors
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build'
+  });
+}
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     // Use Groq to parse the text and extract actionable tasks
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       messages: [
         {
           role: 'system',
