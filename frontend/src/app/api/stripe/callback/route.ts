@@ -3,6 +3,10 @@ import { auth } from '@clerk/nextjs/server';
 
 // This route handles the redirect back from Stripe
 // It's public because Clerk session might have expired during checkout
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();

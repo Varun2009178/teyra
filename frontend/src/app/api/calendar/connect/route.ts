@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUrl } from '@/lib/google-calendar';
 import { auth } from '@clerk/nextjs/server';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     // Get the current user ID

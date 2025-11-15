@@ -4,6 +4,10 @@ import { fetchCalendarEvents, refreshAccessToken } from '@/lib/google-calendar';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
 import { auth } from '@clerk/nextjs/server';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();

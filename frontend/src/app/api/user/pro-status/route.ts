@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
 // Using shared singleton
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
 
 // GET /api/user/pro-status - Check if user has Pro subscription
 export async function GET(req: NextRequest) {
