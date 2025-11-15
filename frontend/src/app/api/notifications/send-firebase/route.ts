@@ -3,21 +3,35 @@ import { getAuth } from 'firebase-admin/auth';
 import { getMessaging } from 'firebase-admin/messaging';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
+const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
+const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const hasFirebaseConfig = Boolean(firebaseProjectId && firebasePrivateKey && firebaseClientEmail);
+
 // Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
+if (hasFirebaseConfig && !getApps().length) {
   initializeApp({
     credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      projectId: firebaseProjectId,
+      privateKey: firebasePrivateKey,
+      clientEmail: firebaseClientEmail,
     }),
   });
+} else if (!hasFirebaseConfig) {
+  console.warn('Firebase admin credentials missing; notifications API will be disabled');
 }
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!hasFirebaseConfig) {
+      return NextResponse.json(
+        { error: 'Firebase not configured on server' },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { userId, notification, fcmToken } = body;
 
