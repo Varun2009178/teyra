@@ -13,10 +13,38 @@ export async function GET() {
   });
 }
 
+// Handle OPTIONS for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'DELETE, GET, OPTIONS, POST',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
+// Temporary workaround: Also handle POST with _method=DELETE for iOS compatibility
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  if (body._method === 'DELETE' || request.headers.get('X-HTTP-Method-Override') === 'DELETE') {
+    console.log('🔄 POST request with DELETE method override');
+    return DELETE(request);
+  }
+  return NextResponse.json({ error: 'Use DELETE method or POST with _method=DELETE' }, { status: 405 });
+}
+
 export async function DELETE(request: NextRequest) {
+  console.log('🗑️ DELETE /api/users/delete called');
+  console.log('Request method:', request.method);
+  console.log('Request URL:', request.url);
+  
   try {
     const body = await request.json();
     const { userId } = body;
+    
+    console.log('Request body userId:', userId);
 
     if (!userId) {
       return NextResponse.json(
