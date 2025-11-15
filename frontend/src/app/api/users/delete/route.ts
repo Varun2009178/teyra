@@ -1,10 +1,19 @@
 import { clerkClient, auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { serviceSupabase } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-export async function DELETE(request: Request) {
+// Add GET endpoint for testing
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'DELETE endpoint is available at /api/users/delete',
+    method: 'DELETE'
+  });
+}
+
+export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId } = body;
