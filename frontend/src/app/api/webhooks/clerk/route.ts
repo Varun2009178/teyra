@@ -85,9 +85,11 @@ export async function POST(req: Request) {
     try {
       console.log(`👤 Webhook: Creating user progress record for: ${id}`);
       
-      // Get user email from Clerk payload
+      // Get user email and username from Clerk payload
       const userEmail = evt.data.email_addresses?.[0]?.email_address;
+      const username = evt.data.username;
       console.log(`📧 User email: ${userEmail}`);
+      console.log(`👤 Username: ${username || 'N/A'}`);
       
       // First check if user_progress already exists by user_id to prevent duplicates
       const { data: existingProgress, error: checkError } = await serviceSupabase

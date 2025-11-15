@@ -133,3 +133,5 @@ navigator.serviceWorker.ready.then(registration => {
 - iOS Safari has limited background sync support but notifications work
 - Notifications only show if user has incomplete tasks
 
+
+
