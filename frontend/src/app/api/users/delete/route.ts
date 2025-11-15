@@ -31,12 +31,106 @@ export async function OPTIONS() {
 
 // Temporary workaround: Also handle POST with _method=DELETE for iOS compatibility
 export async function POST(request: NextRequest) {
+  console.log('🔄 POST /api/users/delete called (DELETE override)');
   const body = await request.json().catch(() => ({}));
-  if (body._method === 'DELETE' || request.headers.get('X-HTTP-Method-Override') === 'DELETE') {
-    console.log('🔄 POST request with DELETE method override');
-    return DELETE(request);
+  const methodOverride = body._method === 'DELETE' || request.headers.get('X-HTTP-Method-Override') === 'DELETE';
+  
+  if (!methodOverride) {
+    return NextResponse.json({ error: 'Use DELETE method or POST with _method=DELETE' }, { status: 405 });
   }
-  return NextResponse.json({ error: 'Use DELETE method or POST with _method=DELETE' }, { status: 405 });
+  
+  console.log('✅ Method override detected, processing delete...');
+  
+  // Execute delete logic directly (same as DELETE handler)
+  try {
+    const { userId } = body;
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify the session token from Authorization header
+    const authHeader = request.headers.get('Authorization');
+    let authenticatedUserId: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const { userId: verifiedUserId } = await auth();
+        if (verifiedUserId) {
+          authenticatedUserId = verifiedUserId;
+        }
+      } catch (authError) {
+        console.log(`⚠️ Auth verification failed, using userId from request`);
+      }
+    }
+
+    // Verify that the authenticated user matches the userId being deleted
+    if (authenticatedUserId && authenticatedUserId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Cannot delete another user\'s account' },
+        { status: 403 }
+      );
+    }
+
+    console.log(`🗑️ iOS: Deleting user ${userId}`);
+
+    // Delete from Supabase first
+    try {
+      const userTables = ['tasks', 'user_progress', 'user_behavior_events', 
+                         'user_behavior_analysis', 'daily_checkins', 'moods', 
+                         'user_ai_patterns', 'user_behavior'];
+      
+      for (const table of userTables) {
+        try {
+          await serviceSupabase.from(table).delete().eq('user_id', userId);
+          console.log(`✅ Deleted from ${table} for user ${userId}`);
+        } catch (error) {
+          console.error(`⚠️ Error deleting from ${table}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error deleting Supabase data:`, error);
+    }
+
+    // Delete from Clerk
+    try {
+      await clerkClient.users.deleteUser(userId);
+      console.log(`✅ Successfully deleted Clerk user: ${userId}`);
+    } catch (error: any) {
+      if (error?.status === 404) {
+        console.log(`⚠️ User ${userId} not found in Clerk (may already be deleted)`);
+      } else {
+        throw error;
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'User deleted successfully'
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      }
+    });
+
+  } catch (error: any) {
+    console.error('❌ Error deleting user:', error);
+    
+    if (error?.status === 404 || error?.message?.includes('not found')) {
+      return NextResponse.json({
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
+      }, { status: 404 });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to delete user', details: error.message || 'Unknown error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(request: NextRequest) {
