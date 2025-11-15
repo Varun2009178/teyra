@@ -1,11 +1,22 @@
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 
-// Service role client for admin operations
-export const serviceSupabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const serviceSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co'
+const serviceSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-service-key'
+
+export const hasServiceSupabase = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
 )
+
+// Service role client for admin operations (falls back to placeholder during builds)
+export const serviceSupabase = createClient(serviceSupabaseUrl, serviceSupabaseKey)
+
+function requireServiceSupabase() {
+  if (!hasServiceSupabase) {
+    throw new Error('Supabase service client is not configured (missing env vars)')
+  }
+  return serviceSupabase
+}
 
 // Task-related operations
 export async function getUserTasks(userId: string) {
