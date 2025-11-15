@@ -16,6 +16,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/ios-signup',
   '/api/ios-sync',
   '/api/ios-avatar',
+  '/api/ios/tasks',
+  '/api/ios/tasks/(.*)',
+  '/api/ios/stats',
   '/api/test-ios',
   '/api/user', // iOS fallback create route
   '/api/user/sync',
