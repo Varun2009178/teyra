@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
-});
+// Lazy initialization to avoid build-time errors
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build'
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +23,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
     }
 
+    // Check if GROQ API key is configured
+    if (!process.env.GROQ_API_KEY) {
+      console.warn('GROQ_API_KEY not configured, returning default values');
+      return NextResponse.json({
+        title: 'untitled',
+        tags: [],
+        summary: ''
+      });
+    }
+
     // Use Groq AI to auto-generate title and tags
+    const groq = getGroqClient();
     const completion = await groq.chat.completions.create({
       messages: [
         {
