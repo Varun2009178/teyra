@@ -2,13 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
-});
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const stripe = stripeSecret
+  ? new Stripe(stripeSecret, {
+      apiVersion: '2024-12-18.acacia',
+    })
+  : null;
 
 // Using shared singleton
 
 export async function POST(req: NextRequest) {
+  if (!stripe || !webhookSecret) {
+    console.error('Stripe secrets missing; cannot process webhook');
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature')!;
 
@@ -18,7 +27,7 @@ export async function POST(req: NextRequest) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     );
   } catch (err: any) {
     console.error('⚠️ Webhook signature verification failed:', err.message);
