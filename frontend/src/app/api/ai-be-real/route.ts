@@ -4,9 +4,12 @@ import Groq from 'groq-sdk';
 
 export const dynamic = 'force-dynamic';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build',
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +60,7 @@ Your response should be in this JSON format:
 
 Be specific about the tasks, don't give generic advice. Look at the actual task titles and suggest realistic alternatives.`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       messages: [
         {
           role: "system",

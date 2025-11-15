@@ -4,9 +4,11 @@ import Groq from 'groq-sdk';
 
 export const dynamic = 'force-dynamic';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build',
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +85,7 @@ Example for "tired":
 
     console.log('🤖 Calling GROQ API for mood-based tasks...');
     
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       messages: [
         {
           role: "system",

@@ -5,9 +5,11 @@ import { createTask, deleteTask } from '@/lib/supabase-service';
 
 export const dynamic = 'force-dynamic';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build',
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +55,7 @@ Example:
 For "Plan birthday party" you might return:
 ["Create guest list (10 people)", "Choose venue and date", "Send invitations this week"]`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       messages: [
         {
           role: "system",
