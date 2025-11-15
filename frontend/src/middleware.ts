@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/stripe/callback', // Stripe checkout return - handles auth internally
   '/api/ios-signup',
   '/api/ios-sync',
+  '/api/ios-avatar',
   '/api/test-ios',
   '/api/user', // iOS fallback create route
   '/api/user/sync',
