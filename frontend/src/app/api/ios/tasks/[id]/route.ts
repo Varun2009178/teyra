@@ -7,19 +7,22 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 export const runtime = 'nodejs';
 
-type MobileTask = {
-  id: string;
-  title: string;
+type TaskPayload = {
+  title?: string;
   description?: string | null;
-  isCompleted: boolean;
-  createdAt?: string;
-  completedAt?: string | null;
+  isCompleted?: boolean;
+  hasBeenSplit?: boolean;
+  limit?: string | null;
+  scheduledTime?: string | null;
+  googleEventId?: string | null;
+  durationMinutes?: number | null;
   dueDate?: string | null;
-  category?: string;
-  lastNotificationSent?: string | null;
-  notificationCount?: number;
-  escalationLevel?: number;
-  hasEverBeenCompleted?: boolean;
+  priority?: string | null;
+  project?: string | null;
+  timeBlock?: number | null;
+  parentTaskId?: number | null;
+  clientId?: string;
+  userId?: string;
 };
 
 async function resolveUserId(fallback?: string): Promise<string | undefined> {
@@ -34,23 +37,41 @@ async function resolveUserId(fallback?: string): Promise<string | undefined> {
   return fallback;
 }
 
-function mapTaskToRow(task: MobileTask, userId: string) {
-  const createdAt = task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString();
+function buildRow(payload: TaskPayload) {
+  const now = new Date().toISOString();
   return {
-    id: task.id,
-    user_id: userId,
-    title: task.title ?? 'task',
-    description: task.description ?? null,
-    completed: Boolean(task.isCompleted),
-    created_at: createdAt,
-    completed_at: task.completedAt ?? null,
-    due_date: task.dueDate ?? null,
-    category: task.category ?? 'none',
-    last_notification_sent: task.lastNotificationSent ?? null,
-    notification_count: task.notificationCount ?? 0,
-    escalation_level: task.escalationLevel ?? 0,
-    has_ever_been_completed: task.hasEverBeenCompleted ?? Boolean(task.isCompleted),
+    title: payload.title ?? 'task',
+    description: payload.description ?? null,
+    completed: payload.isCompleted ?? false,
+    has_been_split: payload.hasBeenSplit ?? false,
+    limit: payload.limit ?? null,
+    scheduled_time: payload.scheduledTime ?? null,
+    google_event_id: payload.googleEventId ?? null,
+    duration_minutes: payload.durationMinutes ?? null,
+    due_date: payload.dueDate ?? null,
+    priority: payload.priority ?? null,
+    project: payload.project ?? null,
+    time_block: payload.timeBlock ?? null,
+    parent_task_id: payload.parentTaskId ?? null,
+    updated_at: now,
   };
+}
+
+async function resolveServerId(paramId: string, clientId?: string, userId?: string) {
+  const parsed = Number.parseInt(paramId, 10);
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+  if (clientId && userId) {
+    const { data } = await serviceSupabase
+      .from('tasks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('client_task_id', clientId)
+      .maybeSingle();
+    return data?.id;
+  }
+  return undefined;
 }
 
 export async function PUT(
@@ -58,31 +79,43 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const taskId = params.id;
-    const body = await request.json().catch(() => ({}));
-    const fallbackUserId = body.userId as string | undefined;
-    const userId = await resolveUserId(fallbackUserId);
+    const body = (await request.json().catch(() => ({}))) as TaskPayload;
+    const userId = await resolveUserId(body.userId);
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const row = mapTaskToRow({ ...body, id: taskId }, userId);
+    const serverId = await resolveServerId(params.id, body.clientId, userId);
+    if (!serverId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    const row = buildRow(body);
     const { data, error } = await serviceSupabase
       .from('tasks')
-      .upsert(row, { onConflict: 'id' })
-      .select()
+      .update(row)
+      .eq('user_id', userId)
+      .eq('id', serverId)
+      .select('*')
       .single();
 
     if (error) {
-      console.error(`❌ Error updating iOS task ${taskId}:`, error);
+      console.error(`❌ Error updating iOS task ${serverId}:`, error);
       return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
     }
 
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
+    return NextResponse.json({
+      serverId: data.id,
+      clientId: data.client_task_id,
+      title: data.title,
+      description: data.description,
+      isCompleted: Boolean(data.completed),
+      updatedAt: data.updated_at ?? null,
+      dueDate: data.due_date ?? null,
+      priority: data.priority ?? null,
+      project: data.project ?? null,
+      durationMinutes: data.duration_minutes ?? null,
     });
   } catch (error) {
     console.error('❌ Unexpected error in PUT /api/ios/tasks/[id]:', error);
@@ -96,22 +129,34 @@ export async function DELETE(
 ) {
   try {
     const url = new URL(request.url);
-    const fallbackUserId =
-      url.searchParams.get('userId') ?? (await request.json().catch(() => ({}))).userId;
+    let fallbackUserId = url.searchParams.get('userId') ?? undefined;
+    let clientId: string | undefined = url.searchParams.get('clientId') ?? undefined;
+
+    if (!fallbackUserId) {
+      const body = await request.json().catch(() => ({}));
+      fallbackUserId = body.userId;
+      clientId = clientId ?? body.clientId;
+    }
+
     const userId = await resolveUserId(fallbackUserId);
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const serverId = await resolveServerId(params.id, clientId, userId);
+    if (!serverId) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
     const { error } = await serviceSupabase
       .from('tasks')
       .delete()
       .eq('user_id', userId)
-      .eq('id', params.id);
+      .eq('id', serverId);
 
     if (error) {
-      console.error(`❌ Error deleting iOS task ${params.id}:`, error);
+      console.error(`❌ Error deleting iOS task ${serverId}:`, error);
       return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
     }
 
@@ -125,5 +170,3 @@ export async function DELETE(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-

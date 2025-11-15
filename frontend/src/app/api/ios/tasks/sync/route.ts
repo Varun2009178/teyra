@@ -7,19 +7,23 @@ export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 export const runtime = 'nodejs';
 
-type MobileTask = {
-  id: string;
-  title: string;
+type SyncTaskPayload = {
+  serverId?: number;
+  clientId?: string;
+  userId?: string;
+  title?: string;
   description?: string | null;
-  isCompleted: boolean;
-  createdAt?: string;
-  completedAt?: string | null;
+  isCompleted?: boolean;
+  hasBeenSplit?: boolean;
+  limit?: string | null;
+  scheduledTime?: string | null;
+  googleEventId?: string | null;
+  durationMinutes?: number | null;
   dueDate?: string | null;
-  category?: string;
-  lastNotificationSent?: string | null;
-  notificationCount?: number;
-  escalationLevel?: number;
-  hasEverBeenCompleted?: boolean;
+  priority?: string | null;
+  project?: string | null;
+  timeBlock?: number | null;
+  parentTaskId?: number | null;
 };
 
 async function resolveUserId(fallback?: string): Promise<string | undefined> {
@@ -34,29 +38,35 @@ async function resolveUserId(fallback?: string): Promise<string | undefined> {
   return fallback;
 }
 
-function mapTaskToRow(task: MobileTask, userId: string) {
-  const createdAt = task.createdAt ? new Date(task.createdAt).toISOString() : new Date().toISOString();
-  return {
-    id: task.id,
+function buildRow(payload: SyncTaskPayload, userId: string) {
+  const now = new Date().toISOString();
+  const row: Record<string, any> = {
     user_id: userId,
-    title: task.title ?? 'task',
-    description: task.description ?? null,
-    completed: Boolean(task.isCompleted),
-    created_at: createdAt,
-    completed_at: task.completedAt ?? null,
-    due_date: task.dueDate ?? null,
-    category: task.category ?? 'none',
-    last_notification_sent: task.lastNotificationSent ?? null,
-    notification_count: task.notificationCount ?? 0,
-    escalation_level: task.escalationLevel ?? 0,
-    has_ever_been_completed: task.hasEverBeenCompleted ?? Boolean(task.isCompleted),
+    title: payload.title ?? 'task',
+    description: payload.description ?? null,
+    completed: payload.isCompleted ?? false,
+    has_been_split: payload.hasBeenSplit ?? false,
+    limit: payload.limit ?? null,
+    scheduled_time: payload.scheduledTime ?? null,
+    google_event_id: payload.googleEventId ?? null,
+    duration_minutes: payload.durationMinutes ?? null,
+    due_date: payload.dueDate ?? null,
+    priority: payload.priority ?? null,
+    project: payload.project ?? null,
+    time_block: payload.timeBlock ?? null,
+    parent_task_id: payload.parentTaskId ?? null,
+    updated_at: now,
   };
+  if (payload.clientId) {
+    row.client_task_id = payload.clientId;
+  }
+  return row;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const tasks = (body.tasks as MobileTask[]) ?? [];
+    const tasks = (body.tasks as SyncTaskPayload[]) ?? [];
     const fallbackUserId = body.userId as string | undefined;
     const userId = await resolveUserId(fallbackUserId);
 
@@ -64,43 +74,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (tasks.length === 0) {
-      await serviceSupabase.from('tasks').delete().eq('user_id', userId);
-      return NextResponse.json({ success: true });
-    }
+    const createdMappings: { clientId: string; serverId: number }[] = [];
 
-    const rows = tasks.map((task) => mapTaskToRow(task, userId));
-    const { error } = await serviceSupabase
-      .from('tasks')
-      .upsert(rows, { onConflict: 'id' });
+    for (const task of tasks) {
+      if (!task.clientId) {
+        continue;
+      }
 
-    if (error) {
-      console.error('❌ Error syncing iOS tasks:', error);
-      return NextResponse.json({ error: 'Failed to sync tasks' }, { status: 500 });
-    }
+      const row = buildRow(task, userId);
 
-    // Remove tasks that no longer exist on the device
-    const incomingIds = new Set(tasks.map((task) => task.id));
-    const { data: existing, error: fetchError } = await serviceSupabase
-      .from('tasks')
-      .select('id')
-      .eq('user_id', userId);
+      if (task.serverId) {
+        await serviceSupabase
+          .from('tasks')
+          .update(row)
+          .eq('user_id', userId)
+          .eq('id', task.serverId);
+      } else {
+        const { data, error } = await serviceSupabase
+          .from('tasks')
+          .upsert(row, { onConflict: 'client_task_id' })
+          .select('id, client_task_id')
+          .single();
 
-    if (!fetchError && existing) {
-      const idsToDelete = existing
-        .map((row) => row.id?.toString())
-        .filter((id): id is string => Boolean(id) && !incomingIds.has(id as string));
+        if (error) {
+          console.error('❌ Error syncing task:', error);
+          return NextResponse.json({ error: 'Failed to sync tasks' }, { status: 500 });
+        }
 
-      if (idsToDelete.length > 0) {
-        await serviceSupabase.from('tasks').delete().in('id', idsToDelete);
+        if (data?.id && data?.client_task_id) {
+          createdMappings.push({ clientId: data.client_task_id, serverId: data.id });
+        }
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, created: createdMappings });
   } catch (error) {
     console.error('❌ Unexpected error in POST /api/ios/tasks/sync:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-
