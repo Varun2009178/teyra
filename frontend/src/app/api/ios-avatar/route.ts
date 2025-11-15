@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
+import { File } from 'node:buffer';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -31,10 +32,12 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(imageBase64, 'base64');
-    const blob = new Blob([buffer], { type: mimeType || 'image/jpeg' });
+    const type = mimeType || 'image/jpeg';
+    const extension = type.split('/').pop() || 'jpg';
+    const file = new File([buffer], `avatar.${extension}`, { type });
 
-    const updatedUser = await serverClerk.users.setProfileImage(userId, {
-      file: blob,
+    const updatedUser = await serverClerk.users.updateUserProfileImage(userId, {
+      file,
     });
 
     return NextResponse.json(
@@ -66,5 +69,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
