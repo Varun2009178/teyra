@@ -4,12 +4,27 @@ import { createClient } from '@supabase/supabase-js';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function getGroqClient() {
+  return new Groq({
+    apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build',
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.error('Supabase environment variables missing; cannot run auto-schedule');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      console.warn('GROQ_API_KEY missing; auto-schedule will not run');
+      return NextResponse.json({ error: 'AI scheduling temporarily unavailable' }, { status: 503 });
+    }
+
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -21,8 +36,8 @@ export async function POST(request: NextRequest) {
     console.log('🌍 User timezone received:', userTimezone);
 
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      supabaseUrl,
+      supabaseServiceRoleKey
     );
 
     // Get all unscheduled tasks
@@ -234,7 +249,7 @@ Return ONLY valid JSON array. No markdown, no explanations.`;
     console.log('🤖 Sending scheduling request to AI...');
     console.log('📝 AI Prompt:', aiPrompt.substring(0, 500) + '...');
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         {

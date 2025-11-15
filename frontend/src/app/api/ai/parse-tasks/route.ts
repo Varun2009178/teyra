@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { serviceSupabase as supabase } from '@/lib/supabase-service';
+import { createClient } from '@supabase/supabase-js';
 
 // Lazy initialization to avoid build-time errors
 function getGroqClient() {
@@ -9,6 +10,9 @@ function getGroqClient() {
     apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build'
   });
 }
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();
@@ -97,44 +101,48 @@ Rules:
       }));
 
     // Increment daily_parses counter for usage tracking (only for free users)
-    try {
-      // Check Pro status DIRECTLY from database
-      const supabaseClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      console.warn('Supabase environment variables missing; skipping usage tracking');
+    } else {
+      try {
+        // Check Pro status DIRECTLY from database
+        const supabaseClient = createClient(
+          supabaseUrl,
+          supabaseServiceRoleKey
+        );
 
-      const { data: proData } = await supabaseClient
-        .from('user_progress')
-        .select('is_pro')
-        .eq('user_id', userId)
-        .single();
-
-      const isPro = proData?.is_pro || false;
-
-      // Only increment for non-Pro users
-      if (!isPro) {
-        // Using shared singleton
-
-        const { data: userProgress } = await supabase
+        const { data: proData } = await supabaseClient
           .from('user_progress')
-          .select('daily_parses')
+          .select('is_pro')
           .eq('user_id', userId)
           .single();
 
-        const newParseCount = (userProgress?.daily_parses || 0) + 1;
-        await supabase
-          .from('user_progress')
-          .update({ daily_parses: newParseCount })
-          .eq('user_id', userId);
+        const isPro = proData?.is_pro || false;
 
-        console.log(`📊 Incremented daily_parses for user ${userId}: ${newParseCount}`);
-      } else {
-        console.log(`👑 Pro user ${userId} - skipping parse increment (unlimited)`);
+        // Only increment for non-Pro users
+        if (!isPro) {
+          // Using shared singleton
+
+          const { data: userProgress } = await supabase
+            .from('user_progress')
+            .select('daily_parses')
+            .eq('user_id', userId)
+            .single();
+
+          const newParseCount = (userProgress?.daily_parses || 0) + 1;
+          await supabase
+            .from('user_progress')
+            .update({ daily_parses: newParseCount })
+            .eq('user_id', userId);
+
+          console.log(`📊 Incremented daily_parses for user ${userId}: ${newParseCount}`);
+        } else {
+          console.log(`👑 Pro user ${userId} - skipping parse increment (unlimited)`);
+        }
+      } catch (error) {
+        console.error('Failed to increment daily_parses counter:', error);
+        // Don't fail the request if counter update fails
       }
-    } catch (error) {
-      console.error('Failed to increment daily_parses counter:', error);
-      // Don't fail the request if counter update fails
     }
 
     return NextResponse.json({
