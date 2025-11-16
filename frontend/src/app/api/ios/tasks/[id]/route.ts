@@ -132,20 +132,29 @@ export async function DELETE(
     let fallbackUserId = url.searchParams.get('userId') ?? undefined;
     let clientId: string | undefined = url.searchParams.get('clientId') ?? undefined;
 
+    // Try to get userId from body if not in query params
     if (!fallbackUserId) {
-      const body = await request.json().catch(() => ({}));
-      fallbackUserId = body.userId;
-      clientId = clientId ?? body.clientId;
+      try {
+        const body = await request.json();
+        fallbackUserId = body.userId;
+        clientId = clientId ?? body.clientId;
+      } catch {
+        // No body or invalid JSON, continue with query params
+      }
     }
 
     const userId = await resolveUserId(fallbackUserId);
 
     if (!userId) {
+      console.error('❌ DELETE /api/ios/tasks/[id]: No userId found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log(`🗑️ Deleting task ${params.id} for user ${userId}`);
+
     const serverId = await resolveServerId(params.id, clientId, userId);
     if (!serverId) {
+      console.error(`❌ Task ${params.id} not found for user ${userId}`);
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
@@ -159,6 +168,8 @@ export async function DELETE(
       console.error(`❌ Error deleting iOS task ${serverId}:`, error);
       return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
     }
+
+    console.log(`✅ Successfully deleted task ${serverId}`);
 
     return NextResponse.json({ success: true }, {
       headers: {

@@ -66,9 +66,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await serviceSupabase
       .from('user_progress')
-      .select(
-        'notification_preferences, tasks_completed, current_streak, longest_streak, consecutive_days_active, last_active_date, last_notification_tap_date, notification_tap_count'
-      )
+      .select('notification_preferences, tasks_completed')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -119,12 +117,6 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       notification_preferences: updatedPrefs,
       tasks_completed: stats.totalTasksCompleted,
-      current_streak: stats.currentStreak,
-      longest_streak: stats.longestStreak,
-      consecutive_days_active: stats.consecutiveDaysActive,
-      last_active_date: stats.lastActiveDate ?? null,
-      last_notification_tap_date: stats.lastNotificationTapDate ?? null,
-      notification_tap_count: stats.notificationTapCount,
       updated_at: new Date().toISOString(),
     });
 
