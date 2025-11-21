@@ -89,13 +89,13 @@ export default function ProBadgeDropdown() {
   }, [isOpen]);
 
   const dropdownContent = (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           className="fixed w-80 z-[9999] pointer-events-auto"
           style={{
             top: `${position.top}px`,
@@ -104,64 +104,64 @@ export default function ProBadgeDropdown() {
           }}
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
-        >
-          <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-4 shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
+          >
+            <div className="bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-4 shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-sm">teyra pro</h3>
+                  <p className="text-white/50 text-xs">Your active benefits</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-white font-bold text-sm">teyra pro</h3>
-                <p className="text-white/50 text-xs">Your active benefits</p>
-              </div>
-            </div>
 
-            {/* Features List */}
-            <div className="space-y-2">
-              {proFeatures.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`p-3 rounded-xl border transition-all ${
-                    feature.highlight
-                      ? 'liquid-glass border-white/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10'
-                      : 'liquid-glass-subtle border-white/10'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-base">{feature.icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-white font-semibold text-sm">{feature.title}</h4>
-                        {feature.highlight && (
-                          <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold rounded-full">
-                            NEW
-                          </span>
-                        )}
+              {/* Features List */}
+              <div className="space-y-2">
+                {proFeatures.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`p-3 rounded-xl border transition-all ${
+                      feature.highlight
+                        ? 'liquid-glass border-white/20 bg-gradient-to-r from-purple-500/10 to-pink-500/10'
+                        : 'liquid-glass-subtle border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-base">{feature.icon}</span>
                       </div>
-                      <p className="text-white/50 text-xs leading-relaxed">{feature.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-white font-semibold text-sm">{feature.title}</h4>
+                          {feature.highlight && (
+                            <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold rounded-full">
+                              NEW
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-white/50 text-xs leading-relaxed">{feature.description}</p>
+                      </div>
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-1" />
                     </div>
-                    <Check className="w-4 h-4 text-green-400 flex-shrink-0 mt-1" />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
 
-            {/* Footer */}
-            <div className="mt-4 pt-3 border-t border-white/10">
-              <p className="text-white/40 text-xs text-center">
-                Thank you for supporting teyra! 💜
-              </p>
+              {/* Footer */}
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <p className="text-white/40 text-xs text-center">
+                  Thank you for supporting teyra! 💜
+                </p>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
   );
 
   return (
@@ -176,7 +176,7 @@ export default function ProBadgeDropdown() {
         <div className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white font-semibold text-sm transition-all hover:bg-white/15 hover:border-white/30 cursor-default">
           PRO
         </div>
-      </div>
+    </div>
       {mounted && createPortal(dropdownContent, document.body)}
     </>
   );

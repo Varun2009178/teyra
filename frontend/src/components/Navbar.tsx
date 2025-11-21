@@ -103,72 +103,72 @@ export default function Navbar({
     <header className="border-b border-white/10 liquid-glass sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-8">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-3 focus:outline-none"
-              aria-label="Teyra Home"
-            >
-              <Image
-                src="/teyra-logo-64kb.png"
-                alt="Teyra"
-                width={40}
-                height={40}
-                className="w-10 h-10"
-                priority
-              />
-            </button>
+        <div className="flex items-center gap-4 sm:gap-8">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-3 focus:outline-none"
+            aria-label="Teyra Home"
+          >
+            <Image
+              src="/teyra-logo-64kb.png"
+              alt="Teyra"
+              width={40}
+              height={40}
+              className="w-10 h-10"
+              priority
+            />
+          </button>
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-4 lg:gap-6 text-base">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium ${
-                  isActive('/dashboard')
-                    ? 'text-white border-white/15 bg-white/5'
-                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-                }`}
-              >
-                All Tasks
-              </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium ${
+                isActive('/dashboard')
+                  ? 'text-white border-white/15 bg-white/5'
+                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+              }`}
+            >
+              All Tasks
+            </button>
 
-              <button
-                onClick={() => router.push('/dashboard/notes')}
-                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
-                  isActive('/dashboard/notes')
-                    ? 'text-white border-white/15 bg-white/5'
-                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Notes
-                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                  beta
-                </span>
-              </button>
+            <button
+              onClick={() => router.push('/dashboard/notes')}
+              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
+                isActive('/dashboard/notes')
+                  ? 'text-white border-white/15 bg-white/5'
+                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Notes
+              <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                beta
+              </span>
+            </button>
 
-              <button
-                onClick={() => router.push('/dashboard/calendar')}
-                className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
-                  isActive('/dashboard/calendar')
-                    ? 'text-white border-white/15 bg-white/5'
-                    : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
-                }`}
-              >
-                <Calendar className="w-4 h-4" />
-                Calendar
-                <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
-                  beta
-                </span>
-              </button>
+            <button
+              onClick={() => router.push('/dashboard/calendar')}
+              className={`px-3 py-1 rounded-lg border transition-all duration-150 font-medium flex items-center gap-2 ${
+                isActive('/dashboard/calendar')
+                  ? 'text-white border-white/15 bg-white/5'
+                  : 'text-white/70 hover:text-white border-transparent hover:border-white/15 hover:bg-white/10'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Calendar
+              <span className="px-1.5 py-0.5 bg-white/10 text-white/60 text-[10px] font-bold rounded uppercase tracking-wide">
+                beta
+              </span>
+            </button>
 
-              {isPro && <ProBadgeDropdown />}
-              {currentMood && (
-                <div className="text-white/50 text-sm">
-                  {currentMood.emoji} {currentMood.label}
-                </div>
-              )}
-            </nav>
+            {isPro && <ProBadgeDropdown />}
+            {currentMood && (
+              <div className="text-white/50 text-sm">
+                {currentMood.emoji} {currentMood.label}
+              </div>
+            )}
+          </nav>
 
             {/* Mobile Menu Button */}
             <button
@@ -182,65 +182,65 @@ export default function Navbar({
                 <Menu className="w-6 h-6" />
               )}
             </button>
-          </div>
+        </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Command Center Button - Visible on all devices */}
-            {onCommandMenuClick && (
-              <button
-                onClick={onCommandMenuClick}
-                className="w-9 h-9 flex items-center justify-center text-white/50 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20"
-                title="Command Center (Press / on desktop)"
-              >
-                <Command className="w-5 h-5" />
-              </button>
-            )}
-            {showAccountButton && (
-              <button
-                onClick={onAccountClick}
-                className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-                title="Account Status"
-              >
-                <User className="w-5 h-5" />
-              </button>
-            )}
-            {showSettings && (
-              <>
-                <button
-                  onClick={onSettingsClick}
-                  className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-                  title="Settings"
-                >
-                  <Settings className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={onHelpClick}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
-                  title="Help"
-                >
-                  <HelpCircle className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            <UserButton
-              afterSignOutUrl="/"
-              appearance={{
-                elements: {
-                  avatarBox: "w-9 h-9 rounded-full",
-                  userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
-                  userButtonTrigger: "rounded-full"
-                }
-              }}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Command Center Button - Visible on all devices */}
+          {onCommandMenuClick && (
+            <button
+              onClick={onCommandMenuClick}
+              className="w-9 h-9 flex items-center justify-center text-white/50 hover:text-white/80 transition-colors rounded-lg hover:bg-white/10 border border-white/10 hover:border-white/20"
+              title="Command Center (Press / on desktop)"
             >
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Delete Account"
-                  labelIcon={<Trash2 className="w-4 h-4" />}
-                  onClick={handleDeleteAccount}
-                />
-              </UserButton.MenuItems>
-            </UserButton>
-          </div>
+              <Command className="w-5 h-5" />
+            </button>
+          )}
+          {showAccountButton && (
+            <button
+              onClick={onAccountClick}
+              className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+              title="Account Status"
+            >
+              <User className="w-5 h-5" />
+            </button>
+          )}
+          {showSettings && (
+            <>
+              <button
+                onClick={onSettingsClick}
+                className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={onHelpClick}
+                className="hidden sm:flex w-9 h-9 items-center justify-center text-white/40 hover:text-white/70 transition-colors rounded hover:bg-white/5"
+                title="Help"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
+            </>
+          )}
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                avatarBox: "w-9 h-9 rounded-full",
+                userButtonPopover: "bg-zinc-900 border border-white/10 shadow-xl",
+                userButtonTrigger: "rounded-full"
+              }
+            }}
+          >
+            <UserButton.MenuItems>
+              <UserButton.Action
+                label="Delete Account"
+                labelIcon={<Trash2 className="w-4 h-4" />}
+                onClick={handleDeleteAccount}
+              />
+            </UserButton.MenuItems>
+          </UserButton>
+        </div>
         </div>
 
         {/* Mobile Collapsible Menu */}

@@ -76,12 +76,12 @@ export async function POST(request: NextRequest) {
 
     // Build task data object
     const taskData: any = {
-      user_id: userId,
-      title,
-      completed: false,
-      has_been_split: hasBeenSplit,
+          user_id: userId,
+          title,
+          completed: false,
+          has_been_split: hasBeenSplit,
       limit: limit || null,
-      scheduled_time: scheduled_time || null,
+          scheduled_time: scheduled_time || null,
       duration_minutes: duration_minutes || null,
     };
 
@@ -95,15 +95,15 @@ export async function POST(request: NextRequest) {
     const { data: newTask, error } = await supabase
       .from('tasks')
       .insert(taskData)
-      .select()
-      .single();
+        .select()
+        .single();
 
     if (error) {
       console.error('Error creating task:', error);
       throw error;
     }
 
-    return NextResponse.json(newTask);
+      return NextResponse.json(newTask);
   } catch (error) {
     console.error('Error creating task:', error);
     return NextResponse.json({

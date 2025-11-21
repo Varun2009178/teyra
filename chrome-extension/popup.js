@@ -871,11 +871,11 @@ function setupEventListeners() {
 
     // Debounce autocomplete to reduce lag
     autocompleteTimeout = setTimeout(() => {
-      if (value.startsWith('/')) {
-        showTemplateAutocomplete(value, this.selectionStart);
-      } else {
-        hideTemplateAutocomplete();
-      }
+    if (value.startsWith('/')) {
+      showTemplateAutocomplete(value, this.selectionStart);
+    } else {
+      hideTemplateAutocomplete();
+    }
     }, 150);
   });
 
@@ -1639,7 +1639,7 @@ function renderTasks() {
   
   // Use DocumentFragment for better performance
   const fragment = document.createDocumentFragment();
-  
+
   activeTasks.forEach(task => {
     const taskElement = document.createElement('div');
     taskElement.className = 'task-item liquid-glass-task';
@@ -1996,23 +1996,23 @@ function updateMikeMood(mood) {
   if (!mikeImg) return;
 
   // Instant update - no transition delay for better performance
-  switch (mood) {
-    case 'happy':
-      mikeImg.src = 'Happy.gif';
-      if (sparkles) sparkles.classList.remove('hidden');
-      if (plant) plant.classList.add('hidden');
-      break;
-    case 'sad':
-      mikeImg.src = 'Sad With Tears 2.gif';
-      if (sparkles) sparkles.classList.add('hidden');
-      if (plant) plant.classList.add('hidden');
-      break;
-    default: // neutral
-      mikeImg.src = 'Neutral Calm.gif';
-      if (sparkles) sparkles.classList.add('hidden');
-      if (plant) plant.classList.remove('hidden');
-      break;
-  }
+    switch (mood) {
+      case 'happy':
+        mikeImg.src = 'Happy.gif';
+        if (sparkles) sparkles.classList.remove('hidden');
+        if (plant) plant.classList.add('hidden');
+        break;
+      case 'sad':
+        mikeImg.src = 'Sad With Tears 2.gif';
+        if (sparkles) sparkles.classList.add('hidden');
+        if (plant) plant.classList.add('hidden');
+        break;
+      default: // neutral
+        mikeImg.src = 'Neutral Calm.gif';
+        if (sparkles) sparkles.classList.add('hidden');
+        if (plant) plant.classList.remove('hidden');
+        break;
+    }
 }
 
 // Listen for messages from the main app (when user signs in)

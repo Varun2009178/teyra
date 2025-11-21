@@ -102,17 +102,17 @@ const TaskCard = React.memo(({
         className="liquid-glass-task rounded-xl p-4 relative"
         onContextMenu={handleContextMenu}
       >
-        <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
           {/* Checkbox with liquid glass effect */}
           <button
-            onClick={handleToggle}
+          onClick={handleToggle}
             className={`relative w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${
-              task.completed
-                ? 'bg-white border-white shadow-lg'
-                : 'border-white/40 hover:border-white/70 liquid-glass-subtle'
-            }`}
-          >
-            {task.completed && (
+            task.completed
+              ? 'bg-white border-white shadow-lg'
+              : 'border-white/40 hover:border-white/70 liquid-glass-subtle'
+          }`}
+        >
+          {task.completed && (
               <Check className="w-4 h-4 text-black" strokeWidth={3} />
             )}
           </button>
@@ -123,14 +123,14 @@ const TaskCard = React.memo(({
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`text-base font-medium transition-colors task-title-text ${
-                  task.completed
-                    ? 'text-white/40 line-through'
-                    : 'text-white/90'
-                }`}
-              >
-                {task.title}
+            task.completed
+              ? 'text-white/40 line-through'
+              : 'text-white/90'
+          }`}
+        >
+          {task.title}
               </span>
-              
+
               {/* Priority badge */}
               {task.priority && (
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -198,7 +198,7 @@ const TaskCard = React.memo(({
                       </button>
                     ))}
                   </div>
-                )}
+        )}
               </div>
             )}
           </div>
@@ -214,36 +214,36 @@ const TaskCard = React.memo(({
           )}
 
           {/* Edit button */}
-          {onEdit && (
+        {onEdit && (
             <button
-              onClick={() => onEdit(task.id)}
+            onClick={() => onEdit(task.id)}
               className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-blue-400 liquid-glass-subtle rounded-lg opacity-70 hover:opacity-100"
-            >
-              <Edit className="w-4 h-4" />
+          >
+            <Edit className="w-4 h-4" />
             </button>
-          )}
+        )}
 
           {/* Delete button */}
           <button
-            onClick={() => onDelete(task.id)}
+          onClick={() => onDelete(task.id)}
             className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-red-400 liquid-glass-subtle rounded-lg disabled:opacity-40 disabled:cursor-not-allowed opacity-70 hover:opacity-100"
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4" />
-            )}
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
           </button>
-        </div>
-
-        {/* Progress indicator for new tasks */}
-        {task.isNew && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-blue-400 rounded-b-xl" />
-        )}
       </div>
 
-      {/* Context Menu */}
+        {/* Progress indicator for new tasks */}
+      {task.isNew && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-blue-400 rounded-b-xl" />
+      )}
+      </div>
+
+    {/* Context Menu */}
       {showContextMenu && (
         <div
           className="fixed z-50 bg-zinc-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden"
@@ -256,17 +256,17 @@ const TaskCard = React.memo(({
           <div className="py-1">
             {onEdit && (
               <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(task.id);
-                    setShowContextMenu(false);
-                  }}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(task.id);
+                  setShowContextMenu(false);
+                }}
                   className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-white/10 text-white/90 text-sm"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>edit</span>
-                </button>
+              >
+                <Edit className="w-4 h-4" />
+                <span>edit</span>
+              </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -311,7 +311,7 @@ const TaskCard = React.memo(({
           </div>
         </div>
       )}
-    </>
+  </>
   );
 });
 
@@ -1507,7 +1507,7 @@ function MVPDashboard() {
   const updateTask = async (taskId: number | string, updates: Partial<Task>) => {
     // Store original task for rollback
     const originalTask = tasks.find(t => t.id === taskId);
-    
+
     // Optimistically update
     setTasks(prev => prev.map(t => 
       t.id === taskId ? { ...t, ...updates } : t
@@ -1848,7 +1848,7 @@ function MVPDashboard() {
               {/* Whitelist Management */}
               <AnimatePresence>
                 {showFocusModeWhitelist && (
-                  <motion.div
+            <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -2116,19 +2116,19 @@ function MVPDashboard() {
                         {/* Tasks in this tag section */}
                         <div className="space-y-3">
                           {groupedTasksByTag.grouped[tag].map((task) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              onToggle={handleToggleTask}
-                              onDelete={handleDeleteTask}
-                              onEdit={handleEditTask}
-                              onManualSchedule={handleManualScheduleTask}
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          onToggle={handleToggleTask}
+                          onDelete={handleDeleteTask}
+                          onEdit={handleEditTask}
+                          onManualSchedule={handleManualScheduleTask}
                               onToggleSubtask={handleToggleSubtask}
-                              isSustainable={sustainableTasks.includes(task.title)}
-                              isDeleting={deletingTaskIds.has(task.id as number)}
-                              isPro={isPro}
-                            />
-                          ))}
+                          isSustainable={sustainableTasks.includes(task.title)}
+                          isDeleting={deletingTaskIds.has(task.id as number)}
+                          isPro={isPro}
+                        />
+                      ))}
                         </div>
                       </div>
                     ))}
@@ -2161,7 +2161,7 @@ function MVPDashboard() {
                 </div>
               </div>
 
-              <div className="liquid-glass-strong glass-gradient-blue rounded-lg p-6 lg:sticky lg:top-24 liquid-glass-depth">
+            <div className="liquid-glass-strong glass-gradient-blue rounded-lg p-6 lg:sticky lg:top-24 liquid-glass-depth">
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-white">Progress</h2>
 
@@ -2210,9 +2210,9 @@ function MVPDashboard() {
                     </motion.div>
                   )}
                 </div>
+                </div>
               </div>
             </div>
-          </div>
           </div>
           
         </div>

@@ -261,15 +261,15 @@ export default function Sidebar({
         {showAccountButton && (
           <div className="space-y-2">
             <div
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onAccountClick?.();
-                if (isMobile) setIsMobileOpen(false);
-              }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAccountClick?.();
+              if (isMobile) setIsMobileOpen(false);
+            }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/60 hover:text-white/90 text-sm font-medium group cursor-pointer"
-              title="Account Status"
-            >
+            title="Account Status"
+          >
               {user?.imageUrl ? (
                 <Image
                   src={user.imageUrl}
@@ -283,7 +283,7 @@ export default function Sidebar({
                   <User className="w-3 h-3 text-white/60" />
                 </div>
               )}
-              <span className="flex-1 text-left">Account</span>
+            <span className="flex-1 text-left">Account</span>
             </div>
             
             {/* Account Status Display */}
@@ -309,7 +309,7 @@ export default function Sidebar({
                   className="w-full mt-2 px-3 py-1.5 bg-white hover:bg-white/90 text-black rounded-lg text-xs font-semibold transition-colors"
                 >
                   upgrade to pro!
-                </button>
+          </button>
               )}
             </div>
           </div>
@@ -401,15 +401,15 @@ export default function Sidebar({
 
       {/* Mobile Sidebar Overlay - Only shown when isMobileOpen is true */}
       <AnimatePresence>
-        {isMobileOpen && (
-          <>
+      {isMobileOpen && (
+        <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-              onClick={() => setIsMobileOpen(false)}
-            />
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={() => setIsMobileOpen(false)}
+          />
             <motion.aside
               initial={{ x: -256 }}
               animate={{ x: 0 }}
@@ -417,20 +417,20 @@ export default function Sidebar({
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-black/90 via-black/85 to-black/90 backdrop-blur-xl border-r border-white/20 liquid-glass-strong z-50 flex flex-col shadow-2xl"
             >
-              <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-                <span className="text-white font-semibold text-lg">Menu</span>
-                <button
-                  onClick={() => setIsMobileOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+            <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
+              <span className="text-white font-semibold text-lg">Menu</span>
+              <button
+                onClick={() => setIsMobileOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/70 hover:text-white"
                   aria-label="Close menu"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <SidebarContent />
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <SidebarContent />
             </motion.aside>
-          </>
-        )}
+        </>
+      )}
       </AnimatePresence>
     </>
   );

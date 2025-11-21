@@ -1055,6 +1055,22 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Róki - Subtle iOS App Mention */}
+      <section className="py-12 px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center opacity-60 hover:opacity-80 transition-opacity duration-300">
+            <p className="text-xs text-white/30 font-geist-mono mb-2 tracking-wider uppercase">
+              also from teyra
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+              <span className="text-sm text-white/40">róki</span>
+              <span className="text-xs text-white/30">·</span>
+              <span className="text-xs text-white/40 italic">ios app with ai personalities that crash out at you if you aren't productive</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-8 text-center text-white/40 text-sm">
         <div className="font-geist-mono space-y-3">

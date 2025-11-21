@@ -44,10 +44,10 @@ export function TaskEditModal({ isOpen, onClose, task, onUpdateTask, onDeleteTas
 
   useEffect(() => {
     if (isOpen) {
-      if (task) {
-        setTitle(task.title);
-        setPriority(task.priority || null);
-        setDueDate(task.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : '');
+    if (task) {
+      setTitle(task.title);
+      setPriority(task.priority || null);
+      setDueDate(task.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : '');
         // Ensure tags are properly initialized - handle both array and null/undefined
         const tagsArray = Array.isArray(task.tags) ? task.tags : (task.tags ? [task.tags] : []);
         setTagsInput(tagsArray.filter(Boolean).join(', ') || '');
@@ -265,18 +265,18 @@ export function TaskEditModal({ isOpen, onClose, task, onUpdateTask, onDeleteTas
                   >
                     high
                   </button>
-                  <button
-                    type="button"
+                    <button
+                      type="button"
                     onClick={() => setPriority(priority === 'urgent' ? null : 'urgent')}
                     className={`py-3 rounded-lg text-sm font-light border transition-colors ${
                       priority === 'urgent'
                         ? priorityColors.urgent
                         : 'bg-white/5 text-white/40 border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20'
-                    }`}
-                    style={{ outline: 'none' }}
-                  >
+                      }`}
+                      style={{ outline: 'none' }}
+                    >
                     urgent
-                  </button>
+                    </button>
                 </div>
               </div>
 
@@ -387,15 +387,15 @@ export function TaskEditModal({ isOpen, onClose, task, onUpdateTask, onDeleteTas
               {/* Actions */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-white/10" style={{ background: 'transparent' }}>
                 {!isCreateMode && (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
+                <button
+                  type="button"
+                  onClick={handleDelete}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-red-400 font-light order-2 sm:order-1"
-                    style={{ outline: 'none', background: 'transparent' }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    delete task
-                  </button>
+                  style={{ outline: 'none', background: 'transparent' }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  delete task
+                </button>
                 )}
                 {isCreateMode && <div className="order-2 sm:order-1" />}
                 <div className="flex items-center gap-3 order-1 sm:order-2" style={{ background: 'transparent' }}>
